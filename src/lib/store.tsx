@@ -316,17 +316,19 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         cloud = res.storage === 'postgres';
         const serverData: AppData = { ...emptyData(), ...(res.data ?? {}) };
         next = pruneTombstones(mergeData(next, serverData));
-        if (isEmpty(next)) {
-          // Frischer Datenraum: Startinhalte anlegen und direkt hochladen.
+        // Startinhalte nur, wenn der Datenraum auf dem Server noch gar nicht
+        // existiert. Ein vorhandener, aber leerer Datenraum wurde bewusst
+        // leergeraeumt und darf nicht wieder aufgefuellt werden.
+        if (!res.exists && isEmpty(next)) {
           next = buildSeedData();
           dirtyRef.current = true;
         } else if (!sameData(next, serverData)) {
           dirtyRef.current = true;
         }
-      } else if (isEmpty(next)) {
-        next = buildSeedData();
-        dirtyRef.current = true;
       }
+      // Ohne Antwort vom Server wird bewusst nicht vorbefuellt: sonst kaeme
+      // auf einem Geraet ohne Netz Startinhalt in einen laengst genutzten
+      // Datenraum.
 
       commit(next);
       setReady(true);

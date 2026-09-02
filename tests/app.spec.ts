@@ -328,6 +328,30 @@ test.describe('Speichern und Synchronisieren', () => {
     await second.close();
   });
 
+  test('ein leergeraeumter Datenraum bleibt leer', async ({ page }) => {
+    const space = newSpace('empty');
+    await openSpace(page, space);
+
+    // Alle Startrezepte loeschen.
+    for (let i = 0; i < 20; i++) {
+      const card = page.getByRole('button', { name: /^Rezept .* öffnen$/ }).first();
+      if ((await card.count()) === 0) break;
+      await card.click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Rezept löschen' }).click();
+      await page.getByRole('button', { name: 'Löschen', exact: true }).click();
+    }
+    await expect(page.getByRole('button', { name: /^Rezept .* öffnen$/ })).toHaveCount(0);
+    await waitForSync(page);
+
+    // Ein "neues" Geraet darf die Startinhalte nicht wieder anlegen.
+    const second = await page.context().browser()!.newContext();
+    const other = await second.newPage();
+    await other.goto(`/s/${space}`);
+    await expect(other.getByText('Noch keine Rezepte')).toBeVisible();
+    await expect(other.getByRole('button', { name: /^Rezept .* öffnen$/ })).toHaveCount(0);
+    await second.close();
+  });
+
   test('der Einstellungsdialog zeigt den teilbaren Link', async ({ page }) => {
     const space = newSpace('settings');
     await openSpace(page, space);

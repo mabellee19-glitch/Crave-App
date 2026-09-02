@@ -1,0 +1,142 @@
+# CRAVE
+
+Persönliche Koch- und Einkaufs-App. Mobile-first, läuft im Browser (Safari auf
+iPhone und iPad, Chrome, Edge, Firefox) und lässt sich zum Home-Bildschirm
+hinzufügen. Kein App Store nötig.
+
+Drei Bereiche:
+
+- **Rezepte** – Sammlung mit Zutaten, Zubereitungsschritten und Kochmodus.
+- **Gerichte** – Essensideen in den Kategorien High-Protein, Comfort und Vegi,
+  optional mit einem Rezept verknüpft.
+- **Einkaufsliste** – aktive Liste plus dauerhafte Grundliste mit
+  Standard-Zutaten.
+
+## Was die App kann
+
+| Bereich | Funktion |
+| --- | --- |
+| Rezepte | Anlegen, bearbeiten, löschen; Bild, Kategorie, Portionen, Zeit |
+| Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
+| Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
+| Kochmodus | Timer pro Schritt mit Ton und Vibration, Display bleibt an |
+| Gerichte | Filter nach Kategorie und Favoriten, Suche |
+| Gerichte | Verknüpfte Gerichte öffnen direkt das hinterlegte Rezept |
+| Einkaufsliste | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
+| Einkaufsliste | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
+| Grundliste | Antippen legt eine Zutat in die aktive Liste |
+| Rezept → Liste | Zutaten werden mit Mengen übernommen und zusammengefasst |
+| Überall | Favoriten, Suche, automatisches Speichern, Geräte-Abgleich |
+
+## Der Link ist der Datenraum
+
+Beim ersten Aufruf legt die App einen Datenraum an und leitet auf
+`https://…/s/<id>` weiter. **Dieser Link ist der Zugang zu den Daten.** Wer ihn
+öffnet – iPhone, iPad, Computer – sieht denselben Stand. Den Link findest du
+jederzeit unter `Einstellungen & Sync` und kannst ihn von dort teilen.
+
+Der Datenraum ist nicht passwortgeschützt. Die Id ist lang und zufällig, aber
+teile den Link nur mit Leuten, die die Daten sehen dürfen.
+
+## Lokal starten
+
+```bash
+npm install
+npm run dev
+```
+
+Die App läuft dann auf `http://localhost:3000`. Ohne `DATABASE_URL` legt der
+Server die Daten als JSON-Dateien unter `./data` ab – gut zum Ausprobieren,
+aber nicht für den Dauerbetrieb.
+
+## Cloud-Datenbank einrichten (für den Geräte-Abgleich)
+
+Die App braucht eine Postgres-Datenbank, damit iPhone und iPad denselben Stand
+sehen. Jede Postgres-Datenbank funktioniert (Neon, Supabase, Vercel Postgres,
+eigener Server). Die Tabelle wird beim ersten Zugriff selbst angelegt.
+
+1. Datenbank anlegen und den Connection-String kopieren.
+2. Als Umgebungsvariable `DATABASE_URL` hinterlegen (lokal in `.env.local`,
+   siehe `.env.example`).
+3. Neu starten. In `Einstellungen & Sync` steht danach, dass der Abgleich
+   aktiv ist.
+
+Ohne diese Variable funktioniert die App weiter, speichert serverseitig aber
+nur flüchtig – der Abgleich zwischen Geräten ist dann nicht verlässlich. Die
+App weist im Einstellungsdialog darauf hin.
+
+## Auf Vercel veröffentlichen
+
+1. Repository auf [vercel.com](https://vercel.com) importieren – Next.js wird
+   automatisch erkannt, es sind keine Build-Einstellungen nötig.
+2. Im Projekt unter `Storage` eine Postgres-Datenbank (Neon) anlegen und mit
+   dem Projekt verbinden. Vercel setzt `DATABASE_URL` dann selbst.
+3. Neu deployen. Fertig – der Link aus Schritt 1 ist die App.
+
+Optional: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` als Umgebungsvariable setzen,
+dann lädt der Build die Test-Browser nicht mit herunter.
+
+## Zum Home-Bildschirm hinzufügen (iPhone / iPad)
+
+Link in Safari öffnen → «Teilen» → «Zum Home-Bildschirm». Die App startet
+danach im Vollbild ohne Adressleiste und öffnet direkt den richtigen
+Datenraum, weil jedes `/s/<id>` sein eigenes Web-App-Manifest ausliefert.
+
+## Wie das Speichern funktioniert
+
+Die App ist *local-first*:
+
+1. Jede Änderung landet sofort im lokalen Speicher des Geräts – die Oberfläche
+   wartet nie auf das Netz und funktioniert auch offline.
+2. Kurz darauf wird der Stand zum Server geschickt.
+3. Der Server führt beide Stände zusammen und schickt das Ergebnis zurück.
+4. Alle sieben Sekunden sowie beim Zurückkehren zur App wird erneut geholt.
+
+Zusammengeführt wird **pro Eintrag**, nicht pro Dokument: Wenn das iPhone ein
+Rezept ändert, während das iPad eine Zutat abhakt, bleiben beide Änderungen
+erhalten. Gelöschtes bekommt einen Grabstein-Eintrag, damit ein länger nicht
+benutztes Gerät nichts wiederbelebt.
+
+## Tests
+
+```bash
+npx playwright install chromium   # einmalig
+npm run test:e2e
+```
+
+Die Tests starten den Produktions-Build und prüfen Navigation, Rezept-CRUD,
+Portionsrechnung, Kochmodus, Timer, Einkaufsliste, Grundliste, Favoriten,
+Suche, Filter und den Abgleich zwischen zwei Geräten – je einmal in
+iPhone-Grösse und einmal in Desktop-Grösse.
+
+Safari lässt sich mit der WebKit-Engine prüfen:
+
+```bash
+npx playwright install webkit
+# in playwright.config.ts im Projekt "iphone" browserName auf 'webkit' setzen
+```
+
+## Aufbau
+
+```
+src/
+  app/
+    page.tsx                  Einstiegspunkt, legt den Datenraum an
+    s/[id]/page.tsx           die App
+    s/[id]/manifest/route.ts  Web-App-Manifest pro Datenraum
+    api/space/[id]/route.ts   Lesen und Zusammenführen der Daten
+    globals.css               Design-System, Farbpalette ganz oben
+  components/                 Oberfläche
+  lib/
+    store.tsx                 lokaler Zustand und Abgleich
+    merge.ts                  Zusammenführen zweier Stände
+    db.ts                     Postgres bzw. Datei-Fallback
+    units.ts                  Mengen, Einheiten, Zutatenerkennung
+    seed.ts                   Startinhalte
+```
+
+## Farben ändern
+
+Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`,
+jeweils einmal für hell und einmal für dunkel. Wer die Palette austauschen
+will, ändert nur diesen Block.

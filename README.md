@@ -61,6 +61,12 @@ eigener Server). Die Tabelle wird beim ersten Zugriff selbst angelegt.
 3. Neu starten. In `Einstellungen & Sync` steht danach, dass der Abgleich
    aktiv ist.
 
+Der Variablenname ist dabei nicht kritisch. Gesucht wird zuerst nach den
+üblichen Namen (`DATABASE_URL`, `POSTGRES_URL`, …) und danach nach jeder
+Umgebungsvariable, deren Wert wie eine Postgres-URL aussieht. Wer beim Hoster
+auf «Datenbank anlegen» klickt, muss hier also nichts anpassen. Welche
+Variable genutzt wird, verrät `/api/status` — nur ihr Name, nie ihr Inhalt.
+
 Ohne diese Variable funktioniert die App weiter, speichert serverseitig aber
 nur flüchtig – der Abgleich zwischen Geräten ist dann nicht verlässlich. Die
 App weist im Einstellungsdialog darauf hin.
@@ -100,8 +106,10 @@ benutztes Gerät nichts wiederbelebt.
 ## Tests
 
 ```bash
+npm run test:unit                 # Erkennung der Datenbank-Verbindung
 npx playwright install chromium   # einmalig
-npm run test:e2e
+npm run test:e2e                  # Oberfläche und Abgleich
+npm test                          # beides
 ```
 
 Die Tests starten den Produktions-Build und prüfen Navigation, Rezept-CRUD,
@@ -131,6 +139,7 @@ src/
     store.tsx                 lokaler Zustand und Abgleich
     merge.ts                  Zusammenführen zweier Stände
     db.ts                     Postgres bzw. Datei-Fallback
+    connection.ts             Finden der Datenbank-Verbindung
     units.ts                  Mengen, Einheiten, Zutatenerkennung
     seed.ts                   Startinhalte
 ```

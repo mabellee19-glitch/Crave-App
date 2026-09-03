@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Pool } from 'pg';
 import { AppData, emptyData } from './types';
+import { resolveConnection } from './connection';
 import { mergeData, pruneTombstones } from './merge';
 
 export interface SpaceRecord {
@@ -18,12 +19,12 @@ export function storageKind(): StorageKind {
 }
 
 function connectionString(): string | undefined {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_URL ||
-    process.env.POSTGRES_PRISMA_URL ||
-    undefined
-  );
+  return resolveConnection(process.env).url;
+}
+
+/** Name der genutzten Umgebungsvariable – nie deren Wert. */
+export function storageSource(): string | null {
+  return resolveConnection(process.env).source ?? null;
 }
 
 /* --------------------------------------------------------------------------

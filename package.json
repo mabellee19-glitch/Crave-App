@@ -10,7 +10,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "test:unit": "node scripts/test-connection.mjs",
+    "test": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
     "next": "^16.3.4",

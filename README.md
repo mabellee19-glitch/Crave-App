@@ -28,6 +28,20 @@ Drei Bereiche:
 | Rezept → Liste | Zutaten werden mit Mengen übernommen und zusammengefasst |
 | Überall | Favoriten, Suche, automatisches Speichern, Geräte-Abgleich |
 
+## Rezepte in einen bestehenden Datenraum nachtragen
+
+Startinhalte bekommt ein Datenraum nur beim allerersten Öffnen. Wer die App
+schon benutzt, sieht später ergänzte Rezepte deshalb nicht automatisch. Dafür
+gibt es:
+
+```bash
+npm run add-recipes -- https://deine-app.vercel.app/s/DEINE-ID
+```
+
+Die Rezepte haben feste Ids, ein zweiter Aufruf legt sie also nicht doppelt
+an. Welche Rezepte übertragen werden, steht in `LATER_RECIPE_KEYS`
+(`src/lib/seed.ts`).
+
 ## Der Link ist der Datenraum
 
 Beim ersten Aufruf legt die App einen Datenraum an und leitet auf

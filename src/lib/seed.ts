@@ -183,6 +183,222 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       step('Mit Salz und Pfeffer würzen und direkt aus der Pfanne servieren.'),
     ],
   },
+  {
+    key: 'marry-me-chicken-orzo',
+    name: 'Marry me Chicken Orzo',
+    category: 'High-Protein',
+    servings: 4,
+    timeMin: 30,
+    ingredients: [
+      ing('Hähnchenbrust (in Stücke geschnitten)', 500, 'g'),
+      ing('Knoblauch (gehackt)', 4, 'Zehen'),
+      ing('Olivenöl', 2, 'EL'),
+      ing('Getrocknete Tomaten in Öl (gehackt)', 80, 'g'),
+      ing('Orzo', 190, 'g'),
+      ing('Hühnerbrühe', 480, 'ml'),
+      ing('Kokoscreme', 200, 'ml'),
+      ing('Frischer Spinat', 60, 'g'),
+      ing('Chiliflocken', 0.5, 'TL'),
+      ing('Getrockneter Oregano', 1, 'TL'),
+      ing('Salz', 1, 'TL'),
+      ing('Schwarzer Pfeffer', 0.5, 'TL'),
+      ing('Parmesan gerieben (optional)', 30, 'g'),
+    ],
+    steps: [
+      step(
+        'Olivenöl in einer grossen Pfanne bei mittlerer bis hoher Hitze erhitzen. Hähnchen mit Salz und Pfeffer würzen, dazugeben und anbraten, bis es leicht gebräunt ist.',
+        5 * 60,
+      ),
+      step('Knoblauch dazugeben und mitbraten, bis er duftet.', 60),
+      step('Getrocknete Tomaten, Chiliflocken und Oregano unterrühren.'),
+      step(
+        'Orzo dazugeben und mit der Brühe aufgiessen. Aufkochen lassen, dann Hitze reduzieren und köcheln lassen, bis der Orzo weich ist und die Flüssigkeit grösstenteils aufgesogen ist. Gelegentlich umrühren, damit nichts ansetzt.',
+        10 * 60,
+      ),
+      step('Kokoscreme einrühren, bis alles schön cremig ist.'),
+      step('Spinat handvollweise unterrühren, bis er zusammenfällt.'),
+      step('Mit Salz und Pfeffer abschmecken, nach Belieben mit Parmesan bestreuen und servieren.'),
+    ],
+  },
+  {
+    key: 'gyoza',
+    name: 'Gyoza mit Hackfleisch & Gemüse',
+    category: 'Comfort',
+    servings: 4,
+    timeMin: 40,
+    ingredients: [
+      ing('Gyoza-Teigblätter', 30, 'Stück'),
+      ing('Schweinehackfleisch (alternativ Rind oder Poulet)', 300, 'g'),
+      ing('Weisskohl (sehr fein gehackt)', 150, 'g'),
+      ing('Karotte (fein gerieben)', 1, 'Stück'),
+      ing('Frühlingszwiebeln', 2, 'Stück'),
+      ing('Knoblauch', 2, 'Zehen'),
+      ing('Ingwer', 2, 'cm'),
+      ing('Sojasauce', 2, 'EL'),
+      ing('Sesamöl', 1, 'EL'),
+      ing('Reisessig', 1, 'TL'),
+      ing('Speisestärke (optional, macht die Füllung saftiger)', 1, 'TL'),
+      ing('Pfeffer', null, '', true),
+    ],
+    steps: [
+      step('Den fein gehackten Kohl leicht salzen und ziehen lassen.', 10 * 60),
+      step('Kohl anschliessend gut ausdrücken, damit die Füllung nicht zu feucht wird.'),
+      step('Alle Zutaten gründlich miteinander vermengen.'),
+      step('Die Füllung roh in die Gyoza geben – sie gart später beim Braten und Dämpfen.'),
+    ],
+  },
+  {
+    key: 'spinat-feta-taschen',
+    name: 'Spinat-Feta-Blätterteig-Taschen',
+    category: 'Vegi',
+    servings: 4,
+    timeMin: 45,
+    ingredients: [
+      ing('Blätterteig', 640, 'g'),
+      ing('Gefrorener Spinat', 550, 'g'),
+      ing('Feta', 200, 'g'),
+      ing('Zwiebel', 1, 'Stück'),
+      ing('Knoblauch', 1, 'Zehe'),
+      ing('Ei (für die Füllung)', 1, 'Stück'),
+      ing('Ei (zum Bestreichen)', 1, 'Stück'),
+      ing('Salz', null, '', true),
+      ing('Pfeffer', null, '', true),
+      ing('Muskat', null, '', true),
+      ing('Parmesan (optional)', null, '', true),
+    ],
+    steps: [
+      step('Spinat auftauen und wirklich sehr gut ausdrücken. Das ist wichtig!'),
+      step('Zwiebel und Knoblauch fein hacken und kurz anbraten.'),
+      step(
+        'Spinat dazugeben, mit Salz, Pfeffer und Muskat würzen und braten, damit möglichst viel Flüssigkeit verdampft.',
+        5 * 60,
+      ),
+      step('Spinat etwas abkühlen lassen.'),
+      step('Feta zerbröseln und ein Ei unter die Spinatmasse mischen.'),
+      step('Beide Blätterteigrollen ausrollen und in ungefähr 8 × 8 cm grosse Quadrate schneiden.'),
+      step('Jeweils einen gut gehäuften Esslöffel Füllung in die Mitte geben.'),
+      step('Zu einem Dreieck zusammenklappen und die Ränder mit einer Gabel festdrücken.'),
+      step('Mit verquirltem Ei bestreichen.'),
+      step('Bei 200 °C Ober-/Unterhitze backen, bis sie schön goldbraun sind (20–25 Minuten).', 20 * 60),
+    ],
+  },
+  {
+    key: 'rotes-linsen-dal',
+    name: 'Rotes Linsen-Dal',
+    category: 'Vegi',
+    servings: 4,
+    timeMin: 35,
+    ingredients: [
+      ing('Kokosöl', 2, 'EL'),
+      ing('Zwiebeln (fein gehackt)', 2, 'Stück'),
+      ing('Knoblauch (fein gehackt)', 4, 'Zehen'),
+      ing('Frischer Ingwer (fein gehackt)', 2, 'TL'),
+      ing('Kurkuma', 1, 'TL'),
+      ing('Korianderpulver', 1, 'TL'),
+      ing('Kreuzkümmel', 1, 'TL'),
+      ing('Paprikapulver', 1, 'TL'),
+      ing('Garam Masala oder Currypulver', 1, 'TL'),
+      ing('Rote Linsen', 300, 'g'),
+      ing('Gemüsebouillon', 780, 'ml'),
+      ing('Kokosmilch', 240, 'ml'),
+      ing('Passierte oder gehackte Tomaten (optional)', 240, 'ml'),
+      ing('Salz', null, '', true),
+      ing('Pfeffer', null, '', true),
+      ing('Kokosblütenzucker', 2, 'TL'),
+      ing('Limetten- oder Zitronensaft', 3, 'EL'),
+      ing('Pflanzlicher Joghurt (zum Servieren)', null, '', true),
+      ing('Petersilie oder Koriander (zum Servieren)', null, '', true),
+      ing('Sesam (zum Servieren)', null, '', true),
+      ing('Reis (zum Servieren)', null, '', true),
+    ],
+    steps: [
+      step('Öl in einem grossen Topf erhitzen. Zwiebeln hineingeben und anbraten, bis sie glasig sind.', 150),
+      step('Knoblauch und Ingwer hinzufügen und mitbraten, bis es schön duftet.', 60),
+      step(
+        'Kurkuma, Koriander, Kreuzkümmel, Paprikapulver und Garam Masala dazugeben und ein paar Sekunden mitrösten. Dadurch entfalten die Gewürze ihr Aroma.',
+      ),
+      step('Die roten Linsen in einem Sieb unter kaltem Wasser gut abspülen, in den Topf geben und alles vermischen.'),
+      step(
+        'Gemüsebouillon dazugeben und aufkochen lassen. Dann die Hitze reduzieren, Deckel drauf und köcheln lassen. Zwischendurch umrühren.',
+        8 * 60,
+      ),
+      step(
+        'Kokosmilch und nach Wunsch die Tomaten unterrühren und weiter köcheln lassen, bis die Linsen weich und cremig sind. Wird das Dal zu dick, einfach noch etwas Bouillon oder Kokosmilch dazugeben.',
+        5 * 60,
+      ),
+      step(
+        'Mit Salz und Pfeffer würzen, dann Kokosblütenzucker und Zitronen- oder Limettensaft dazugeben. Gerade der Saft ist wichtig, weil er dem cremigen Dal Frische gibt.',
+      ),
+    ],
+  },
+  {
+    key: 'lachs-honig-senf',
+    name: 'Lachs im Ofen mit Honig-Senf',
+    category: 'High-Protein',
+    servings: 2,
+    timeMin: 20,
+    ingredients: [
+      ing('Lachsfilet', 2, 'Stück'),
+      ing('Honig', 1, 'EL'),
+      ing('Senf', 1, 'EL'),
+      ing('Olivenöl', 1, 'EL'),
+      ing('Zitrone (optional)', 1, 'Stück'),
+      ing('Salz', null, '', true),
+      ing('Pfeffer', null, '', true),
+    ],
+    steps: [
+      step('Ofen auf 180 °C Ober-/Unterhitze vorheizen (Umluft 160 °C).'),
+      step('Lachs auspacken und trocken tupfen.'),
+      step('Honig, Senf und Olivenöl verrühren, mit Salz und Pfeffer würzen und den Lachs damit einstreichen.'),
+      step('Lachs mit der Hautseite nach unten auf Backpapier legen. Nach Belieben Zitronenscheiben darauflegen.'),
+      step('Auf der mittleren Schiene backen, je nach Dicke 12–15 Minuten.', 12 * 60),
+    ],
+  },
+  {
+    key: 'halloumiburger',
+    name: 'Halloumiburger mit Honig-Senf-Sauce',
+    category: 'Vegi',
+    servings: 2,
+    timeMin: 25,
+    ingredients: [
+      ing('Halloumi', 250, 'g'),
+      ing('Rote Zwiebel', 0.5, 'Stück'),
+      ing('Zucchini', 0.25, 'Stück'),
+      ing('Burgerbrötchen', 2, 'Stück'),
+      ing('Radicchio', 2, 'Blätter'),
+      ing('Minze', 1, 'Zweig'),
+      ing('Pflanzenöl (zum Braten)', null, '', true),
+      ing('Pflanzenöl (für die Marinade)', 25, 'ml'),
+      ing('Currypulver (für die Marinade)', 0.5, 'TL'),
+      ing('Senf (für die Sauce)', 50, 'g'),
+      ing('Zucker (für die Sauce)', 15, 'g'),
+      ing('Honig (für die Sauce)', 5, 'g'),
+      ing('Pflanzenöl (für die Sauce)', 62.5, 'ml'),
+      ing('Salz', null, '', true),
+      ing('Pfeffer', null, '', true),
+    ],
+    steps: [],
+  },
+];
+
+/** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
+const RECIPE_NOTES: Record<string, string> = {
+  'spinat-feta-taschen':
+    'Die Taschen eher klein machen: dann werden sie richtig knusprig, und aus 640 g Blätterteig ergeben sich ungefähr 16–20 Stück.',
+};
+
+/**
+ * Rezepte, die nach dem ersten Aufsetzen dazugekommen sind. Ein bereits
+ * bestehender Datenraum bekommt sie nicht automatisch – dafuer gibt es
+ * `npm run add-recipes` (siehe README).
+ */
+export const LATER_RECIPE_KEYS = [
+  'marry-me-chicken-orzo',
+  'gyoza',
+  'spinat-feta-taschen',
+  'rotes-linsen-dal',
+  'lachs-honig-senf',
+  'halloumiburger',
 ];
 
 interface DishSeed {
@@ -224,6 +440,7 @@ export function buildSeedData(now = Date.now()): AppData {
 
   RECIPE_SEEDS.forEach((seed, index) => {
     const id = `seed-r-${seed.key}`;
+    const note = RECIPE_NOTES[seed.key] ?? '';
     recipeIdByKey.set(seed.key, id);
     const recipe: Recipe = {
       id,
@@ -235,7 +452,7 @@ export function buildSeedData(now = Date.now()): AppData {
       ingredients: seed.ingredients,
       steps: seed.steps,
       favorite: false,
-      notes: '',
+      notes: note,
       createdAt: now + index,
       updatedAt: now + index,
     };

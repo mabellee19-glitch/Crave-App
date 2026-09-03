@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "icons": "node scripts/make-icons.mjs",
     "test:unit": "node scripts/test-connection.mjs",
-    "test": "npm run test:unit && npm run test:e2e"
+    "test": "npm run test:unit && npm run test:e2e",
+    "check:live": "node scripts/check-live.mjs"
   },
   "dependencies": {
     "next": "^16.3.4",

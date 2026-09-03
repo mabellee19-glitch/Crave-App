@@ -8,6 +8,13 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = Number(process.env.PORT ?? 3100);
 
 /**
+ * Mit BASE_URL laufen dieselben Tests gegen eine bereits laufende
+ * Installation – etwa die veroeffentlichte App. Dann wird kein lokaler
+ * Server gestartet.
+ */
+const externalBaseUrl = process.env.BASE_URL;
+
+/**
  * In Umgebungen mit vorinstalliertem Chromium (z. B. CI-Container) kann der
  * Pfad ueber PLAYWRIGHT_CHROMIUM_PATH gesetzt werden. Ohne die Variable nimmt
  * Playwright den selbst heruntergeladenen Browser.
@@ -22,7 +29,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? 'line' : 'list',
   use: {
-    baseURL: `http://127.0.0.1:${PORT}`,
+    baseURL: externalBaseUrl ?? `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
     launchOptions: { executablePath },
   },
@@ -36,11 +43,13 @@ export default defineConfig({
     },
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 900 } } },
   ],
-  webServer: {
+  webServer: externalBaseUrl
+    ? undefined
+    : {
     command: `npm run start -- --port ${PORT}`,
     url: `http://127.0.0.1:${PORT}/api/status`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     env: { CRAVE_DATA_DIR: '.playwright-data' },
-  },
+      },
 });

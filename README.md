@@ -134,6 +134,18 @@ Portionsrechnung, Kochmodus, Timer, Einkaufsliste, Grundliste, Favoriten,
 Suche, Filter und den Abgleich zwischen zwei Geräten – je einmal in
 iPhone-Grösse und einmal in Desktop-Grösse.
 
+Eine bereits veröffentlichte Installation lässt sich gegen ihre echte
+Datenbank prüfen:
+
+```bash
+BASE_URL=https://deine-app.vercel.app npm run check:live
+```
+
+Das prüft Statusmeldung, Datenbank-Erreichbarkeit, das Zusammenführen zweier
+Geräte, Löschungen gegen veraltete Stände, gleichzeitige Schreibvorgänge und
+das Manifest. Dieselben Oberflächentests laufen mit `BASE_URL` ebenfalls gegen
+die veröffentlichte App statt gegen einen lokalen Server.
+
 Safari lässt sich mit der WebKit-Engine prüfen:
 
 ```bash

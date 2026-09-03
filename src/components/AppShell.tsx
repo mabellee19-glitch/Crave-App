@@ -12,6 +12,7 @@ import { RecipeForm } from './RecipeForm';
 import { DishForm } from './DishForm';
 import { CookMode } from './CookMode';
 import { SettingsSheet, SyncBadge } from './SettingsSheet';
+import { CloudNotice } from './CloudNotice';
 import { Toast, ToastMessage } from './ui';
 import { IconBook, IconCart, IconPlate, IconPlus, IconSettings } from './Icons';
 
@@ -175,6 +176,12 @@ export function AppShell() {
       </header>
 
       <main className="app__main">
+        {store.sync.cloud === false ? (
+          <div style={{ paddingTop: 18 }}>
+            <CloudNotice onOpenSettings={() => openOverlay({ kind: 'settings' })} />
+          </div>
+        ) : null}
+
         {!store.ready ? (
           <p className="muted" style={{ padding: '40px 0' }}>
             Daten werden geladen…

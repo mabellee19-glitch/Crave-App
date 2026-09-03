@@ -1421,6 +1421,11 @@ ol {
   color: var(--ink);
 }
 
+.notice--warn {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface));
+}
+
 .linkbox {
   display: flex;
   gap: 8px;

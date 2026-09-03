@@ -56,8 +56,12 @@ sehen. Jede Postgres-Datenbank funktioniert (Neon, Supabase, Vercel Postgres,
 eigener Server). Die Tabelle wird beim ersten Zugriff selbst angelegt.
 
 1. Datenbank anlegen und den Connection-String kopieren.
-2. Als Umgebungsvariable `DATABASE_URL` hinterlegen (lokal in `.env.local`,
-   siehe `.env.example`).
+2. Als Umgebungsvariable `DATABASE_URL` hinterlegen, lokal in `.env.local`:
+
+   ```bash
+   DATABASE_URL="postgres://benutzer:passwort@host/datenbank?sslmode=require"
+   ```
+
 3. Neu starten. In `Einstellungen & Sync` steht danach, dass der Abgleich
    aktiv ist.
 
@@ -66,6 +70,10 @@ Der Variablenname ist dabei nicht kritisch. Gesucht wird zuerst nach den
 Umgebungsvariable, deren Wert wie eine Postgres-URL aussieht. Wer beim Hoster
 auf «Datenbank anlegen» klickt, muss hier also nichts anpassen. Welche
 Variable genutzt wird, verrät `/api/status` — nur ihr Name, nie ihr Inhalt.
+
+Es gibt bewusst keine Datei `.env.example` im Repository: Vercel liest sie beim
+Import und legt daraus eine echte Umgebungsvariable mit dem Beispielwert an.
+Die App hielte dann eine Verbindung für vorhanden, die es nicht gibt.
 
 Ohne diese Variable funktioniert die App weiter, speichert serverseitig aber
 nur flüchtig – der Abgleich zwischen Geräten ist dann nicht verlässlich. Die
@@ -78,6 +86,15 @@ App weist im Einstellungsdialog darauf hin.
 2. Im Projekt unter `Storage` eine Postgres-Datenbank (Neon) anlegen und mit
    dem Projekt verbinden. Vercel setzt `DATABASE_URL` dann selbst.
 3. Neu deployen. Fertig – der Link aus Schritt 1 ist die App.
+
+Falls Vercel beim Verbinden meldet, es gebe bereits eine Variable
+`DATABASE_URL`: diese Variable unter `Settings → Environment Variables`
+löschen und erneut verbinden. Ein Prefix ist nicht nötig und wäre auch nicht
+die Lösung, weil die vorhandene Variable Vorrang behielte.
+
+Ob es geklappt hat, sagt `/api/status`: `"cloud": true` heisst, eine Datenbank
+ist konfiguriert, `"reachable": true` heisst, sie antwortet auch. Bei einem
+Fehler steht dort, welche Variable genutzt wird und woran es scheitert.
 
 Optional: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` als Umgebungsvariable setzen,
 dann lädt der Build die Test-Browser nicht mit herunter.

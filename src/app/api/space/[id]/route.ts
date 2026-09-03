@@ -29,8 +29,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
       { headers: NO_STORE },
     );
   } catch (err) {
+    // Die Speicherart gehoert auch in den Fehlerfall: nur so kann die App
+    // "keine Datenbank" von "Datenbank antwortet nicht" unterscheiden.
     return NextResponse.json(
-      { ok: false, error: message(err) },
+      { ok: false, storage: storageKind(), error: message(err) },
       { status: 503, headers: NO_STORE },
     );
   }
@@ -65,8 +67,10 @@ export async function POST(req: NextRequest, { params }: Params) {
       { headers: NO_STORE },
     );
   } catch (err) {
+    // Die Speicherart gehoert auch in den Fehlerfall: nur so kann die App
+    // "keine Datenbank" von "Datenbank antwortet nicht" unterscheiden.
     return NextResponse.json(
-      { ok: false, error: message(err) },
+      { ok: false, storage: storageKind(), error: message(err) },
       { status: 503, headers: NO_STORE },
     );
   }

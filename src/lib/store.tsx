@@ -29,6 +29,12 @@ export interface SyncInfo {
   state: SyncState;
   /** true, sobald der Server bestaetigt hat, dass eine echte Cloud-DB dahintersteht. */
   cloud: boolean | null;
+  /**
+   * Eine Datenbank ist konfiguriert, antwortet aber nicht. Das ist ein anderer
+   * Fall als "keine Datenbank" und braucht einen anderen Hinweis: hier ist
+   * etwas falsch eingerichtet, statt noch gar nicht eingerichtet.
+   */
+  dbUnreachable: boolean;
   lastSyncedAt: number | null;
   pending: boolean;
   error: string | null;
@@ -152,6 +158,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
   const [sync, setSync] = useState<SyncInfo>({
     state: 'idle',
     cloud: null,
+    dbUnreachable: false,
     lastSyncedAt: null,
     pending: false,
     error: null,
@@ -193,14 +200,27 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
 
   /* ---------------------------- Synchronisation --------------------------- */
 
+  /**
+   * Aus einer Fehlerantwort ablesen, ob eine Datenbank konfiguriert ist. Nur
+   * dann ist der Ausfall ein Einrichtungsfehler und keine fehlende Verbindung.
+   */
+  const noteFailure = useCallback((body: { storage?: string; error?: string } | null) => {
+    if (!mountedRef.current) return;
+    if (body?.storage === 'postgres') {
+      setSync((s) => ({ ...s, cloud: true, dbUnreachable: true, error: body.error ?? null }));
+    }
+  }, []);
+
   const pull = useCallback(
     async (silent = false) => {
       if (!silent) setSync((s) => ({ ...s, state: 'syncing' }));
       try {
         const res = await fetch(`/api/space/${spaceId}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const body = await res.json();
-        if (!body.ok) throw new Error(body.error ?? 'sync_failed');
+        const body = await res.json().catch(() => null);
+        if (!body?.ok) {
+          noteFailure(body);
+          throw new Error(body?.error ?? `HTTP ${res.status}`);
+        }
         if (!mountedRef.current) return;
         const serverData: AppData = { ...emptyData(), ...(body.data ?? {}) };
         const merged = pruneTombstones(mergeData(dataRef.current, serverData));
@@ -210,6 +230,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
           ...s,
           state: dirtyRef.current ? 'syncing' : 'synced',
           cloud: body.storage === 'postgres',
+          dbUnreachable: false,
           lastSyncedAt: Date.now(),
           error: null,
         }));
@@ -225,7 +246,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         return false;
       }
     },
-    [spaceId, commit],
+    [spaceId, commit, noteFailure],
   );
 
   const push = useCallback(async () => {
@@ -242,9 +263,11 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         body: JSON.stringify({ data: snapshot }),
         cache: 'no-store',
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const body = await res.json();
-      if (!body.ok) throw new Error(body.error ?? 'sync_failed');
+      const body = await res.json().catch(() => null);
+      if (!body?.ok) {
+        noteFailure(body);
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
       if (!mountedRef.current) return;
       const serverData: AppData = { ...emptyData(), ...(body.data ?? {}) };
       const merged = pruneTombstones(mergeData(dataRef.current, serverData));
@@ -254,6 +277,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         ...s,
         state: dirtyRef.current ? 'syncing' : 'synced',
         cloud: body.storage === 'postgres',
+        dbUnreachable: false,
         lastSyncedAt: Date.now(),
         pending: false,
         error: null,
@@ -272,7 +296,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
       inFlightRef.current = false;
       if (dirtyRef.current && mountedRef.current) schedulePushRef.current?.();
     }
-  }, [spaceId, commit]);
+  }, [spaceId, commit, noteFailure]);
 
   const schedulePushRef = useRef<(() => void) | null>(null);
 
@@ -304,10 +328,11 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
       if (local && !cancelled) commit(local);
 
       const res = await fetch(`/api/space/${spaceId}`, { cache: 'no-store' })
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => r.json())
         .catch(() => null);
 
       if (cancelled) return;
+      if (!res?.ok) noteFailure(res);
 
       let next = dataRef.current;
       let cloud: boolean | null = null;
@@ -337,7 +362,9 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         cloud,
         state: res?.ok ? (dirtyRef.current ? 'syncing' : 'synced') : 'offline',
         lastSyncedAt: res?.ok ? Date.now() : null,
-        error: res?.ok ? null : 'offline',
+        // Eine bereits erkannte Ursache nicht durch das pauschale "offline"
+        // ersetzen – sie ist das einzige, was bei der Fehlersuche hilft.
+        error: res?.ok ? null : (res?.error ?? s.error ?? 'offline'),
       }));
       if (dirtyRef.current) void push();
     })();

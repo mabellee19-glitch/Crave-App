@@ -176,9 +176,12 @@ export function AppShell() {
       </header>
 
       <main className="app__main">
-        {store.sync.cloud === false ? (
+        {store.sync.cloud === false || store.sync.dbUnreachable ? (
           <div style={{ paddingTop: 18 }}>
-            <CloudNotice onOpenSettings={() => openOverlay({ kind: 'settings' })} />
+            <CloudNotice
+              sync={store.sync}
+              onOpenSettings={() => openOverlay({ kind: 'settings' })}
+            />
           </div>
         ) : null}
 

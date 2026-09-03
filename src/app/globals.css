@@ -1426,6 +1426,11 @@ ol {
   background: color-mix(in srgb, var(--gold) 10%, var(--surface));
 }
 
+.notice--error {
+  border-color: color-mix(in srgb, var(--berry) 55%, var(--line));
+  background: color-mix(in srgb, var(--berry) 9%, var(--surface));
+}
+
 .linkbox {
   display: flex;
   gap: 8px;

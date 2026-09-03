@@ -180,6 +180,34 @@ async function fileMerge(id: string, incoming: AppData): Promise<SpaceRecord> {
  * Oeffentliche API
  * ----------------------------------------------------------------------- */
 
+/**
+ * Kurzer Verbindungstest fuer die Statusanzeige.
+ *
+ * Eine gesetzte Variable heisst noch nicht, dass die Datenbank erreichbar ist –
+ * ein Platzhalter aus einer Beispieldatei sieht genauso aus wie eine echte
+ * Verbindung. Deshalb wird hier wirklich verbunden.
+ */
+export async function pingStorage(): Promise<{ reachable: boolean; error: string | null }> {
+  try {
+    if (storageKind() === 'postgres') {
+      const pool = await getPool();
+      await pool.query('SELECT 1');
+    } else {
+      await fs.mkdir(dataDir(), { recursive: true });
+    }
+    return { reachable: true, error: null };
+  } catch (err) {
+    return { reachable: false, error: message(err) };
+  }
+}
+
+/** Fehlertext ohne Zugangsdaten. */
+function message(err: unknown): string {
+  const text = err instanceof Error ? err.message : String(err);
+  // Sollte eine Verbindungszeichenfolge im Text auftauchen, Passwort entfernen.
+  return text.replace(/(postgres(?:ql)?:\/\/[^:\s]+:)[^@\s]+@/gi, '$1***@');
+}
+
 export async function readSpace(id: string): Promise<SpaceRecord | null> {
   return storageKind() === 'postgres' ? pgRead(id) : fileRead(id);
 }

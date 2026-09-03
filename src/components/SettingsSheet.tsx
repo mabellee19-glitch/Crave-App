@@ -75,7 +75,20 @@ export function SettingsSheet({
             Jetzt abgleichen
           </button>
         </div>
-        {sync.cloud === false ? (
+        {sync.dbUnreachable ? (
+          <p>
+            <strong>Die hinterlegte Datenbank antwortet nicht.</strong> Häufigste Ursache: eine
+            Umgebungsvariable mit einer Verbindung, die es nicht gibt – etwa ein Platzhalter aus
+            einer Beispieldatei. Unter <code>/api/status</code> steht, welche Variable genutzt wird
+            und woran die Verbindung scheitert.
+            {sync.error ? (
+              <>
+                {' '}
+                Meldung: <code>{sync.error}</code>
+              </>
+            ) : null}
+          </p>
+        ) : sync.cloud === false ? (
           <p>
             <strong>Cloud-Datenbank nicht konfiguriert.</strong> Der Server speichert die Daten
             momentan nur flüchtig. Für dauerhafte Synchronisation zwischen deinen Geräten muss die

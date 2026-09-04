@@ -20,6 +20,7 @@ Drei Bereiche:
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
 | Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
 | Kochmodus | Timer pro Schritt mit Ton und Vibration, Display bleibt an |
+| Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
 | Gerichte | Filter nach Kategorie und Favoriten, Suche |
 | Gerichte | Verknüpfte Gerichte öffnen direkt das hinterlegte Rezept |
 | Einkaufsliste | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Recipe } from '@/lib/types';
-import { formatQuantity, scaleAmount } from '@/lib/units';
-import { Timer } from './Timer';
-import { IconChevronLeft, IconChevronRight, IconClose } from './Icons';
+import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
+import { playAlarm, stopAlarm, vibrate } from '@/lib/audio';
+import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
+import { IconChevronLeft, IconChevronRight, IconClose, IconTimer } from './Icons';
 
 /**
  * Kochmodus: ein Schritt pro Bildschirm, gross gesetzt, ohne Ablenkung.
@@ -26,6 +27,100 @@ export function CookMode({
   const [index, setIndex] = useState(0);
   const total = steps.length;
   const step = steps[Math.min(index, Math.max(total - 1, 0))];
+
+  /**
+   * Timer aller Schritte an einem Ort.
+   *
+   * Wichtig für den Ablauf am Herd: wer den Reis aufsetzt und dann zum
+   * nächsten Schritt weitergeht, will den Timer weiterlaufen sehen. Läge der
+   * Zustand in der Timer-Komponente, würde er beim Schrittwechsel verworfen.
+   * Deshalb liegt er hier, und es dürfen auch mehrere gleichzeitig laufen.
+   */
+  const [timers, setTimers] = useState<Record<string, TimerState>>({});
+
+  const timerFor = useCallback(
+    (id: string, duration: number): TimerState => timers[id] ?? initialTimerState(duration),
+    [timers],
+  );
+
+  const patchTimer = useCallback(
+    (id: string, duration: number, change: (state: TimerState) => TimerState) => {
+      setTimers((current) => ({
+        ...current,
+        [id]: change(current[id] ?? initialTimerState(duration)),
+      }));
+    },
+    [],
+  );
+
+  const startTimer = (id: string, duration: number) => {
+    stopAlarm();
+    patchTimer(id, duration, (state) => ({
+      endsAt: Date.now() + remainingSeconds(state) * 1000,
+      remaining: remainingSeconds(state),
+      ringing: false,
+    }));
+  };
+
+  const pauseTimer = (id: string, duration: number) =>
+    patchTimer(id, duration, (state) => ({
+      endsAt: null,
+      remaining: remainingSeconds(state),
+      ringing: false,
+    }));
+
+  const resetTimer = (id: string, duration: number) => {
+    stopAlarm();
+    patchTimer(id, duration, () => initialTimerState(duration));
+  };
+
+  // Alle laufenden Timer in einem Takt, unabhängig vom angezeigten Schritt.
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
+
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      setTimers((current) => {
+        let changed = false;
+        const next: Record<string, TimerState> = { ...current };
+        for (const [id, state] of Object.entries(current)) {
+          if (state.endsAt === null) continue;
+          const left = Math.round((state.endsAt - now) / 1000);
+          if (left <= 0) {
+            next[id] = { endsAt: null, remaining: 0, ringing: true };
+            changed = true;
+            playAlarm();
+            vibrate([300, 150, 300, 150, 500]);
+          } else if (left !== state.remaining) {
+            next[id] = { ...state, remaining: left };
+            changed = true;
+          }
+        }
+        return changed ? next : current;
+      });
+    };
+
+    const handle = setInterval(tick, 250);
+    const onVisible = () => tick();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(handle);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  useEffect(() => () => stopAlarm(), []);
+
+  /** Timer, die laufen oder klingeln und nicht zum angezeigten Schritt gehören. */
+  const backgroundTimers = useMemo(() => {
+    return steps
+      .map((entry, position) => ({ entry, position, state: timers[entry.id] }))
+      .filter(
+        ({ entry, position, state }) =>
+          position !== index && state && (state.endsAt !== null || state.ringing) && entry.durationSec,
+      );
+  }, [steps, timers, index]);
 
   const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
   const ingredients = useMemo(
@@ -118,6 +213,23 @@ export function CookMode({
         </span>
       </div>
 
+      {backgroundTimers.length > 0 ? (
+        <div className="cook__timers">
+          {backgroundTimers.map(({ entry, position, state }) => (
+            <button
+              key={entry.id}
+              className={`cook__timerchip${state!.ringing ? ' cook__timerchip--ringing' : ''}`}
+              onClick={() => setIndex(position)}
+              aria-label={`Zu Schritt ${position + 1} mit laufendem Timer`}
+            >
+              <IconTimer size={15} />
+              Schritt {position + 1}
+              <strong>{state!.ringing ? 'fertig' : formatClock(remainingSeconds(state!))}</strong>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="cook__body">
         <div className="cook__count">
           Schritt {index + 1} von {total}
@@ -125,7 +237,14 @@ export function CookMode({
         <p className="cook__text">{step.text}</p>
 
         {step.durationSec ? (
-          <Timer key={`${step.id}-${step.durationSec}`} durationSec={step.durationSec} />
+          <Timer
+            duration={step.durationSec}
+            state={timerFor(step.id, step.durationSec)}
+            onStart={() => startTimer(step.id, step.durationSec!)}
+            onPause={() => pauseTimer(step.id, step.durationSec!)}
+            onReset={() => resetTimer(step.id, step.durationSec!)}
+            onDismiss={() => resetTimer(step.id, step.durationSec!)}
+          />
         ) : null}
 
         {index === 0 && ingredients.length > 0 ? (

@@ -1219,6 +1219,47 @@ ol {
   transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* Timer, die zu einem anderen Schritt gehören und weiterlaufen. */
+.cook__timers {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 18px 10px;
+  scrollbar-width: none;
+}
+
+.cook__timers::-webkit-scrollbar {
+  display: none;
+}
+
+.cook__timerchip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cook__timerchip strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cook__timerchip--ringing {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  animation: pulse 1s ease-in-out infinite;
+}
+
 .cook__body {
   flex: 1;
   overflow-y: auto;

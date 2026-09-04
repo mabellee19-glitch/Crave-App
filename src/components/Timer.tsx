@@ -1,119 +1,86 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { formatClock } from '@/lib/units';
-import { playAlarm, stopAlarm, vibrate } from '@/lib/audio';
 import { IconPause, IconPlay, IconRestart, IconTimer } from './Icons';
 
 /**
- * Kuechentimer fuer einen Zubereitungsschritt.
+ * Zustand eines Schritt-Timers.
  *
- * Die Restzeit wird aus einem Ziel-Zeitstempel berechnet und nicht
- * heruntergezaehlt. Dadurch stimmt sie auch dann noch, wenn Safari den Tab im
+ * Gerechnet wird mit einem Ziel-Zeitpunkt statt mit einem Herunterzählen.
+ * Dadurch stimmt die Restzeit auch dann noch, wenn Safari den Tab im
  * Hintergrund drosselt oder das Display aus war.
  */
-export function Timer({ durationSec, label }: { durationSec: number; label?: string }) {
-  const [endsAt, setEndsAt] = useState<number | null>(null);
-  const [remaining, setRemaining] = useState(durationSec);
-  const [ringing, setRinging] = useState(false);
-  const firedRef = useRef(false);
+export interface TimerState {
+  /** Zeitpunkt des Ablaufs, `null` wenn der Timer steht. */
+  endsAt: number | null;
+  /** Verbleibende Sekunden, wenn der Timer steht bzw. beim letzten Takt. */
+  remaining: number;
+  ringing: boolean;
+}
 
-  const running = endsAt !== null;
+export function initialTimerState(durationSec: number): TimerState {
+  return { endsAt: null, remaining: durationSec, ringing: false };
+}
 
-  // Bei Schrittwechsel zuruecksetzen.
-  useEffect(() => {
-    setEndsAt(null);
-    setRemaining(durationSec);
-    setRinging(false);
-    firedRef.current = false;
-    stopAlarm();
-  }, [durationSec]);
+export function isTimerActive(state: TimerState | undefined): boolean {
+  return Boolean(state && (state.endsAt !== null || state.ringing));
+}
 
-  const ring = useCallback(() => {
-    if (firedRef.current) return;
-    firedRef.current = true;
-    setRinging(true);
-    setEndsAt(null);
-    setRemaining(0);
-    playAlarm();
-    vibrate([300, 150, 300, 150, 500]);
-  }, []);
+export function remainingSeconds(state: TimerState, now = Date.now()): number {
+  if (state.endsAt === null) return state.remaining;
+  return Math.max(0, Math.round((state.endsAt - now) / 1000));
+}
 
-  useEffect(() => {
-    if (endsAt == null) return;
-    const tick = () => {
-      const left = Math.round((endsAt - Date.now()) / 1000);
-      if (left <= 0) ring();
-      else setRemaining(left);
-    };
-    tick();
-    const handle = setInterval(tick, 250);
-    const onVisible = () => tick();
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(handle);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, [endsAt, ring]);
-
-  useEffect(() => () => stopAlarm(), []);
-
-  const start = () => {
-    stopAlarm();
-    setRinging(false);
-    firedRef.current = false;
-    setEndsAt(Date.now() + remaining * 1000);
-  };
-
-  const pause = () => {
-    if (endsAt == null) return;
-    setRemaining(Math.max(0, Math.round((endsAt - Date.now()) / 1000)));
-    setEndsAt(null);
-  };
-
-  const reset = () => {
-    stopAlarm();
-    setRinging(false);
-    firedRef.current = false;
-    setEndsAt(null);
-    setRemaining(durationSec);
-  };
-
-  const dismiss = () => {
-    stopAlarm();
-    setRinging(false);
-    setRemaining(durationSec);
-    firedRef.current = false;
-  };
+/**
+ * Anzeige und Bedienung eines Timers. Die Komponente hält keinen eigenen
+ * Zustand: der liegt im Kochmodus, damit ein laufender Timer beim Wechsel auf
+ * den nächsten Schritt weiterläuft.
+ */
+export function Timer({
+  duration,
+  state,
+  onStart,
+  onPause,
+  onReset,
+  onDismiss,
+  label = 'Timer',
+}: {
+  duration: number;
+  state: TimerState;
+  onStart: () => void;
+  onPause: () => void;
+  onReset: () => void;
+  onDismiss: () => void;
+  label?: string;
+}) {
+  const running = state.endsAt !== null;
+  const seconds = remainingSeconds(state);
 
   return (
-    <div className={`timer${ringing ? ' timer--ringing' : ''}`}>
+    <div className={`timer${state.ringing ? ' timer--ringing' : ''}`}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="timer__label">
-          {ringing ? 'Zeit ist um' : (label ?? 'Timer')}
-        </div>
-        <div className="timer__clock" aria-live="off">
-          {formatClock(remaining)}
-        </div>
+        <div className="timer__label">{state.ringing ? 'Zeit ist um' : label}</div>
+        <div className="timer__clock">{formatClock(seconds)}</div>
       </div>
       <div className="timer__actions">
-        {ringing ? (
-          <button className="btn btn--primary" onClick={dismiss}>
+        {state.ringing ? (
+          <button className="btn btn--primary" onClick={onDismiss}>
             Fertig
           </button>
         ) : (
           <>
             <button
               className="iconbtn"
-              onClick={reset}
+              onClick={onReset}
               aria-label="Timer zurücksetzen"
-              disabled={!running && remaining === durationSec}
+              disabled={!running && seconds === duration}
             >
               <IconRestart size={20} />
             </button>
             <button
               className="btn btn--primary"
-              onClick={running ? pause : start}
+              onClick={running ? onPause : onStart}
               aria-label={running ? 'Timer pausieren' : 'Timer starten'}
             >
               {running ? <IconPause size={18} /> : <IconPlay size={18} />}

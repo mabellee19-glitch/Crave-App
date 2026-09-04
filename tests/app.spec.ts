@@ -88,6 +88,46 @@ test.describe('Rezepte', () => {
     await expect(page.getByText('15:00')).toBeVisible();
   });
 
+  test('ein laufender Timer läuft beim Weiterblättern weiter', async ({ page }) => {
+    await openSpace(page, newSpace('timerweiter'));
+
+    await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+
+    // Schritt 1 kocht den Reis: 15 Minuten.
+    await page.getByRole('button', { name: 'Timer starten' }).click();
+    await expect(page.locator('.timer__clock')).toContainText('14:5');
+
+    // Weiter zum nächsten Schritt – der Timer darf nicht stehen bleiben.
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await expect(page.getByText('Schritt 2 von 7')).toBeVisible();
+
+    const chip = page.locator('.cook__timerchip');
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toContainText('Schritt 1');
+    const erste = await chip.innerText();
+    await page.waitForTimeout(2200);
+    expect(await chip.innerText()).not.toBe(erste);
+
+    // Zurück auf Schritt 1: der Timer läuft dort weiter, nicht von vorn.
+    await chip.click();
+    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Timer pausieren' })).toBeVisible();
+    const rest = await page.locator('.timer__clock').innerText();
+    expect(rest).not.toBe('15:00');
+
+    // Erst Pause hält ihn an.
+    await page.getByRole('button', { name: 'Timer pausieren' }).click();
+    const angehalten = await page.locator('.timer__clock').innerText();
+    await page.waitForTimeout(1600);
+    expect(await page.locator('.timer__clock').innerText()).toBe(angehalten);
+
+    // Ein pausierter Timer erscheint auch nicht mehr in der Leiste.
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await expect(page.locator('.cook__timerchip')).toHaveCount(0);
+  });
+
   test('legt ein Rezept an, bearbeitet und loescht es', async ({ page }) => {
     await openSpace(page, newSpace('crud'));
 

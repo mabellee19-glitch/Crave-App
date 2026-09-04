@@ -96,6 +96,34 @@ test.describe('Rezepte', () => {
     await expect(page.getByText('15:00')).toBeVisible();
   });
 
+  test.describe('Vorspann', () => {
+    // Ohne Bewegungsreduktion laeuft der kurze Braeter-Vorspann.
+    test.use({ contextOptions: { reducedMotion: 'no-preference' } });
+
+    test('der Vorspann erscheint kurz und verschwindet von selbst', async ({ page }) => {
+      await openSpace(page, newSpace('vorspann'));
+
+      await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+
+      const vorspann = page.locator('.cookintro');
+      await expect(vorspann).toBeVisible();
+      // Hoechstens zwei Sekunden – danach steht der erste Schritt bereit.
+      await expect(vorspann).toHaveCount(0, { timeout: 2500 });
+      await expect(page.getByRole('button', { name: 'Timer starten' })).toBeEnabled();
+    });
+
+    test('ein Tippen überspringt den Vorspann sofort', async ({ page }) => {
+      await openSpace(page, newSpace('vorspannskip'));
+
+      await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+
+      await page.locator('.cookintro').click();
+      await expect(page.locator('.cookintro')).toHaveCount(0, { timeout: 1000 });
+    });
+  });
+
   test('ein laufender Timer läuft beim Weiterblättern weiter', async ({ page }) => {
     await openSpace(page, newSpace('timerweiter'));
 

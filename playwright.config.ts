@@ -32,6 +32,10 @@ export default defineConfig({
     baseURL: externalBaseUrl ?? `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
     launchOptions: { executablePath },
+    // Der Vorspann beim Start des Kochmodus laeuft nur ohne Bewegungs-
+    // reduktion. Fuer die Tests bleibt er damit aus dem Weg; geprueft wird er
+    // in einem eigenen Test, der die Einstellung umkehrt.
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     {

@@ -7,6 +7,7 @@ import { playAlarm, stopAlarm, vibrate } from '@/lib/audio';
 import { Portal, useBodyScrollLock } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconChevronLeft, IconChevronRight, IconClose, IconTimer } from './Icons';
+import { CookIntro, introErwuenscht } from './CookIntro';
 
 /**
  * Kochmodus: ein Schritt pro Bildschirm, gross gesetzt, ohne Ablenkung.
@@ -28,6 +29,11 @@ export function CookMode({
   // Der Kochmodus legt sich über die ganze App: die Seite dahinter darf nicht
   // mitscrollen, sonst tauchen beim Scrollen die Rezepte darunter auf.
   useBodyScrollLock(true);
+
+  // Kurzer Vorspann: die Cocotte, dann steht Schritt 1 da. Der Schritt ist
+  // die ganze Zeit schon gerendert, der Vorspann legt sich nur darueber.
+  const [intro, setIntro] = useState(introErwuenscht);
+  const introFertig = useCallback(() => setIntro(false), []);
 
   const [index, setIndex] = useState(0);
   const total = steps.length;
@@ -209,6 +215,7 @@ export function CookMode({
   return (
     <Portal>
       <div className="cook">
+        {intro ? <CookIntro title={recipe.name} onDone={introFertig} /> : null}
         <div className="cook__head">
           <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
             <IconClose />

@@ -170,7 +170,9 @@ function DishCard({
         onClick={onPrimary}
         aria-label={linked ? `Rezept zu ${dish.name} öffnen` : `${dish.name} bearbeiten`}
       >
-        <h2 className={`card__title${linked ? ' card__title--link' : ''}`}>{dish.name}</h2>
+        {/* Der Name bleibt schlicht: dass ein Rezept hinterlegt ist, sagt das
+            Etikett darunter. */}
+        <h2 className="card__title">{dish.name}</h2>
         <div className="card__meta">
           <span className={`tag tag--${dish.category}`}>{DISH_CATEGORY_LABEL[dish.category]}</span>
           {linked ? (

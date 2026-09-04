@@ -60,13 +60,17 @@ export function useBodyScrollLock(active: boolean) {
         body.style.width = previous.width;
         body.style.overflow = previous.overflow;
         root.style.overflow = previous.rootOverflow;
-        // Der Body war aus dem Fluss genommen, die Seite also kürzer. Wird zu
-        // früh zurückgesprungen, begrenzt der Browser das Ziel auf die alte,
-        // kleinere Scrollhöhe. Deshalb erst ein Umbruch erzwingen und im
-        // nächsten Frame noch einmal setzen.
-        void body.offsetHeight;
+        // Der Body war aus dem Fluss genommen, die Seite also nur noch so hoch
+        // wie das Fenster. Wird zu früh zurückgesprungen, begrenzt der Browser
+        // das Ziel auf diese kleinere Höhe. Deshalb erst die Höhe des
+        // Scrollbereichs abfragen – das erzwingt den Neuumbruch – und danach
+        // noch einmal setzen, wenn das Bild steht.
+        void document.documentElement.scrollHeight;
         window.scrollTo(0, scrollY);
-        requestAnimationFrame(() => window.scrollTo(0, scrollY));
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollY);
+          requestAnimationFrame(() => window.scrollTo(0, scrollY));
+        });
       };
     }
 

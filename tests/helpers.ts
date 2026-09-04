@@ -42,3 +42,9 @@ export function shoppingRow(page: Page, name: string) {
 export function pantryChip(page: Page, name: string) {
   return page.getByRole('button', { name: `${name} in die Einkaufsliste` });
 }
+
+/** Die Rubriken der Grundliste sind zugeklappt – hier eine davon aufklappen. */
+export async function openPantryGroup(page: Page, category: string) {
+  const head = page.getByRole('button', { name: new RegExp(`^${category}`) });
+  if ((await head.getAttribute('aria-expanded')) === 'false') await head.click();
+}

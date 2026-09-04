@@ -662,12 +662,6 @@ ol {
   letter-spacing: -0.01em;
 }
 
-.card__title--link {
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .card__meta {
   display: flex;
   flex-wrap: wrap;
@@ -827,11 +821,50 @@ ol {
   color: #fff;
 }
 
+.pantrygroups {
+  padding: 4px 0 6px;
+}
+
+.pantrygroup {
+  border-top: 1px solid var(--line);
+}
+
+.pantrygroup:first-child {
+  border-top: none;
+}
+
+.pantrygroup__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  text-align: left;
+}
+
+.pantrygroup__title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.pantrygroup__caret {
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  transition: transform 0.18s ease;
+}
+
+.pantrygroup__caret--open {
+  transform: rotate(180deg);
+}
+
 .pantrychips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 14px 16px 16px;
+  padding: 2px 16px 16px;
 }
 
 .pantrychip {

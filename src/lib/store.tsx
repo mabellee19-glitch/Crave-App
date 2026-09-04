@@ -20,7 +20,7 @@ import {
 } from './types';
 import { mergeData, pruneTombstones, sameData } from './merge';
 import { randomId } from './id';
-import { buildSeedData } from './seed';
+import { PANTRY_CATALOGUE, buildSeedData } from './seed';
 import { addAmounts, sameIngredient, scaleAmount, unitsCompatible } from './units';
 
 export type SyncState = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
@@ -69,7 +69,16 @@ interface StoreValue {
   addRecipeToShopping: (recipe: Recipe, servings: number) => number;
 
   savePantryItem: (item: PantryItem) => void;
-  addPantryItem: (input: { name: string; amount?: number | null; unit?: string }) => void;
+  addPantryItem: (input: {
+    name: string;
+    amount?: number | null;
+    unit?: string;
+    category?: string;
+  }) => void;
+  /** Vorschlagsliste nachtragen; gibt zurück, was tatsächlich passiert ist. */
+  addPantrySuggestions: () => { added: number; categorised: number };
+  /** Fehlende Startrezepte nachtragen; vorhandene bleiben unangetastet. */
+  addMissingRecipes: () => { added: number; completed: number };
   deletePantryItem: (id: string) => void;
   movePantryItemToCart: (id: string) => void;
 
@@ -638,7 +647,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
   );
 
   const addPantryItem = useCallback(
-    (input: { name: string; amount?: number | null; unit?: string }) => {
+    (input: { name: string; amount?: number | null; unit?: string; category?: string }) => {
       const name = input.name.trim();
       if (!name) return;
       mutate((draft) => {
@@ -651,6 +660,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
           name,
           amount: input.amount ?? null,
           unit: (input.unit ?? '').trim(),
+          category: input.category,
           inCart: false,
           createdAt: now,
           updatedAt: now,
@@ -659,6 +669,85 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     },
     [mutate],
   );
+
+  /**
+   * Vorschlagsliste in die Grundliste übernehmen.
+   *
+   * Rein ergänzend: was es schon gibt, bleibt wie es ist. Nur eine noch leere
+   * Rubrik wird gefüllt, wenn die Vorschlagsliste eine dafür kennt – sonst
+   * lägen die alten Einträge dauerhaft unter "Weitere".
+   */
+  const addPantrySuggestions = useCallback(() => {
+    const result = { added: 0, categorised: 0 };
+    mutate((draft) => {
+      for (const group of PANTRY_CATALOGUE) {
+        for (const entry of group.items) {
+          const existing = activeList(draft.pantry).find((item) =>
+            sameIngredient(item.name, entry.name),
+          );
+          if (existing) {
+            if (!existing.category) {
+              draft.pantry[existing.id] = {
+                ...existing,
+                category: group.category,
+                updatedAt: stamp(),
+              };
+              result.categorised += 1;
+            }
+            continue;
+          }
+          const id = randomId();
+          const now = stamp();
+          draft.pantry[id] = {
+            id,
+            name: entry.name,
+            amount: entry.amount ?? null,
+            unit: entry.unit ?? '',
+            category: group.category,
+            inCart: false,
+            createdAt: now,
+            updatedAt: now,
+          };
+          result.added += 1;
+        }
+      }
+    });
+    return result;
+  }, [mutate]);
+
+  /**
+   * Startrezepte nachtragen, die in diesem Datenraum fehlen.
+   *
+   * Angelegt wird nur, was es unter dieser Id noch nie gab – ein gelöschtes
+   * Rezept bleibt gelöscht. Ein vorhandenes Rezept wird nicht überschrieben;
+   * einzige Ausnahme sind Zubereitungsschritte, die dort noch ganz fehlen.
+   */
+  const addMissingRecipes = useCallback(() => {
+    const result = { added: 0, completed: 0 };
+    const startInhalte = buildSeedData();
+    mutate((draft) => {
+      for (const recipe of Object.values(startInhalte.recipes)) {
+        const existing = draft.recipes[recipe.id];
+        if (!existing) {
+          const now = stamp();
+          draft.recipes[recipe.id] = { ...recipe, createdAt: now, updatedAt: now };
+          result.added += 1;
+          continue;
+        }
+        if (!existing.deleted && existing.steps.length === 0 && recipe.steps.length > 0) {
+          draft.recipes[recipe.id] = {
+            ...existing,
+            steps: recipe.steps,
+            timeMin: existing.timeMin ?? recipe.timeMin,
+            notes: existing.notes || recipe.notes,
+            updatedAt: stamp(),
+          };
+          result.completed += 1;
+        }
+      }
+    });
+    return result;
+  }, [mutate]);
 
   const deletePantryItem = useCallback(
     (id: string) => {
@@ -752,6 +841,8 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     addRecipeToShopping,
     savePantryItem,
     addPantryItem,
+    addPantrySuggestions,
+    addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,
     undo,

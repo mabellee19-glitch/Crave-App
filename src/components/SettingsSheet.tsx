@@ -3,19 +3,21 @@
 import React, { useEffect, useState } from 'react';
 import { SyncInfo } from '@/lib/store';
 import { Sheet } from './ui';
-import { IconCheck, IconLink, IconRefresh, IconShare } from './Icons';
+import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare } from './Icons';
 
 export function SettingsSheet({
   spaceId,
   sync,
   counts,
   onSyncNow,
+  onAddMissingRecipes,
   onClose,
 }: {
   spaceId: string;
   sync: SyncInfo;
   counts: { recipes: number; dishes: number; shopping: number; pantry: number };
   onSyncNow: () => void;
+  onAddMissingRecipes: () => void;
   onClose: () => void;
 }) {
   const [url, setUrl] = useState('');
@@ -116,6 +118,19 @@ export function SettingsSheet({
         In Safari auf «Teilen» tippen und «Zum Home-Bildschirm» wählen. Danach startet CRAVE wie
         eine App im Vollbild.
       </p>
+
+      <hr className="divider" />
+
+      <div className="detail__h">Startinhalte</div>
+      <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
+        Ein Datenraum bekommt die mitgelieferten Rezepte nur beim allerersten Öffnen. Kommen
+        später welche dazu, lassen sie sich hier nachtragen. Vorhandene Rezepte bleiben
+        unverändert, gelöschte kommen nicht zurück.
+      </p>
+      <button className="btn btn--ghost" onClick={onAddMissingRecipes}>
+        <IconPlus size={18} />
+        Fehlende Rezepte nachtragen
+      </button>
 
       <hr className="divider" />
 

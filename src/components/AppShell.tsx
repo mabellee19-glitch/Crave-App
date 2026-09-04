@@ -224,6 +224,15 @@ export function AppShell() {
             onAddPantryItem={store.addPantryItem}
             onSavePantryItem={store.savePantryItem}
             onDeletePantryItem={store.deletePantryItem}
+            onAddSuggestions={() => {
+              const { added, categorised } = store.addPantrySuggestions();
+              showToast(
+                added === 0 && categorised === 0
+                  ? 'Alles schon vorhanden'
+                  : `${added} ${added === 1 ? 'Zutat' : 'Zutaten'} ergänzt` +
+                      (categorised > 0 ? `, ${categorised} eingeordnet` : ''),
+              );
+            }}
           />
         )}
 
@@ -275,6 +284,14 @@ export function AppShell() {
           sync={store.sync}
           counts={counts}
           onSyncNow={store.syncNow}
+          onAddMissingRecipes={() => {
+            const { added, completed } = store.addMissingRecipes();
+            const teile = [
+              added > 0 ? `${added} ${added === 1 ? 'Rezept' : 'Rezepte'} nachgetragen` : '',
+              completed > 0 ? `${completed} um Schritte ergänzt` : '',
+            ].filter(Boolean);
+            showToast(teile.length ? teile.join(', ') : 'Alles schon vorhanden');
+          }}
           onClose={closeTop}
         />
       );

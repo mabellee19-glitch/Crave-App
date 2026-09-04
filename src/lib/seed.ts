@@ -359,7 +359,8 @@ const RECIPE_SEEDS: RecipeSeed[] = [
     name: 'Halloumiburger mit Honig-Senf-Sauce',
     category: 'Vegi',
     servings: 2,
-    timeMin: 25,
+    // Die Marinierzeit macht den grössten Teil aus.
+    timeMin: 60,
     ingredients: [
       ing('Halloumi', 250, 'g'),
       ing('Rote Zwiebel', 0.5, 'Stück'),
@@ -377,12 +378,38 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
-    steps: [],
+    steps: [
+      step('Zwiebel in Ringe schneiden. Halloumi und Zucchini in Scheiben schneiden.'),
+      step(
+        'Pflanzenöl, Currypulver, Salz und Pfeffer in einen verschliessbaren Beutel geben, schütteln und die Halloumischeiben hineingeben. In den Kühlschrank legen und 30–60 Minuten marinieren.',
+        30 * 60,
+      ),
+      step(
+        'Zucchinischeiben in Öl braten, bis sie auf jeder Seite goldbraun und weich sind. Mit Salz und Pfeffer würzen.',
+        2 * 60,
+      ),
+      step(
+        'Backofen auf 200 °C vorheizen. Senf, Zucker und Honig in einer grossen Schüssel vermischen.',
+      ),
+      step(
+        'Unter ständigem Schlagen langsam das restliche Öl zugiessen, bis eine cremige Sauce entsteht. Mit Salz und Pfeffer würzen.',
+      ),
+      step(
+        'Burgerbrötchen halbieren, auf ein mit Backpapier belegtes Blech legen und im vorgeheizten Ofen rösten.',
+        4 * 60,
+      ),
+      step('Halloumi pro Seite braten, bis er leicht gebräunt ist.', 2 * 60),
+      step(
+        'Brötchen mit Sauce bestreichen, dann Radicchio, Halloumi, Gemüse und Minze schichten und mit weiterer Sauce abschliessen.',
+      ),
+    ],
   },
 ];
 
 /** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
 const RECIPE_NOTES: Record<string, string> = {
+  halloumiburger:
+    'Zubereitung nach Kitchen Stories, angepasst an diese Zutatenliste: dort sind es vier Portionen mit Aubergine, hier zwei ohne. Die Marinierzeit von 30–60 Minuten steckt in der Zubereitungszeit.',
   'spinat-feta-taschen':
     'Die Taschen eher klein machen: dann werden sie richtig knusprig, und aus 640 g Blätterteig ergeben sich ungefähr 16–20 Stück.',
 };
@@ -419,18 +446,122 @@ const DISH_SEEDS: DishSeed[] = [
   { name: 'Gebratene Nudeln mit Gemüse', category: 'vegi' },
 ];
 
-const PANTRY_SEEDS: Array<[string, number | null, string]> = [
-  ['Olivenöl', null, ''],
-  ['Salz', null, ''],
-  ['Pfeffer', null, ''],
-  ['Knoblauch', 1, 'Knolle'],
-  ['Zwiebeln', 3, 'Stück'],
-  ['Sojasauce', null, ''],
-  ['Honig', null, ''],
-  ['Butter', 250, 'g'],
-  ['Milch', 1, 'l'],
-  ['Eier', 6, 'Stück'],
+/**
+ * Vorschlagsliste für die Grundliste, nach Rubriken geordnet.
+ *
+ * Dient zweierlei: einem neuen Datenraum als Startinhalt, und einem bereits
+ * benutzten als Vorlage zum Nachtragen (siehe `addPantrySuggestions` im
+ * Store). Der Abgleich läuft dabei über den Namen, nicht über die Id.
+ */
+export interface PantrySuggestion {
+  name: string;
+  amount?: number;
+  unit?: string;
+}
+
+export interface PantryGroup {
+  category: string;
+  items: PantrySuggestion[];
+}
+
+export const PANTRY_CATALOGUE: PantryGroup[] = [
+  {
+    category: 'Protein',
+    items: [
+      { name: 'Eier', amount: 10, unit: 'Stück' },
+      { name: 'Hüttenkäse' },
+      { name: 'Gekochte Eier' },
+      { name: 'Poulet' },
+      { name: 'Lean Hackfleisch' },
+      { name: 'Chicken Jerky' },
+      { name: 'Hummus' },
+    ],
+  },
+  {
+    category: 'Frisches Gemüse',
+    items: [
+      { name: 'Zucchini' },
+      { name: 'Peperoni' },
+      { name: 'Cherrytomaten' },
+      { name: 'Blumenkohl' },
+      { name: 'Zitrone' },
+      { name: 'Zwiebeln', amount: 3, unit: 'Stück' },
+      { name: 'Knoblauch', amount: 1, unit: 'Knolle' },
+      { name: 'Avocado' },
+      { name: 'Rüebli' },
+    ],
+  },
+  {
+    category: 'Dosenware',
+    items: [
+      { name: 'Mais' },
+      { name: 'Red Beans' },
+      { name: 'Black Lentils' },
+      { name: 'White Beans' },
+      { name: 'Apfelmus' },
+      { name: 'Tomatensauce Pizza' },
+    ],
+  },
+  {
+    category: 'Im Glas',
+    items: [
+      { name: 'Tomatensauce Pasta' },
+      { name: 'Essiggurken' },
+      { name: 'Eingelegte Tomaten' },
+      { name: 'Oliven' },
+    ],
+  },
+  {
+    category: 'Zmorge',
+    items: [
+      { name: 'High-Protein Yogurt' },
+      { name: 'Haferflocken' },
+      { name: 'Chia-Samen' },
+      { name: 'Datteln' },
+      { name: 'Bananen' },
+    ],
+  },
+  {
+    category: 'Einfrieren',
+    items: [
+      { name: 'Burger Patties' },
+      { name: 'Gefrorenes Gemüse' },
+      { name: 'Sweet Potato Fries (selber machen)' },
+      { name: 'Spinat' },
+      { name: 'Gyozas' },
+      { name: 'Fischstäbli' },
+      { name: 'Beeren' },
+    ],
+  },
+  {
+    category: 'Carbs',
+    items: [
+      { name: 'Protein Pasta' },
+      { name: 'Reis' },
+      { name: 'Kartoffeln' },
+      { name: 'Orzo' },
+      { name: 'Spaghetti' },
+      { name: 'Cous Cous' },
+    ],
+  },
+  {
+    // Die Grundzutaten, die vorher schon in der Liste standen und in keine
+    // der vorgegebenen Rubriken fallen.
+    category: 'Vorrat',
+    items: [
+      { name: 'Olivenöl' },
+      { name: 'Salz' },
+      { name: 'Pfeffer' },
+      { name: 'Sojasauce' },
+      { name: 'Honig' },
+      { name: 'Butter', amount: 250, unit: 'g' },
+      { name: 'Milch', amount: 1, unit: 'l' },
+    ],
+  },
 ];
+
+/** Reihenfolge der Rubriken in der Anzeige. */
+export const PANTRY_CATEGORY_ORDER = PANTRY_CATALOGUE.map((group) => group.category);
 
 /** Erzeugt die Startdaten. `now` wird als `updatedAt` fuer alle Eintraege genutzt. */
 export function buildSeedData(now = Date.now()): AppData {
@@ -473,19 +604,24 @@ export function buildSeedData(now = Date.now()): AppData {
     data.dishes[id] = dish;
   });
 
-  PANTRY_SEEDS.forEach(([name, amount, unit], index) => {
-    const id = `seed-p-${index + 1}`;
-    const item: PantryItem = {
-      id,
-      name,
-      amount,
-      unit,
-      inCart: false,
-      createdAt: now + index,
-      updatedAt: now + index,
-    };
-    data.pantry[id] = item;
-  });
+  let pantryIndex = 0;
+  for (const group of PANTRY_CATALOGUE) {
+    for (const entry of group.items) {
+      pantryIndex += 1;
+      const id = `seed-p-${pantryIndex}`;
+      const item: PantryItem = {
+        id,
+        name: entry.name,
+        amount: entry.amount ?? null,
+        unit: entry.unit ?? '',
+        category: group.category,
+        inCart: false,
+        createdAt: now + pantryIndex,
+        updatedAt: now + pantryIndex,
+      };
+      data.pantry[id] = item;
+    }
+  }
 
   return data;
 }

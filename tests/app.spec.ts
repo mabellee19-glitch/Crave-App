@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { goToTab, newSpace, openSpace, pantryChip, shoppingRow, waitForSync } from './helpers';
+import {
+  goToTab,
+  newSpace,
+  openPantryGroup,
+  openSpace,
+  pantryChip,
+  shoppingRow,
+  waitForSync,
+} from './helpers';
 
 test.describe('Navigation und Grundgeruest', () => {
   test('wechselt zwischen den drei Bereichen', async ({ page }) => {
@@ -277,10 +285,11 @@ test.describe('Einkaufsliste und Grundliste', () => {
   test('verschiebt Zutaten zwischen Grundliste und Einkaufsliste', async ({ page }) => {
     await openSpace(page, newSpace('shop'));
     await goToTab(page, 'Einkaufsliste');
+    await openPantryGroup(page, 'Vorrat');
 
     // Grundliste -> Einkaufsliste
-    await page.getByRole('button', { name: 'Sojasauce in die Einkaufsliste' }).click();
-    await expect(page.getByRole('button', { name: /Sojasauce/ }).first()).toBeVisible();
+    await pantryChip(page, 'Sojasauce').click();
+    await expect(shoppingRow(page, 'Sojasauce')).toHaveCount(1);
     await expect(pantryChip(page, 'Sojasauce')).toHaveCount(0);
 
     // Abhaken -> zurueck in die Grundliste
@@ -293,8 +302,9 @@ test.describe('Einkaufsliste und Grundliste', () => {
   test('Rueckgaengig stellt eine abgehakte Zutat wieder her', async ({ page }) => {
     await openSpace(page, newSpace('undo'));
     await goToTab(page, 'Einkaufsliste');
+    await openPantryGroup(page, 'Vorrat');
 
-    await page.getByRole('button', { name: 'Butter in die Einkaufsliste' }).click();
+    await pantryChip(page, 'Butter').click();
     await shoppingRow(page, 'Butter').click();
     await expect(shoppingRow(page, 'Butter')).toHaveCount(0);
 
@@ -331,6 +341,7 @@ test.describe('Einkaufsliste und Grundliste', () => {
 
     // Sojasauce ist eine Standard-Zutat und darf nicht doppelt erscheinen.
     await expect(shoppingRow(page, 'Sojasauce')).toHaveCount(1);
+    await openPantryGroup(page, 'Vorrat');
     await expect(pantryChip(page, 'Sojasauce')).toHaveCount(0);
 
     // Zweites Hinzufuegen fasst die Mengen zusammen statt zu doppeln.
@@ -352,16 +363,125 @@ test.describe('Einkaufsliste und Grundliste', () => {
 
     await page.getByRole('button', { name: 'Verwalten' }).click();
     const sheet = page.getByRole('dialog');
-    await sheet.getByLabel('Neue Standard-Zutat').fill('Haferflocken');
+    await sheet.getByLabel('Neue Standard-Zutat').fill('Quinoa');
     await sheet.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
-    await expect(sheet.getByLabel('Name von Haferflocken')).toBeVisible();
+    await expect(sheet.getByLabel('Name von Quinoa')).toBeVisible();
 
     await sheet.getByRole('button', { name: 'Honig aus der Grundliste löschen' }).click();
     await expect(sheet.getByLabel('Name von Honig')).toHaveCount(0);
 
     await sheet.getByRole('button', { name: 'Schliessen' }).click();
-    await expect(pantryChip(page, 'Haferflocken')).toHaveCount(1);
+    // Ohne Rubrik angelegt, also unter "Weitere".
+    await openPantryGroup(page, 'Weitere');
+    await expect(pantryChip(page, 'Quinoa')).toHaveCount(1);
+    await openPantryGroup(page, 'Vorrat');
     await expect(pantryChip(page, 'Honig')).toHaveCount(0);
+  });
+});
+
+test.describe('Nachtragen in einen bestehenden Datenraum', () => {
+  /** Legt einen Datenraum an, wie ihn ein Gerät mit älterem Stand hätte. */
+  async function alterStand(request: import('@playwright/test').APIRequestContext, space: string) {
+    const now = Date.now();
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {
+            'seed-r-halloumiburger': {
+              id: 'seed-r-halloumiburger',
+              name: 'Halloumiburger mit Honig-Senf-Sauce',
+              category: 'Vegi',
+              servings: 2,
+              timeMin: 25,
+              ingredients: [],
+              steps: [],
+              favorite: false,
+              notes: '',
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          dishes: {},
+          shopping: {},
+          pantry: {
+            alt1: {
+              id: 'alt1',
+              name: 'Olivenöl',
+              amount: null,
+              unit: '',
+              inCart: false,
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  test('die Vorschlagsliste ergänzt fehlende Zutaten und ordnet vorhandene ein', async ({
+    page,
+    request,
+  }) => {
+    const space = newSpace('vorschlaege');
+    await alterStand(request, space);
+
+    await page.goto(`/s/${space}`);
+    await goToTab(page, 'Einkaufsliste');
+    // Vorher gibt es nur die eine Rubrik "Weitere".
+    await expect(page.locator('.pantrygroup__title')).toHaveText(['Weitere']);
+
+    await page.getByRole('button', { name: 'Verwalten' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Vorschlagsliste ergänzen' }).click();
+    await expect(page.getByText(/Zutaten ergänzt/)).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+
+    // Alle Rubriken stehen da, "Weitere" ist verschwunden: Olivenöl wurde einsortiert.
+    await expect(page.locator('.pantrygroup__title')).toHaveText([
+      'Protein',
+      'Frisches Gemüse',
+      'Dosenware',
+      'Im Glas',
+      'Zmorge',
+      'Einfrieren',
+      'Carbs',
+      'Vorrat',
+    ]);
+
+    await page.getByRole('button', { name: 'Carbs' }).click();
+    await expect(page.getByRole('button', { name: 'Orzo in die Einkaufsliste' })).toBeVisible();
+
+    // Ein zweiter Lauf legt nichts doppelt an.
+    await page.getByRole('button', { name: 'Verwalten' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Vorschlagsliste ergänzen' }).click();
+    await expect(page.getByText('Alles schon vorhanden')).toBeVisible();
+  });
+
+  test('fehlende Rezepte werden nachgetragen, Schritte ergänzt', async ({ page, request }) => {
+    const space = newSpace('rezeptnachtrag');
+    await alterStand(request, space);
+
+    await page.goto(`/s/${space}`);
+    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+    await expect(page.getByText('1 Rezept gespeichert')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Fehlende Rezepte nachtragen' })
+      .click();
+    await expect(page.getByText(/nachgetragen/)).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+
+    await expect(page.getByText('12 Rezepte gespeichert')).toBeVisible();
+
+    // Das vorhandene Rezept ohne Schritte hat jetzt welche und lässt sich kochen.
+    await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByText('8 Schritte')).toBeVisible();
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
+    await detail.getByRole('button', { name: 'Start Cooking' }).click();
+    await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
   });
 });
 
@@ -371,21 +491,21 @@ test.describe('Speichern und Synchronisieren', () => {
     await openSpace(page, space);
     await goToTab(page, 'Einkaufsliste');
 
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('3 Zitronen');
+    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('3 Limetten');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
-    await expect(shoppingRow(page, 'Zitronen')).toHaveCount(1);
+    await expect(shoppingRow(page, 'Limetten')).toHaveCount(1);
     await waitForSync(page);
 
     await page.reload();
     await goToTab(page, 'Einkaufsliste');
-    await expect(shoppingRow(page, 'Zitronen')).toHaveCount(1);
+    await expect(shoppingRow(page, 'Limetten')).toHaveCount(1);
   });
 
   test('ein zweites Geraet mit demselben Link sieht dieselben Daten', async ({ page, browser }) => {
     const space = newSpace('sync');
     await openSpace(page, space);
     await goToTab(page, 'Einkaufsliste');
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('2 Avocados');
+    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('2 Ciabatta');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await waitForSync(page);
 
@@ -394,14 +514,14 @@ test.describe('Speichern und Synchronisieren', () => {
     const other = await second.newPage();
     await other.goto(`/s/${space}`);
     await goToTab(other, 'Einkaufsliste');
-    await expect(shoppingRow(other, 'Avocados')).toHaveCount(1);
+    await expect(shoppingRow(other, 'Ciabatta')).toHaveCount(1);
 
     // Aenderung auf dem zweiten Geraet kommt beim ersten an.
-    await other.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('1 Baguette');
+    await other.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('1 Focaccia');
     await other.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await waitForSync(other);
 
-    await expect(shoppingRow(page, 'Baguette')).toHaveCount(1, { timeout: 25_000 });
+    await expect(shoppingRow(page, 'Focaccia')).toHaveCount(1, { timeout: 25_000 });
     await second.close();
   });
 

@@ -86,6 +86,11 @@ export interface PantryItem extends Syncable {
   /** Vorgeschlagene Standardmenge, optional. */
   amount: number | null;
   unit: string;
+  /**
+   * Rubrik der Grundliste, z. B. "Protein" oder "Einfrieren". Leer oder
+   * fehlend heisst: erscheint unter "Weitere".
+   */
+  category?: string;
   /** true, solange der Eintrag gerade in der aktiven Einkaufsliste liegt. */
   inCart: boolean;
   createdAt: number;

@@ -217,3 +217,17 @@ export const IconBell = (p: IconProps) => (
     <path d="M10 19a2.2 2.2 0 0 0 4 0" />
   </Base>
 );
+
+export const IconCamera = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M4 8.5h2.8l1.4-2.2a1.4 1.4 0 0 1 1.2-.65h5.2a1.4 1.4 0 0 1 1.2.65L17.2 8.5H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5Z" />
+    <circle cx="12" cy="13.5" r="3.4" />
+  </Base>
+);
+
+export const IconSpark = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M12 3.5l1.6 4.4 4.4 1.6-4.4 1.6L12 15.5l-1.6-4.4L6 9.5l4.4-1.6Z" />
+    <path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z" />
+  </Base>
+);

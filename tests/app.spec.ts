@@ -379,6 +379,142 @@ test.describe('Einkaufsliste und Grundliste', () => {
   });
 });
 
+test.describe('Kühlschrankfoto', () => {
+  /** Eine Antwort, wie sie die Auswertung liefert. */
+  const antwort = {
+    ok: true,
+    lebensmittel: ['Poulet', 'Brokkoli', 'Reis', 'Zitrone'],
+    ideen: [
+      {
+        name: 'Zitronen-Poulet aus der Pfanne',
+        kategorie: 'High-Protein',
+        portionen: 2,
+        zeitMin: 25,
+        zutaten: [
+          { name: 'Poulet', menge: 400, einheit: 'g' },
+          { name: 'Zitrone', menge: 1, einheit: 'Stück' },
+          { name: 'Crème fraîche', menge: 100, einheit: 'g' },
+        ],
+        schritte: [
+          { text: 'Poulet in Streifen schneiden und anbraten.', minuten: 6 },
+          { text: 'Mit Zitronensaft ablöschen und Crème fraîche einrühren.', minuten: 0 },
+        ],
+        fehlt: ['Crème fraîche'],
+      },
+    ],
+  };
+
+  /** Ein winziges gültiges JPEG als Kameraaufnahme. */
+  const foto = {
+    name: 'kuehlschrank.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from(
+      '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a' +
+        'HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA' +
+        'AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==',
+      'base64',
+    ),
+  };
+
+  test('erkennt Lebensmittel, findet eigene Rezepte und speichert eine Idee', async ({ page }) => {
+    await openSpace(page, newSpace('foto'));
+
+    await page.route('**/api/vision', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(antwort) }),
+    );
+
+    await page.getByRole('button', { name: 'Foto vom Kühlschrank aufnehmen' }).click();
+    const blatt = page.getByRole('dialog');
+    await expect(blatt.getByRole('button', { name: 'Foto aufnehmen' })).toBeVisible();
+
+    await page.setInputFiles('input[type="file"]', foto);
+
+    // Erkannte Lebensmittel
+    await expect(blatt.getByText('Erkannt')).toBeVisible();
+    for (const name of antwort.lebensmittel) {
+      await expect(blatt.getByText(name, { exact: true }).first()).toBeVisible();
+    }
+
+    // Eigene Rezepte werden lokal zugeordnet, nicht vom Modell geraten.
+    await expect(blatt.getByText('Aus deinen Rezepten')).toBeVisible();
+    await expect(blatt.getByRole('button', { name: /Poulet mit Brokkoli und Reis/ })).toBeVisible();
+
+    // Neue Idee aufklappen und speichern
+    await blatt.getByRole('button', { name: /Zitronen-Poulet aus der Pfanne/ }).click();
+    await expect(blatt.getByText('Poulet in Streifen schneiden und anbraten.')).toBeVisible();
+    await blatt.getByRole('button', { name: 'Als Rezept speichern' }).click();
+    await expect(page.getByText('„Zitronen-Poulet aus der Pfanne“ gespeichert')).toBeVisible();
+
+    await blatt.getByRole('button', { name: 'Schliessen' }).click();
+    await expect(page.getByText('13 Rezepte gespeichert')).toBeVisible();
+
+    // Die gespeicherte Idee ist ein vollwertiges Rezept samt Timer.
+    await page.getByRole('button', { name: 'Rezept Zitronen-Poulet aus der Pfanne öffnen' }).click();
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByText('400 g')).toBeVisible();
+    await expect(detail.getByText('06:00')).toBeVisible();
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
+  });
+
+  test('fehlende Zutaten wandern auf die Einkaufsliste', async ({ page }) => {
+    await openSpace(page, newSpace('fotoliste'));
+    await page.route('**/api/vision', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(antwort) }),
+    );
+
+    await page.getByRole('button', { name: 'Foto vom Kühlschrank aufnehmen' }).click();
+    await page.setInputFiles('input[type="file"]', foto);
+    await page.getByRole('dialog').getByRole('button', { name: 'Fehlendes einkaufen' }).click();
+    await expect(page.getByText('1 Zutat zur Einkaufsliste')).toBeVisible();
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Crème fraîche')).toHaveCount(1);
+  });
+
+  test('ohne eingerichteten Schlüssel sagt die App das deutlich', async ({ page }) => {
+    await openSpace(page, newSpace('fotokeykey'));
+    await page.route('**/api/status', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, storage: 'postgres', cloud: true, reachable: true, vision: false }),
+      }),
+    );
+
+    await page.getByRole('button', { name: 'Foto vom Kühlschrank aufnehmen' }).click();
+    const blatt = page.getByRole('dialog');
+    await expect(blatt.getByText('Bilderkennung nicht eingerichtet.')).toBeVisible();
+    await expect(blatt.getByRole('button', { name: 'Foto aufnehmen' })).toBeDisabled();
+  });
+
+  test('ein Fehler bei der Auswertung ist erklärt und wiederholbar', async ({ page }) => {
+    await openSpace(page, newSpace('fotofehler'));
+    await page.route('**/api/vision', (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: false, error: 'no_result' }),
+      }),
+    );
+
+    await page.getByRole('button', { name: 'Foto vom Kühlschrank aufnehmen' }).click();
+    await page.setInputFiles('input[type="file"]', foto);
+    const blatt = page.getByRole('dialog');
+    await expect(blatt.getByText('Damit konnte ich nichts anfangen.')).toBeVisible();
+    await blatt.getByRole('button', { name: 'Nochmal versuchen' }).click();
+    await expect(blatt.getByRole('button', { name: 'Foto aufnehmen' })).toBeVisible();
+  });
+
+  test('ohne Schlüssel antwortet die Route selbst mit einer klaren Begründung', async ({
+    request,
+  }) => {
+    const response = await request.post('/api/vision', { data: { image: 'data:image/jpeg;base64,AAAA' } });
+    expect(response.status()).toBe(503);
+    expect((await response.json()).error).toBe('no_key');
+  });
+});
+
 test.describe('Nachtragen in einen bestehenden Datenraum', () => {
   /** Legt einen Datenraum an, wie ihn ein Gerät mit älterem Stand hätte. */
   async function alterStand(request: import('@playwright/test').APIRequestContext, space: string) {

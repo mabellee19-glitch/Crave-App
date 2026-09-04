@@ -12,9 +12,10 @@ import { RecipeForm } from './RecipeForm';
 import { DishForm } from './DishForm';
 import { CookMode } from './CookMode';
 import { SettingsSheet, SyncBadge } from './SettingsSheet';
+import { FridgeSheet } from './FridgeSheet';
 import { CloudNotice } from './CloudNotice';
 import { Toast, ToastMessage } from './ui';
-import { IconBook, IconCart, IconPlate, IconPlus, IconSettings } from './Icons';
+import { IconBook, IconCamera, IconCart, IconPlate, IconPlus, IconSettings } from './Icons';
 
 type Tab = 'recipes' | 'dishes' | 'shopping';
 
@@ -23,6 +24,7 @@ type Overlay =
   | { kind: 'recipeForm'; recipe: Recipe; isNew: boolean }
   | { kind: 'dishForm'; dish: Dish; isNew: boolean }
   | { kind: 'cook'; recipeId: string; servings: number }
+  | { kind: 'fridge' }
   | { kind: 'settings' };
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
@@ -170,6 +172,13 @@ export function AppShell() {
 
           <button
             className="iconbtn"
+            onClick={() => openOverlay({ kind: 'fridge' })}
+            aria-label="Foto vom Kühlschrank aufnehmen"
+          >
+            <IconCamera />
+          </button>
+          <button
+            className="iconbtn"
             onClick={addAction}
             aria-label={
               tab === 'recipes'
@@ -309,6 +318,30 @@ export function AppShell() {
             showToast(teile.length ? teile.join(', ') : 'Alles schon vorhanden');
           }}
           onClose={closeTop}
+        />
+      );
+    }
+
+    if (overlay.kind === 'fridge') {
+      return (
+        <FridgeSheet
+          recipes={store.recipes}
+          pantry={allPantry.map((item) => item.name)}
+          onClose={closeTop}
+          onOpenRecipe={(id) => {
+            closeTop();
+            openRecipe(id);
+          }}
+          onSaveIdea={(recipe) => {
+            store.saveRecipe(recipe);
+            showToast(`„${recipe.name}“ gespeichert`);
+          }}
+          onAddMissing={(names) => {
+            for (const name of names) store.addShoppingItem({ name });
+            showToast(
+              `${names.length} ${names.length === 1 ? 'Zutat' : 'Zutaten'} zur Einkaufsliste`,
+            );
+          }}
         />
       );
     }

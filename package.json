@@ -17,6 +17,7 @@
     "add-recipes": "node scripts/add-recipes.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "next": "^16.3.4",
     "pg": "^8.23.0",
     "react": "^19.2.8",

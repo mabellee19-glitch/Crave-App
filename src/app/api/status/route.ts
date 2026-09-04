@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pingStorage, storageKind, storageSource } from '@/lib/db';
+import { hasVisionKey } from '@/lib/vision';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -21,6 +22,8 @@ export async function GET() {
       error: ping.error,
       // Nur der Name der Umgebungsvariable, nie ihr Inhalt.
       source: storageSource(),
+      // Ob die Bilderkennung eingerichtet ist – nur ja/nein, nie der Schlüssel.
+      vision: hasVisionKey(),
     },
     { status: ping.reachable ? 200 : 503, headers: { 'Cache-Control': 'no-store, max-age=0' } },
   );

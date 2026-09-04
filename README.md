@@ -28,6 +28,7 @@ Drei Bereiche:
 | Grundliste | Antippen legt eine Zutat in die aktive Liste |
 | Grundliste | Rubriken zum Aufklappen, dazu eine Vorschlagsliste zum Nachtragen |
 | Rezept → Liste | Zutaten werden mit Mengen übernommen und zusammengefasst |
+| Kühlschrankfoto | Foto erkennt Lebensmittel, findet passende eigene Rezepte und schlägt neue vor |
 | Überall | Favoriten, Suche, automatisches Speichern, Geräte-Abgleich |
 
 ## Startinhalte nachtragen
@@ -51,6 +52,34 @@ Für den Weg über die Kommandozeile gibt es zusätzlich:
 ```bash
 npm run add-recipes -- https://deine-app.vercel.app/s/DEINE-ID
 ```
+
+## Kühlschrankfoto einrichten (optional)
+
+Der Kamera-Knopf oben rechts wertet ein Foto aus: er listet die erkannten
+Lebensmittel, sucht daraus passende Rezepte aus der eigenen Sammlung und
+schlägt zusätzlich neue Gerichte vor, die sich als Rezept speichern lassen.
+
+Dafür braucht der Server einen API-Schlüssel von Anthropic:
+
+1. Schlüssel unter [console.anthropic.com](https://console.anthropic.com)
+   erstellen.
+2. Als Umgebungsvariable `ANTHROPIC_API_KEY` hinterlegen – auf Vercel unter
+   `Settings → Environment Variables`, lokal in `.env.local`.
+3. Neu deployen.
+
+Ohne Schlüssel bleibt der Rest der App unberührt; der Knopf erklärt dann, was
+fehlt. Ob es eingerichtet ist, sagt `/api/status` im Feld `vision` – nur
+ja oder nein, nie der Schlüssel selbst.
+
+Zum Ablauf: das Foto wird im Browser auf 1024 Pixel Kantenlänge verkleinert
+und dann zur Auswertung an die Anthropic-API geschickt. Es wird nirgends
+gespeichert, weder in der Datenbank noch in der Einkaufsliste. Ein Aufruf
+kostet je nach Foto grob ein bis zwei Rappen.
+
+Welche eigenen Rezepte passen, rechnet die App selbst aus – aus den erkannten
+Lebensmitteln plus der Grundliste, denn Salz und Öl stehen zu Hause und nicht
+im Kühlschrank. Das Modell schlägt nur neue Gerichte vor und kann deshalb
+nichts empfehlen, was es gar nicht gibt.
 
 ## Der Link ist der Datenraum
 
@@ -189,6 +218,7 @@ src/
     globals.css               Design-System, Farbpalette ganz oben
   components/                 Oberfläche
   lib/
+    vision.ts                 Auswertung des Kühlschrankfotos
     store.tsx                 lokaler Zustand und Abgleich
     merge.ts                  Zusammenführen zweier Stände
     db.ts                     Postgres bzw. Datei-Fallback

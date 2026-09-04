@@ -1398,6 +1398,23 @@ ol {
   flex: none;
 }
 
+/* Kühlschrankfoto ---------------------------------------------------------- */
+
+.fridge__busy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.fridge__busy > div {
+  color: var(--ink);
+}
+
 /* Toast ------------------------------------------------------------------- */
 
 .toast {

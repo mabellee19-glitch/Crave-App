@@ -20,7 +20,7 @@ import {
 } from './types';
 import { mergeData, pruneTombstones, sameData } from './merge';
 import { randomId } from './id';
-import { PANTRY_CATALOGUE, buildSeedData } from './seed';
+import { PANTRY_CATALOGUE, PANTRY_CATEGORY_RENAMES, buildSeedData } from './seed';
 import { addAmounts, sameIngredient, scaleAmount, unitsCompatible } from './units';
 
 export type SyncState = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
@@ -122,6 +122,27 @@ function stamp(): number {
   const now = Date.now();
   lastStamp = now > lastStamp ? now : lastStamp + 1;
   return lastStamp;
+}
+
+/**
+ * Rubriken der Grundliste auf ihre heutigen Namen bringen.
+ *
+ * Gibt `null` zurück, wenn nichts anzupassen war – dann bleibt der Stand
+ * unberührt und es wird auch nichts zum Server geschickt.
+ */
+function renameCategories(data: AppData, now: number): AppData | null {
+  const updated: Record<string, PantryItem> = {};
+  let changed = false;
+  for (const [id, item] of Object.entries(data.pantry)) {
+    const neu = item.category ? PANTRY_CATEGORY_RENAMES[item.category] : undefined;
+    if (neu) {
+      updated[id] = { ...item, category: neu, updatedAt: now };
+      changed = true;
+    } else {
+      updated[id] = item;
+    }
+  }
+  return changed ? { ...data, pantry: updated } : null;
 }
 
 function isEmpty(data: AppData): boolean {
@@ -363,6 +384,13 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
       // Ohne Antwort vom Server wird bewusst nicht vorbefuellt: sonst kaeme
       // auf einem Geraet ohne Netz Startinhalt in einen laengst genutzten
       // Datenraum.
+
+      // Einmalig beim Start: alte Rubriknamen angleichen.
+      const umbenannt = renameCategories(next, stamp());
+      if (umbenannt) {
+        next = umbenannt;
+        dirtyRef.current = true;
+      }
 
       commit(next);
       setReady(true);

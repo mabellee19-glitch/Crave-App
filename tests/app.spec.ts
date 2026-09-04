@@ -439,7 +439,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     // Alle Rubriken stehen da, "Weitere" ist verschwunden: Olivenöl wurde einsortiert.
     await expect(page.locator('.pantrygroup__title')).toHaveText([
       'Protein',
-      'Frisches Gemüse',
+      'Frisches Gemüse/Früchte',
       'Dosenware',
       'Im Glas',
       'Zmorge',
@@ -455,6 +455,44 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('button', { name: 'Verwalten' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Vorschlagsliste ergänzen' }).click();
     await expect(page.getByText('Alles schon vorhanden')).toBeVisible();
+  });
+
+  test('eine umbenannte Rubrik wird bei bestehenden Zutaten mitgezogen', async ({
+    page,
+    request,
+  }) => {
+    const space = newSpace('umbenannt');
+    const now = Date.now();
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {},
+          dishes: {},
+          shopping: {},
+          pantry: {
+            alt1: {
+              id: 'alt1',
+              name: 'Rüebli',
+              amount: null,
+              unit: '',
+              // Der Name, den die Rubrik früher trug.
+              category: 'Frisches Gemüse',
+              inCart: false,
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+        },
+      },
+    });
+
+    await page.goto(`/s/${space}`);
+    await goToTab(page, 'Einkaufsliste');
+
+    // Keine zweite Gruppe mit dem alten Namen, die Zutat steckt in der neuen.
+    await expect(page.locator('.pantrygroup__title')).toHaveText(['Frisches Gemüse/Früchte']);
+    await openPantryGroup(page, 'Frisches Gemüse/Früchte');
+    await expect(pantryChip(page, 'Rüebli')).toHaveCount(1);
   });
 
   test('fehlende Rezepte werden nachgetragen, Schritte ergänzt', async ({ page, request }) => {

@@ -478,7 +478,7 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
     ],
   },
   {
-    category: 'Frisches Gemüse',
+    category: 'Frisches Gemüse/Früchte',
     items: [
       { name: 'Zucchini' },
       { name: 'Peperoni' },
@@ -559,6 +559,16 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
     ],
   },
 ];
+
+/**
+ * Umbenannte Rubriken: alter Name -> heutiger Name.
+ *
+ * Bestehende Datenräume tragen die alten Namen noch in ihren Einträgen. Ohne
+ * diese Zuordnung stünden sie in einer zweiten Gruppe neben der neuen.
+ */
+export const PANTRY_CATEGORY_RENAMES: Record<string, string> = {
+  'Frisches Gemüse': 'Frisches Gemüse/Früchte',
+};
 
 /** Reihenfolge der Rubriken in der Anzeige. */
 export const PANTRY_CATEGORY_ORDER = PANTRY_CATALOGUE.map((group) => group.category);

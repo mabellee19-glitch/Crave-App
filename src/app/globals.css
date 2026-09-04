@@ -5,43 +5,62 @@
    ========================================================================== */
 
 :root {
+  /* ------------------------------------------------------------------------
+     Farbpalette
+
+       Master Key            #dccd8b
+       Prickly Pear          #a7993c
+       Mozart                #475480
+       Sunburn               #b57056
+       Roycroft Copper Red   #7f3b25
+
+     Die fünf Farben sind mitteldunkel und gesättigt – als Seitenhintergrund
+     oder als Fliesstext wäre keine davon brauchbar. Hintergründe sind deshalb
+     stark aufgehellte Abstufungen von Master Key, Textfarben abgedunkelte von
+     Roycroft. Wo kleine Schrift auf hellem Grund steht, ist die jeweilige
+     Palettenfarbe abgedunkelt, damit sie lesbar bleibt.
+     ------------------------------------------------------------------------ */
+
   /* Basis */
-  --cream: #fbf7f2;
-  --cream-deep: #f3ebe1;
-  --surface: #ffffff;
-  --surface-sunken: #f7f1e9;
-  --ink: #241e19;
-  --ink-soft: #5c5148;
-  --ink-muted: #8d8076;
-  --line: #e7ddd0;
-  --line-strong: #d8cbba;
+  --cream: #faf6ea;
+  --cream-deep: #f1e9d2;
+  --surface: #fffdf7;
+  --surface-sunken: #f6f0dd;
+  --ink: #2b1a11;
+  --ink-soft: #5b4332;
+  --ink-muted: #8a735e;
+  --line: #e8ddc0;
+  --line-strong: #d6c79c;
 
   /* Akzente */
-  --accent: #c0552e;
-  --accent-strong: #a4441f;
-  --accent-soft: #f7e5db;
-  --accent-ink: #ffffff;
-  --sage: #6d7f63;
-  --sage-soft: #e7ecdf;
-  --gold: #cf9836;
-  --berry: #b23a5c;
+  --accent: #7f3b25; /* Roycroft Copper Red */
+  --accent-strong: #67301e;
+  --accent-soft: #f7e3d8;
+  --accent-ink: #fffdf7;
+  --fav: #b57056; /* Sunburn – Favoriten */
+  --link: #475480; /* Mozart – Verknüpfungen */
+  --link-soft: #e6e9f1;
+  --sage: #8b7f31; /* Prickly Pear, abgedunkelt für den Haken */
+  --sage-soft: #efecd4;
+  --gold: #a7993c; /* Prickly Pear */
+  --berry: #7f3b25;
 
   /* Kategorien */
-  --cat-high-protein: #b5573b;
-  --cat-high-protein-soft: #f8e4dc;
-  --cat-comfort: #b5893b;
-  --cat-comfort-soft: #f8eeda;
-  --cat-vegi: #5f7d55;
-  --cat-vegi-soft: #e6eddf;
+  --cat-high-protein: #7f3b25;
+  --cat-high-protein-soft: #f7e2d7;
+  --cat-comfort: #9c5738;
+  --cat-comfort-soft: #fbeade;
+  --cat-vegi: #6d6324;
+  --cat-vegi-soft: #f0ecd4;
 
   /* Form */
   --radius-sm: 10px;
   --radius: 16px;
   --radius-lg: 22px;
   --radius-xl: 28px;
-  --shadow-sm: 0 1px 2px rgba(56, 40, 28, 0.06), 0 2px 8px rgba(56, 40, 28, 0.05);
-  --shadow: 0 2px 6px rgba(56, 40, 28, 0.07), 0 12px 28px rgba(56, 40, 28, 0.09);
-  --shadow-lg: 0 8px 20px rgba(56, 40, 28, 0.12), 0 28px 60px rgba(56, 40, 28, 0.16);
+  --shadow-sm: 0 1px 2px rgba(60, 40, 24, 0.06), 0 2px 8px rgba(60, 40, 24, 0.05);
+  --shadow: 0 2px 6px rgba(60, 40, 24, 0.07), 0 12px 28px rgba(60, 40, 24, 0.09);
+  --shadow-lg: 0 8px 20px rgba(60, 40, 24, 0.12), 0 28px 60px rgba(60, 40, 24, 0.16);
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
@@ -56,31 +75,37 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cream: #16130f;
-    --cream-deep: #1d1915;
-    --surface: #201b16;
-    --surface-sunken: #17130f;
-    --ink: #f3ece3;
-    --ink-soft: #c6b9ab;
-    --ink-muted: #9b8d7f;
-    --line: #322a22;
-    --line-strong: #443a30;
+    /* Dieselbe Palette, nur umgekehrt gewichtet: der Grund kommt aus dem
+       dunklen Roycroft, die Schrift aus dem hellen Master Key. Die Akzente
+       werden aufgehellt, damit sie auf dunklem Grund tragen. */
+    --cream: #17110d;
+    --cream-deep: #1e1712;
+    --surface: #221a14;
+    --surface-sunken: #191310;
+    --ink: #f6efdf;
+    --ink-soft: #cbbda3;
+    --ink-muted: #9c8a72;
+    --line: #342820;
+    --line-strong: #47372c;
 
-    --accent: #e07a52;
-    --accent-strong: #ef8d64;
-    --accent-soft: #3a251c;
+    --accent: #b57056; /* Sunburn trägt auf dunklem Grund besser als Roycroft */
+    --accent-strong: #c78163;
+    --accent-soft: #3a241a;
     --accent-ink: #1a120d;
-    --sage: #9db28f;
-    --sage-soft: #26301f;
-    --gold: #e0ad55;
-    --berry: #e07091;
+    --fav: #c98a6c;
+    --link: #93a3d4;
+    --link-soft: #232839;
+    --sage: #8f8434;
+    --sage-soft: #262214;
+    --gold: #c4b45a;
+    --berry: #c0714f;
 
-    --cat-high-protein: #e58a68;
-    --cat-high-protein-soft: #3a251c;
-    --cat-comfort: #e0b062;
-    --cat-comfort-soft: #362a15;
-    --cat-vegi: #9dba8d;
-    --cat-vegi-soft: #24301e;
+    --cat-high-protein: #d98a68;
+    --cat-high-protein-soft: #3a231a;
+    --cat-comfort: #cf8b62;
+    --cat-comfort-soft: #33231a;
+    --cat-vegi: #bdae57;
+    --cat-vegi-soft: #2b2714;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.4);
@@ -472,7 +497,7 @@ ol {
 }
 
 .iconbtn--active {
-  color: var(--berry);
+  color: var(--fav);
 }
 
 /* Suche & Filter ---------------------------------------------------------- */
@@ -638,7 +663,7 @@ ol {
 }
 
 .card__title--link {
-  color: var(--accent);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -713,8 +738,8 @@ ol {
 }
 
 .tag--link {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--link-soft);
+  color: var(--link);
 }
 
 /* Listen ------------------------------------------------------------------ */

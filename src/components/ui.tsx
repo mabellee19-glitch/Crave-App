@@ -210,7 +210,7 @@ export function ConfirmDialog({
             </button>
             <button
               className="btn btn--block"
-              style={{ background: 'var(--berry)', color: '#fff' }}
+              style={{ background: 'var(--berry)', color: 'var(--accent-ink)' }}
               onClick={onConfirm}
             >
               {confirmLabel}

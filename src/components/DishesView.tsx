@@ -149,7 +149,7 @@ function DishCard({
       <div className="card__actions">
         <button
           className="card__fav"
-          style={dish.favorite ? { color: 'var(--berry)' } : undefined}
+          style={dish.favorite ? { color: 'var(--fav)' } : undefined}
           onClick={onToggleFavorite}
           aria-label={
             dish.favorite

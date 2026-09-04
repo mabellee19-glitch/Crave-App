@@ -22,8 +22,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       scope: '/',
       display: 'standalone',
       orientation: 'portrait',
-      background_color: '#fbf7f2',
-      theme_color: '#fbf7f2',
+      background_color: '#faf6ea',
+      theme_color: '#faf6ea',
       lang: 'de',
       dir: 'ltr',
       icons: [

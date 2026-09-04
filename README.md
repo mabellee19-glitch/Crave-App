@@ -187,8 +187,24 @@ src/
     seed.ts                   Startinhalte
 ```
 
-## Farben ändern
+## Farben
+
+| Name | Hex | Verwendung |
+| --- | --- | --- |
+| Master Key | `#dccd8b` | Hintergründe, Linien (stark aufgehellt) |
+| Prickly Pear | `#a7993c` | Vegi, erledigte Zutaten, Sync-Anzeige |
+| Mozart | `#475480` | Verknüpfungen zwischen Gericht und Rezept |
+| Sunburn | `#b57056` | Favoriten, Comfort, Akzent im dunklen Modus |
+| Roycroft Copper Red | `#7f3b25` | Knöpfe, High-Protein, App-Symbol |
 
 Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`,
 jeweils einmal für hell und einmal für dunkel. Wer die Palette austauschen
-will, ändert nur diesen Block.
+will, ändert nur diesen Block. Für kleine Schrift auf hellem Grund sind
+abgedunkelte Abstufungen hinterlegt, damit der Text lesbar bleibt.
+
+## App-Symbol
+
+`npm run icons` erzeugt die PNG-Symbole neu (`public/icons/`). Gezeichnet wird
+der Schriftzug CRAVE aus Strecken und Kreisbögen, ganz ohne Schriftdatei oder
+Bildbibliothek. Für den Browser-Tab entsteht zusätzlich ein kleines Zeichen mit
+nur einem C, weil der Schriftzug bei 32 Pixeln nicht mehr lesbar wäre.

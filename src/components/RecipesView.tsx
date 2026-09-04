@@ -137,7 +137,7 @@ function RecipeCard({
       <div className="card__actions">
         <button
           className="card__fav"
-          style={recipe.favorite ? { color: 'var(--berry)' } : undefined}
+          style={recipe.favorite ? { color: 'var(--fav)' } : undefined}
           onClick={onToggleFavorite}
           aria-label={
             recipe.favorite

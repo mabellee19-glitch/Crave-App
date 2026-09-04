@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, Recipe } from '@/lib/types';
 import { ConfirmDialog, Field, Sheet } from './ui';
-import { ImageField } from './ImageField';
 import { IconTrash } from './Icons';
 
 export function DishForm({
@@ -77,8 +76,6 @@ export function DishForm({
             ))}
           </select>
         </Field>
-
-        <ImageField value={draft.image} onChange={(value) => set('image', value)} />
 
         <Field
           label="Verknüpftes Rezept"

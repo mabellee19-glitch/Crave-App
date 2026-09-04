@@ -146,70 +146,43 @@ function DishCard({
   const linked = recipeName !== null;
   return (
     <article className="card">
-      <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6, zIndex: 2 }}>
+      <div className="card__actions">
         <button
           className="card__fav"
-          style={{ position: 'static', ...(dish.favorite ? { color: 'var(--berry)' } : {}) }}
+          style={dish.favorite ? { color: 'var(--berry)' } : undefined}
           onClick={onToggleFavorite}
-          aria-label={dish.favorite ? `${dish.name} aus Favoriten entfernen` : `${dish.name} zu Favoriten hinzufügen`}
+          aria-label={
+            dish.favorite
+              ? `${dish.name} aus Favoriten entfernen`
+              : `${dish.name} zu Favoriten hinzufügen`
+          }
           aria-pressed={dish.favorite}
         >
           <IconHeart size={19} filled={dish.favorite} />
         </button>
-        <button
-          className="card__fav"
-          style={{ position: 'static' }}
-          onClick={onEdit}
-          aria-label={`${dish.name} bearbeiten`}
-        >
+        <button className="card__fav" onClick={onEdit} aria-label={`${dish.name} bearbeiten`}>
           <IconPencil size={18} />
         </button>
       </div>
 
       <button
+        className="card__open card__open--wide"
         onClick={onPrimary}
-        style={{ display: 'flex', flexDirection: 'column', flex: 1, textAlign: 'left' }}
         aria-label={linked ? `Rezept zu ${dish.name} öffnen` : `${dish.name} bearbeiten`}
       >
-        <div className="card__media">
-          {dish.image ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={dish.image} alt="" loading="lazy" />
+        <h2 className={`card__title${linked ? ' card__title--link' : ''}`}>{dish.name}</h2>
+        <div className="card__meta">
+          <span className={`tag tag--${dish.category}`}>{DISH_CATEGORY_LABEL[dish.category]}</span>
+          {linked ? (
+            <span className="tag tag--link">
+              <IconLink size={12} />
+              Rezept
+            </span>
           ) : (
-            <span className="card__glyph">{initials(dish.name)}</span>
+            <span className="muted">Kein Rezept</span>
           )}
-        </div>
-        <div className="card__body">
-          <h2
-            className="card__title"
-            style={
-              linked
-                ? { color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: '3px' }
-                : undefined
-            }
-          >
-            {dish.name}
-          </h2>
-          <div className="card__meta">
-            <span className={`tag tag--${dish.category}`}>{DISH_CATEGORY_LABEL[dish.category]}</span>
-            {linked ? (
-              <span className="tag tag--link">
-                <IconLink size={12} />
-                Rezept
-              </span>
-            ) : (
-              <span className="muted">Kein Rezept</span>
-            )}
-          </div>
         </div>
       </button>
     </article>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '·';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
 }

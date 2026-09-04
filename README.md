@@ -16,7 +16,7 @@ Drei Bereiche:
 
 | Bereich | Funktion |
 | --- | --- |
-| Rezepte | Anlegen, bearbeiten, löschen; Bild, Kategorie, Portionen, Zeit |
+| Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
 | Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
 | Kochmodus | Timer pro Schritt mit Ton und Vibration, Display bleibt an |

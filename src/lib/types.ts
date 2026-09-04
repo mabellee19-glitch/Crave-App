@@ -50,8 +50,6 @@ export interface Recipe extends Syncable {
   servings: number;
   /** Zubereitungszeit in Minuten. */
   timeMin: number | null;
-  /** Bild als Data-URL oder externe URL. Leer = kein Bild. */
-  image: string;
   ingredients: Ingredient[];
   steps: Step[];
   favorite: boolean;
@@ -62,7 +60,6 @@ export interface Recipe extends Syncable {
 export interface Dish extends Syncable {
   name: string;
   category: DishCategory;
-  image: string;
   /** Verknuepftes Rezept, `null` wenn (noch) keines hinterlegt ist. */
   recipeId: Id | null;
   favorite: boolean;

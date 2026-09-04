@@ -4,7 +4,6 @@ import React, { useMemo, useState } from 'react';
 import { Ingredient, Recipe, Step } from '@/lib/types';
 import { blankIngredient, blankStep } from '@/lib/store';
 import { Field, NumberInput, Sheet } from './ui';
-import { ImageField } from './ImageField';
 import { IconArrowUp, IconPlus, IconTrash } from './Icons';
 
 const CATEGORY_SUGGESTIONS = ['High-Protein', 'Comfort', 'Vegi', 'Frühstück', 'Dessert', 'Snack'];
@@ -96,8 +95,6 @@ export function RecipeForm({
           autoComplete="off"
         />
       </Field>
-
-      <ImageField value={draft.image} onChange={(value) => set('image', value)} />
 
       <Field label="Kategorie" htmlFor="recipe-category">
         <input

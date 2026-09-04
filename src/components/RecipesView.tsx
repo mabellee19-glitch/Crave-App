@@ -134,52 +134,38 @@ function RecipeCard({
 }) {
   return (
     <article className="card">
-      <button
-        className="card__fav"
-        style={recipe.favorite ? { color: 'var(--berry)' } : undefined}
-        onClick={onToggleFavorite}
-        aria-label={recipe.favorite ? `${recipe.name} aus Favoriten entfernen` : `${recipe.name} zu Favoriten hinzufügen`}
-        aria-pressed={recipe.favorite}
-      >
-        <IconHeart size={19} filled={recipe.favorite} />
-      </button>
-      <button
-        onClick={onOpen}
-        style={{ display: 'flex', flexDirection: 'column', flex: 1, textAlign: 'left' }}
-        aria-label={`Rezept ${recipe.name} öffnen`}
-      >
-        <div className="card__media">
-          {recipe.image ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={recipe.image} alt="" loading="lazy" />
-          ) : (
-            <span className="card__glyph">{initials(recipe.name)}</span>
-          )}
-        </div>
-        <div className="card__body">
-          <h2 className="card__title">{recipe.name}</h2>
-          <div className="card__meta">
-            {recipe.category ? <span className="tag">{recipe.category}</span> : null}
-            {recipe.timeMin ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <IconClock size={13} />
-                {recipe.timeMin} Min
-              </span>
-            ) : null}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <IconServings size={13} />
-              {recipe.servings}
+      <div className="card__actions">
+        <button
+          className="card__fav"
+          style={recipe.favorite ? { color: 'var(--berry)' } : undefined}
+          onClick={onToggleFavorite}
+          aria-label={
+            recipe.favorite
+              ? `${recipe.name} aus Favoriten entfernen`
+              : `${recipe.name} zu Favoriten hinzufügen`
+          }
+          aria-pressed={recipe.favorite}
+        >
+          <IconHeart size={19} filled={recipe.favorite} />
+        </button>
+      </div>
+
+      <button className="card__open" onClick={onOpen} aria-label={`Rezept ${recipe.name} öffnen`}>
+        <h2 className="card__title">{recipe.name}</h2>
+        <div className="card__meta">
+          {recipe.category ? <span className="tag">{recipe.category}</span> : null}
+          {recipe.timeMin ? (
+            <span className="card__metaitem">
+              <IconClock size={13} />
+              {recipe.timeMin} Min
             </span>
-          </div>
+          ) : null}
+          <span className="card__metaitem">
+            <IconServings size={13} />
+            {recipe.servings}
+          </span>
         </div>
       </button>
     </article>
   );
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '·';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
 }

@@ -77,14 +77,6 @@ export function RecipeDetail({
           </>
         }
       >
-        {recipe.image ? (
-          <div className="detail__hero">
-            {/* Bilder werden als Data-URL gespeichert; next/image bringt hier nichts. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={recipe.image} alt="" />
-          </div>
-        ) : null}
-
         <h1 className="detail__title">{recipe.name || 'Ohne Namen'}</h1>
 
         <div className="detail__meta">

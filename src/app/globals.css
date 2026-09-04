@@ -45,16 +45,18 @@
   --gold: #a7993c; /* Prickly Pear */
   --berry: #7f3b25;
 
-  /* Kategorien: gefüllte Etiketten in der reinen Palettenfarbe. Getönte
-     Flächen mit farbiger Schrift lagen bei High-Protein und Comfort zu nah
-     beieinander; gefüllt trennen sich die drei sofort. Die Schriftfarbe je
-     Etikett richtet sich nach der Helligkeit der Füllung. */
-  --cat-high-protein: #dccd8b; /* Master Key */
-  --cat-high-protein-ink: #2b1a11;
-  --cat-comfort: #7f3b25; /* Roycroft Copper Red */
-  --cat-comfort-ink: #fffdf7;
-  --cat-vegi: #a7993c; /* Prickly Pear */
-  --cat-vegi-ink: #2b1a11;
+  /* Kategorien im selben zurückhaltenden Stil wie das Rezept-Etikett: eine
+     zart getönte Fläche, die Farbe trägt die Schrift. `-soft` ist die Fläche,
+     die Variable ohne Zusatz die Schrift – auf hellem Grund abgedunkelt,
+     damit auch 11,5 px fett lesbar bleiben. */
+  --cat-high-protein: #6f6120; /* Master Key, abgedunkelt */
+  --cat-high-protein-soft: #f6f0d9;
+  --cat-comfort: #8f4c33; /* Sunburn, abgedunkelt */
+  --cat-comfort-soft: #f9e9e1;
+  /* Prickly Pear, abgedunkelt und eine Spur ins Grüne gezogen: sonst liegt es
+     auf hellem Grund zu nah bei Master Key. */
+  --cat-vegi: #4f5820;
+  --cat-vegi-soft: #eaeed8;
 
   /* Form */
   --radius-sm: 10px;
@@ -103,13 +105,13 @@
     --gold: #c4b45a;
     --berry: #c0714f;
 
-    /* Auf dunklem Grund trägt Roycroft zu wenig, Comfort nimmt dort Sunburn. */
-    --cat-high-protein: #dccd8b;
-    --cat-high-protein-ink: #1a120d;
-    --cat-comfort: #b57056;
-    --cat-comfort-ink: #1a120d;
-    --cat-vegi: #a7993c;
-    --cat-vegi-ink: #1a120d;
+    /* Auf dunklem Grund tragen die Palettenfarben selbst als Schrift. */
+    --cat-high-protein: #dccd8b; /* Master Key */
+    --cat-high-protein-soft: #2e2a1c;
+    --cat-comfort: #d1936f; /* Sunburn, aufgehellt */
+    --cat-comfort-soft: #33241c;
+    --cat-vegi: #b8a94a; /* Prickly Pear, aufgehellt */
+    --cat-vegi-soft: #2a2717;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.4);
@@ -591,21 +593,21 @@ ol {
 }
 
 .chip--high-protein.chip--active {
-  background: var(--cat-high-protein);
+  background: var(--cat-high-protein-soft);
   border-color: var(--cat-high-protein);
-  color: var(--cat-high-protein-ink);
+  color: var(--cat-high-protein);
 }
 
 .chip--comfort.chip--active {
-  background: var(--cat-comfort);
+  background: var(--cat-comfort-soft);
   border-color: var(--cat-comfort);
-  color: var(--cat-comfort-ink);
+  color: var(--cat-comfort);
 }
 
 .chip--vegi.chip--active {
-  background: var(--cat-vegi);
+  background: var(--cat-vegi-soft);
   border-color: var(--cat-vegi);
-  color: var(--cat-vegi-ink);
+  color: var(--cat-vegi);
 }
 
 /* Karten ------------------------------------------------------------------ */
@@ -721,18 +723,18 @@ ol {
 }
 
 .tag--high-protein {
-  background: var(--cat-high-protein);
-  color: var(--cat-high-protein-ink);
+  background: var(--cat-high-protein-soft);
+  color: var(--cat-high-protein);
 }
 
 .tag--comfort {
-  background: var(--cat-comfort);
-  color: var(--cat-comfort-ink);
+  background: var(--cat-comfort-soft);
+  color: var(--cat-comfort);
 }
 
 .tag--vegi {
-  background: var(--cat-vegi);
-  color: var(--cat-vegi-ink);
+  background: var(--cat-vegi-soft);
+  color: var(--cat-vegi);
 }
 
 .tag--link {

@@ -44,7 +44,23 @@ export function AppShell() {
   const storeRef = useRef(store);
   storeRef.current = store;
 
-  /* Overlays haengen am Verlauf: die Zurueck-Geste in Safari schliesst sie. */
+  /*
+   * Overlays haengen am Verlauf: die Zurueck-Geste in Safari schliesst sie.
+   *
+   * Die Scrollposition verwaltet dabei die App selbst. Sonst setzt der Browser
+   * beim Zurueckgehen seine eigene gemerkte Position – und die stammt aus dem
+   * Moment, in dem die Seite hinter dem Overlay eingefroren und damit nur noch
+   * fensterhoch war.
+   */
+  useEffect(() => {
+    if (!('scrollRestoration' in window.history)) return;
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => {
+      window.history.scrollRestoration = previous;
+    };
+  }, []);
+
   useEffect(() => {
     const onPop = () => setStack((current) => (current.length ? current.slice(0, -1) : current));
     window.addEventListener('popstate', onPop);

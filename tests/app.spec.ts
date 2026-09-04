@@ -128,6 +128,43 @@ test.describe('Rezepte', () => {
     await expect(page.locator('.cook__timerchip')).toHaveCount(0);
   });
 
+  test('im Kochmodus scrollt die Seite dahinter nicht mit', async ({ page }) => {
+    await openSpace(page, newSpace('kochscroll'));
+
+    // Ein Stück in der Rezeptliste scrollen, damit es etwas zu merken gibt.
+    await page.mouse.move(180, 400);
+    for (let i = 0; i < 4; i++) await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(200);
+    // Auf breiten Fenstern passt die Liste ohne Scrollen aufs Bild.
+    const listenposition = await page.evaluate(() => window.scrollY);
+
+    await page.getByRole('button', { name: 'Rezept Marry me Chicken Orzo öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+
+    // Im Kochmodus scrollt nur der Schritt selbst, nie die Seite dahinter.
+    await page.mouse.move(180, 320);
+    for (let i = 0; i < 8; i++) await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    // Der Schritt selbst muss weiterhin scrollen – sofern er überhaupt
+    // überläuft. Auf hohen Fenstern passt er ganz aufs Bild.
+    const innen = await page.evaluate(() => {
+      const el = document.querySelector('.cook__body')!;
+      return { ueberlauf: el.scrollHeight > el.clientHeight, position: el.scrollTop };
+    });
+    if (innen.ueberlauf) expect(innen.position).toBeGreaterThan(0);
+
+    // Nach dem Schliessen steht die Liste wieder da, wo sie war.
+    await page.getByRole('button', { name: 'Kochmodus beenden' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBe(listenposition);
+    expect(await page.evaluate(() => document.body.style.position)).toBe('');
+  });
+
   test('legt ein Rezept an, bearbeitet und loescht es', async ({ page }) => {
     await openSpace(page, newSpace('crud'));
 

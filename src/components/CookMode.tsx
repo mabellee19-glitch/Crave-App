@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Recipe } from '@/lib/types';
 import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
 import { playAlarm, stopAlarm, vibrate } from '@/lib/audio';
+import { Portal, useBodyScrollLock } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconChevronLeft, IconChevronRight, IconClose, IconTimer } from './Icons';
 
@@ -24,6 +25,10 @@ export function CookMode({
     () => recipe.steps.filter((step) => step.text.trim().length > 0),
     [recipe.steps],
   );
+  // Der Kochmodus legt sich über die ganze App: die Seite dahinter darf nicht
+  // mitscrollen, sonst tauchen beim Scrollen die Rezepte darunter auf.
+  useBodyScrollLock(true);
+
   const [index, setIndex] = useState(0);
   const total = steps.length;
   const step = steps[Math.min(index, Math.max(total - 1, 0))];
@@ -174,25 +179,27 @@ export function CookMode({
 
   if (total === 0) {
     return (
-      <div className="cook">
-        <div className="cook__head">
-          <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
-            <IconClose />
-          </button>
-          <div className="cook__progress" />
+      <Portal>
+        <div className="cook">
+          <div className="cook__head">
+            <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
+              <IconClose />
+            </button>
+            <div className="cook__progress" />
+          </div>
+          <div className="cook__body">
+            <div className="cook__count">Kein Schritt hinterlegt</div>
+            <p className="cook__text">
+              Für dieses Rezept sind noch keine Zubereitungsschritte erfasst.
+            </p>
+          </div>
+          <div className="cook__foot">
+            <button className="btn btn--primary btn--lg btn--block" onClick={onClose}>
+              Zurück zum Rezept
+            </button>
+          </div>
         </div>
-        <div className="cook__body">
-          <div className="cook__count">Kein Schritt hinterlegt</div>
-          <p className="cook__text">
-            Für dieses Rezept sind noch keine Zubereitungsschritte erfasst.
-          </p>
-        </div>
-        <div className="cook__foot">
-          <button className="btn btn--primary btn--lg btn--block" onClick={onClose}>
-            Zurück zum Rezept
-          </button>
-        </div>
-      </div>
+      </Portal>
     );
   }
 
@@ -200,95 +207,97 @@ export function CookMode({
   const progress = ((index + 1) / total) * 100;
 
   return (
-    <div className="cook">
-      <div className="cook__head">
-        <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
-          <IconClose />
-        </button>
-        <div className="cook__progress">
-          <div className="cook__progressbar" style={{ width: `${progress}%` }} />
+    <Portal>
+      <div className="cook">
+        <div className="cook__head">
+          <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
+            <IconClose />
+          </button>
+          <div className="cook__progress">
+            <div className="cook__progressbar" style={{ width: `${progress}%` }} />
+          </div>
+          <span className="syncdot" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {index + 1}/{total}
+          </span>
         </div>
-        <span className="syncdot" style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {index + 1}/{total}
-        </span>
-      </div>
 
-      {backgroundTimers.length > 0 ? (
-        <div className="cook__timers">
-          {backgroundTimers.map(({ entry, position, state }) => (
-            <button
-              key={entry.id}
-              className={`cook__timerchip${state!.ringing ? ' cook__timerchip--ringing' : ''}`}
-              onClick={() => setIndex(position)}
-              aria-label={`Zu Schritt ${position + 1} mit laufendem Timer`}
-            >
-              <IconTimer size={15} />
-              Schritt {position + 1}
-              <strong>{state!.ringing ? 'fertig' : formatClock(remainingSeconds(state!))}</strong>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="cook__body">
-        <div className="cook__count">
-          Schritt {index + 1} von {total}
-        </div>
-        <p className="cook__text">{step.text}</p>
-
-        {step.durationSec ? (
-          <Timer
-            duration={step.durationSec}
-            state={timerFor(step.id, step.durationSec)}
-            onStart={() => startTimer(step.id, step.durationSec!)}
-            onPause={() => pauseTimer(step.id, step.durationSec!)}
-            onReset={() => resetTimer(step.id, step.durationSec!)}
-            onDismiss={() => resetTimer(step.id, step.durationSec!)}
-          />
-        ) : null}
-
-        {index === 0 && ingredients.length > 0 ? (
-          <div className="cook__ing">
-            {ingredients.map((ingredient) => {
-              const quantity = formatQuantity(
-                scaleAmount(ingredient.amount, factor, ingredient.noScale),
-                ingredient.unit,
-              );
-              return (
-                <span key={ingredient.id}>
-                  {quantity ? <strong>{quantity} </strong> : null}
-                  {ingredient.name}
-                </span>
-              );
-            })}
+        {backgroundTimers.length > 0 ? (
+          <div className="cook__timers">
+            {backgroundTimers.map(({ entry, position, state }) => (
+              <button
+                key={entry.id}
+                className={`cook__timerchip${state!.ringing ? ' cook__timerchip--ringing' : ''}`}
+                onClick={() => setIndex(position)}
+                aria-label={`Zu Schritt ${position + 1} mit laufendem Timer`}
+              >
+                <IconTimer size={15} />
+                Schritt {position + 1}
+                <strong>{state!.ringing ? 'fertig' : formatClock(remainingSeconds(state!))}</strong>
+              </button>
+            ))}
           </div>
         ) : null}
-      </div>
 
-      <div className="cook__foot">
-        <button
-          className="btn btn--ghost btn--lg"
-          onClick={() => setIndex((i) => Math.max(i - 1, 0))}
-          disabled={index === 0}
-        >
-          <IconChevronLeft size={18} />
-          Zurück
-        </button>
-        {isLast ? (
-          <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={onClose}>
-            Fertig gekocht
-          </button>
-        ) : (
+        <div className="cook__body">
+          <div className="cook__count">
+            Schritt {index + 1} von {total}
+          </div>
+          <p className="cook__text">{step.text}</p>
+
+          {step.durationSec ? (
+            <Timer
+              duration={step.durationSec}
+              state={timerFor(step.id, step.durationSec)}
+              onStart={() => startTimer(step.id, step.durationSec!)}
+              onPause={() => pauseTimer(step.id, step.durationSec!)}
+              onReset={() => resetTimer(step.id, step.durationSec!)}
+              onDismiss={() => resetTimer(step.id, step.durationSec!)}
+            />
+          ) : null}
+
+          {index === 0 && ingredients.length > 0 ? (
+            <div className="cook__ing">
+              {ingredients.map((ingredient) => {
+                const quantity = formatQuantity(
+                  scaleAmount(ingredient.amount, factor, ingredient.noScale),
+                  ingredient.unit,
+                );
+                return (
+                  <span key={ingredient.id}>
+                    {quantity ? <strong>{quantity} </strong> : null}
+                    {ingredient.name}
+                  </span>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="cook__foot">
           <button
-            className="btn btn--primary btn--lg"
-            style={{ flex: 1 }}
-            onClick={() => setIndex((i) => Math.min(i + 1, total - 1))}
+            className="btn btn--ghost btn--lg"
+            onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+            disabled={index === 0}
           >
-            Weiter
-            <IconChevronRight size={18} />
+            <IconChevronLeft size={18} />
+            Zurück
           </button>
-        )}
+          {isLast ? (
+            <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={onClose}>
+              Fertig gekocht
+            </button>
+          ) : (
+            <button
+              className="btn btn--primary btn--lg"
+              style={{ flex: 1 }}
+              onClick={() => setIndex((i) => Math.min(i + 1, total - 1))}
+            >
+              Weiter
+              <IconChevronRight size={18} />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </Portal>
   );
 }

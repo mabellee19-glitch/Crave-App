@@ -9,16 +9,74 @@ import { IconClose } from './Icons';
 /* -------------------------------------------------------------------------- */
 
 let lockCount = 0;
+let restoreLock: (() => void) | null = null;
 
-function useBodyScrollLock(active: boolean) {
+/**
+ * Scrollen der Seite hinter einem Overlay unterbinden.
+ *
+ * `overflow: hidden` allein genügt auf iOS nicht – Safari scrollt das
+ * Dokument trotzdem, und ein fest positioniertes Overlay löst sich dabei
+ * sichtbar vom Bildschirmrand. Deshalb wird die Seite an ihrer aktuellen
+ * Position eingefroren und beim Entsperren dorthin zurückgesetzt.
+ *
+ * Das Overlay selbst ist davon nicht betroffen: `position: fixed` am <body>
+ * bildet keinen Bezugsrahmen für fest positionierte Kinder.
+ *
+ * Gemerkt und zurückgesetzt wird nur beim äussersten Overlay – sonst würde
+ * ein verschachteltes Overlay beim Schliessen den gesperrten Zustand
+ * zurückschreiben.
+ */
+export function useBodyScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
+
+    if (lockCount === 0) {
+      const { body } = document;
+      const root = document.documentElement;
+      const scrollY = window.scrollY;
+      const previous = {
+        position: body.style.position,
+        top: body.style.top,
+        left: body.style.left,
+        right: body.style.right,
+        width: body.style.width,
+        overflow: body.style.overflow,
+        rootOverflow: root.style.overflow,
+      };
+
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+      body.style.overflow = 'hidden';
+      root.style.overflow = 'hidden';
+
+      restoreLock = () => {
+        body.style.position = previous.position;
+        body.style.top = previous.top;
+        body.style.left = previous.left;
+        body.style.right = previous.right;
+        body.style.width = previous.width;
+        body.style.overflow = previous.overflow;
+        root.style.overflow = previous.rootOverflow;
+        // Der Body war aus dem Fluss genommen, die Seite also kürzer. Wird zu
+        // früh zurückgesprungen, begrenzt der Browser das Ziel auf die alte,
+        // kleinere Scrollhöhe. Deshalb erst ein Umbruch erzwingen und im
+        // nächsten Frame noch einmal setzen.
+        void body.offsetHeight;
+        window.scrollTo(0, scrollY);
+        requestAnimationFrame(() => window.scrollTo(0, scrollY));
+      };
+    }
+
     lockCount += 1;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     return () => {
       lockCount -= 1;
-      if (lockCount === 0) document.body.style.overflow = previous;
+      if (lockCount === 0 && restoreLock) {
+        restoreLock();
+        restoreLock = null;
+      }
     };
   }, [active]);
 }

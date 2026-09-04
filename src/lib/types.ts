@@ -107,6 +107,23 @@ export type CollectionName = keyof AppData;
 
 export const COLLECTIONS: CollectionName[] = ['recipes', 'dishes', 'shopping', 'pantry'];
 
+/**
+ * Freitext-Kategorie eines Rezepts einer Gerichte-Kategorie zuordnen.
+ *
+ * Rezepte haben ein freies Kategoriefeld, Gerichte eine feste Auswahl. Damit
+ * "High-Protein" in beiden Bereichen gleich aussieht, wird hier grosszügig
+ * verglichen: Gross-/Kleinschreibung, Bindestriche und Leerzeichen sind egal.
+ * Passt nichts, bleibt das Etikett neutral.
+ */
+export function matchDishCategory(text: string | null | undefined): DishCategory | null {
+  const key = (text ?? '').toLowerCase().replace(/[\s_-]/g, '');
+  if (!key) return null;
+  if (key === 'highprotein' || key === 'protein') return 'high-protein';
+  if (key === 'comfort' || key === 'comfortfood') return 'comfort';
+  if (key === 'vegi' || key === 'veggie' || key === 'vegetarisch') return 'vegi';
+  return null;
+}
+
 export function emptyData(): AppData {
   return { recipes: {}, dishes: {}, shopping: {}, pantry: {} };
 }

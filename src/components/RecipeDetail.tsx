@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Recipe } from '@/lib/types';
+import { Recipe, matchDishCategory } from '@/lib/types';
 import { formatQuantity, scaleAmount } from '@/lib/units';
 import { Sheet, ConfirmDialog } from './ui';
 import { TimerHint } from './Timer';
@@ -81,7 +81,7 @@ export function RecipeDetail({
 
         <div className="detail__meta">
           {recipe.category ? (
-            <span className="tag">
+            <span className={`tag${categoryTag(recipe.category)}`}>
               <IconFlame size={13} />
               {recipe.category}
             </span>
@@ -209,4 +209,10 @@ export function RecipeDetail({
       ) : null}
     </>
   );
+}
+
+/** Klassenzusatz, damit Rezepte dieselben Kategoriefarben tragen wie Gerichte. */
+function categoryTag(category: string): string {
+  const match = matchDishCategory(category);
+  return match ? ` tag--${match}` : '';
 }

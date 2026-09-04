@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Recipe } from '@/lib/types';
+import { Recipe, matchDishCategory } from '@/lib/types';
 import { normalizeName } from '@/lib/units';
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './ui';
@@ -153,7 +153,9 @@ function RecipeCard({
       <button className="card__open" onClick={onOpen} aria-label={`Rezept ${recipe.name} öffnen`}>
         <h2 className="card__title">{recipe.name}</h2>
         <div className="card__meta">
-          {recipe.category ? <span className="tag">{recipe.category}</span> : null}
+          {recipe.category ? (
+            <span className={`tag${categoryTag(recipe.category)}`}>{recipe.category}</span>
+          ) : null}
           {recipe.timeMin ? (
             <span className="card__metaitem">
               <IconClock size={13} />
@@ -168,4 +170,10 @@ function RecipeCard({
       </button>
     </article>
   );
+}
+
+/** Klassenzusatz, damit Rezepte dieselben Kategoriefarben tragen wie Gerichte. */
+function categoryTag(category: string): string {
+  const match = matchDishCategory(category);
+  return match ? ` tag--${match}` : '';
 }

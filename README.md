@@ -201,11 +201,11 @@ src/
 
 | Name | Hex | Verwendung |
 | --- | --- | --- |
-| Master Key | `#dccd8b` | Hintergründe, Linien (stark aufgehellt) |
+| Master Key | `#dccd8b` | High-Protein, Hintergründe und Linien (stark aufgehellt) |
 | Prickly Pear | `#a7993c` | Vegi, erledigte Zutaten, Sync-Anzeige |
 | Mozart | `#475480` | Verknüpfungen zwischen Gericht und Rezept |
-| Sunburn | `#b57056` | Favoriten, Comfort, Akzent im dunklen Modus |
-| Roycroft Copper Red | `#7f3b25` | Knöpfe, High-Protein, App-Symbol |
+| Sunburn | `#b57056` | Favoriten, Comfort im dunklen Modus, Akzent im dunklen Modus |
+| Roycroft Copper Red | `#7f3b25` | Knöpfe, Comfort im hellen Modus, App-Symbol |
 
 Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`,
 jeweils einmal für hell und einmal für dunkel. Wer die Palette austauschen

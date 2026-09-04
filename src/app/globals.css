@@ -45,13 +45,16 @@
   --gold: #a7993c; /* Prickly Pear */
   --berry: #7f3b25;
 
-  /* Kategorien */
-  --cat-high-protein: #7f3b25;
-  --cat-high-protein-soft: #f7e2d7;
-  --cat-comfort: #9c5738;
-  --cat-comfort-soft: #fbeade;
-  --cat-vegi: #6d6324;
-  --cat-vegi-soft: #f0ecd4;
+  /* Kategorien: gefüllte Etiketten in der reinen Palettenfarbe. Getönte
+     Flächen mit farbiger Schrift lagen bei High-Protein und Comfort zu nah
+     beieinander; gefüllt trennen sich die drei sofort. Die Schriftfarbe je
+     Etikett richtet sich nach der Helligkeit der Füllung. */
+  --cat-high-protein: #dccd8b; /* Master Key */
+  --cat-high-protein-ink: #2b1a11;
+  --cat-comfort: #7f3b25; /* Roycroft Copper Red */
+  --cat-comfort-ink: #fffdf7;
+  --cat-vegi: #a7993c; /* Prickly Pear */
+  --cat-vegi-ink: #2b1a11;
 
   /* Form */
   --radius-sm: 10px;
@@ -100,12 +103,13 @@
     --gold: #c4b45a;
     --berry: #c0714f;
 
-    --cat-high-protein: #d98a68;
-    --cat-high-protein-soft: #3a231a;
-    --cat-comfort: #cf8b62;
-    --cat-comfort-soft: #33231a;
-    --cat-vegi: #bdae57;
-    --cat-vegi-soft: #2b2714;
+    /* Auf dunklem Grund trägt Roycroft zu wenig, Comfort nimmt dort Sunburn. */
+    --cat-high-protein: #dccd8b;
+    --cat-high-protein-ink: #1a120d;
+    --cat-comfort: #b57056;
+    --cat-comfort-ink: #1a120d;
+    --cat-vegi: #a7993c;
+    --cat-vegi-ink: #1a120d;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.4);
@@ -589,19 +593,19 @@ ol {
 .chip--high-protein.chip--active {
   background: var(--cat-high-protein);
   border-color: var(--cat-high-protein);
-  color: #fff;
+  color: var(--cat-high-protein-ink);
 }
 
 .chip--comfort.chip--active {
   background: var(--cat-comfort);
   border-color: var(--cat-comfort);
-  color: #fff;
+  color: var(--cat-comfort-ink);
 }
 
 .chip--vegi.chip--active {
   background: var(--cat-vegi);
   border-color: var(--cat-vegi);
-  color: #fff;
+  color: var(--cat-vegi-ink);
 }
 
 /* Karten ------------------------------------------------------------------ */
@@ -717,18 +721,18 @@ ol {
 }
 
 .tag--high-protein {
-  background: var(--cat-high-protein-soft);
-  color: var(--cat-high-protein);
+  background: var(--cat-high-protein);
+  color: var(--cat-high-protein-ink);
 }
 
 .tag--comfort {
-  background: var(--cat-comfort-soft);
-  color: var(--cat-comfort);
+  background: var(--cat-comfort);
+  color: var(--cat-comfort-ink);
 }
 
 .tag--vegi {
-  background: var(--cat-vegi-soft);
-  color: var(--cat-vegi);
+  background: var(--cat-vegi);
+  color: var(--cat-vegi-ink);
 }
 
 .tag--link {

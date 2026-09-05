@@ -54,14 +54,28 @@ function TopfOffen() {
       <ellipse className="cookanim__rand" cx="70" cy="98" rx="46" ry="9" />
       <ellipse className="cookanim__innen" cx="70" cy="98.5" rx="40" ry="7" />
       <ellipse className="cookanim__inhalt" cx="70" cy="99.5" rx="36" ry="5.6" />
-      <path className="cookanim__welle" d="M44 100.5q7-2.6 14 0" />
-      <path className="cookanim__welle cookanim__welle--2" d="M82 100.5q7 2.6 14 0" />
+      {/* Drei Schlieren in der Sauce, die dem Löffel im Kreis nachlaufen */}
+      <path className="cookanim__strudel" d="M62 99.5q8-2.6 16 0" />
+      <path className="cookanim__strudel cookanim__strudel--2" d="M62 99.5q8-2.6 16 0" />
+      <path className="cookanim__strudel cookanim__strudel--3" d="M62 99.5q8-2.6 16 0" />
 
-      {/* Der Löffel dreht sich um seine Kelle, die im Essen steht. */}
+      {/*
+        Der Löffel haengt am oberen Ende, wie in einer Hand: dort dreht er sich,
+        und die Kelle unten zieht dadurch ihre Runde durch den Topf.
+      */}
       <g className="cookanim__loeffel">
         <rect className="cookanim__stiel" x="67.5" y="50" width="5" height="48" rx="2.5" />
         <ellipse className="cookanim__kelle" cx="70" cy="98" rx="8.5" ry="4.2" />
       </g>
+
+      {/*
+        Die hintere Haelfte des Randes liegt zuletzt und damit vor dem Löffel:
+        so taucht die Kelle hinter dem Rand ab, statt darueber zu schweben.
+      */}
+      <path
+        className="cookanim__randhinten"
+        d="M24 98 A46 9 0 0 1 116 98 L110 98.5 A40 7 0 0 0 30 98.5 Z"
+      />
     </svg>
   );
 }

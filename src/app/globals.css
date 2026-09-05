@@ -1391,7 +1391,8 @@ ol {
 .cookanim__kragen,
 .cookanim__deckelrand,
 .cookanim__griff,
-.cookanim__rand {
+.cookanim__rand,
+.cookanim__randhinten {
   fill: #6b3120;
 }
 
@@ -1417,16 +1418,22 @@ ol {
   fill: #b57056;
 }
 
-.cookanim__welle {
+.cookanim__strudel {
   fill: none;
-  stroke: color-mix(in srgb, #dccd8b 38%, transparent);
-  stroke-width: 2;
+  stroke: color-mix(in srgb, #dccd8b 55%, transparent);
+  stroke-width: 2.4;
   stroke-linecap: round;
-  animation: cookanim-welle 1.05s ease-in-out 0.3s both;
+  opacity: 0;
+  /* Dieselbe Runde wie der Loeffel, nur um ein Drittel versetzt. */
+  animation: cookanim-strudel 0.52s linear 0.28s infinite;
 }
 
-.cookanim__welle--2 {
-  animation-delay: 0.38s;
+.cookanim__strudel--2 {
+  animation-delay: 0.107s;
+}
+
+.cookanim__strudel--3 {
+  animation-delay: -0.067s;
 }
 
 /* Holzloeffel: der Stiel steht im Topf, gedreht wird um die Kelle. */
@@ -1439,9 +1446,10 @@ ol {
 }
 
 .cookanim__loeffel {
+  /* Drehpunkt ist das obere Stielende – dort liegt beim Ruehren die Hand. */
   transform-box: view-box;
-  transform-origin: 70px 98px;
-  animation: cookanim-ruehren 1.05s ease-in-out 0.3s both;
+  transform-origin: 70px 52px;
+  animation: cookanim-ruehren 0.52s linear 0.28s infinite;
 }
 
 /* --- Fertig: Deckel hebt sich, es dampft ---------------------------------- */
@@ -1489,41 +1497,62 @@ ol {
   }
 }
 
-/* Zwei ruhige Zuege hin und her – so ruehrt man von Hand. */
+/*
+ * Eine Runde Ruehren. Die Neigung bewegt die Kelle nach links und rechts, die
+ * Hoehe und die Laenge nach vorn und hinten – zusammen ergibt das die flache
+ * Ellipse, die man von schraeg oben in einem Topf sieht.
+ */
 @keyframes cookanim-ruehren {
   0% {
-    transform: rotate(-6deg);
+    transform: translateY(7px) rotate(0deg) scale(1.05);
   }
-  22% {
-    transform: rotate(23deg);
+  12.5% {
+    transform: translateY(4.9px) rotate(-15.6deg) scale(1.035);
   }
-  55% {
-    transform: rotate(-23deg);
+  25% {
+    transform: translateY(0) rotate(-22deg) scale(1);
   }
-  85% {
-    transform: rotate(19deg);
+  37.5% {
+    transform: translateY(-4.9px) rotate(-15.6deg) scale(0.965);
+  }
+  50% {
+    transform: translateY(-7px) rotate(0deg) scale(0.95);
+  }
+  62.5% {
+    transform: translateY(-4.9px) rotate(15.6deg) scale(0.965);
+  }
+  75% {
+    transform: translateY(0) rotate(22deg) scale(1);
+  }
+  87.5% {
+    transform: translateY(4.9px) rotate(15.6deg) scale(1.035);
   }
   100% {
-    transform: rotate(-4deg);
+    transform: translateY(7px) rotate(0deg) scale(1.05);
   }
 }
 
-/* Die Sauce laeuft dem Loeffel hinterher. */
-@keyframes cookanim-welle {
+/* Die Sauce zieht dieselbe Runde; vorne ist sie besser zu sehen als hinten. */
+@keyframes cookanim-strudel {
   0% {
-    transform: translateX(3px);
+    transform: translate(0, 5px) scale(1.06);
+    opacity: 0.75;
   }
-  22% {
-    transform: translateX(-4px);
+  25% {
+    transform: translate(-15px, 0) scale(1);
+    opacity: 0.5;
   }
-  55% {
-    transform: translateX(4px);
+  50% {
+    transform: translate(0, -5px) scale(0.94);
+    opacity: 0.25;
   }
-  85% {
-    transform: translateX(-3px);
+  75% {
+    transform: translate(15px, 0) scale(1);
+    opacity: 0.5;
   }
   100% {
-    transform: translateX(2px);
+    transform: translate(0, 5px) scale(1.06);
+    opacity: 0.75;
   }
 }
 

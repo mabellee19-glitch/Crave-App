@@ -21,7 +21,7 @@ Drei Bereiche:
 | Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
 | Kochmodus | Timer pro Schritt mit Ton und Vibration, Display bleibt an |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Gerichte | Filter nach Kategorie und Favoriten, Suche |
+| Gerichte | Filter nach Kategorie und Cook Next, Suche |
 | Gerichte | Verknüpfte Gerichte öffnen direkt das hinterlegte Rezept |
 | Einkaufsliste | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
 | Einkaufsliste | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
@@ -29,7 +29,9 @@ Drei Bereiche:
 | Grundliste | Rubriken zum Aufklappen, dazu eine Vorschlagsliste zum Nachtragen |
 | Rezept → Liste | Zutaten werden mit Mengen übernommen und zusammengefasst |
 | Kühlschrankfoto | Foto erkennt Lebensmittel, findet passende eigene Rezepte und schlägt neue vor |
-| Überall | Favoriten, Suche, automatisches Speichern, Geräte-Abgleich |
+| Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann auf der Einkaufsliste |
+| Cook Next | Abwählen nimmt genau diese Zutaten wieder von der Liste |
+| Überall | Suche, automatisches Speichern, Geräte-Abgleich |
 
 ## Startinhalte nachtragen
 

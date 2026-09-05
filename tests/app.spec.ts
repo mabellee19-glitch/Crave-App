@@ -275,7 +275,7 @@ test.describe('Rezepte', () => {
     await expect(page.getByRole('button', { name: 'Rezept Ofenkarotten mit Honig öffnen' })).toHaveCount(0);
   });
 
-  test('Suche und Favoritenfilter greifen', async ({ page }) => {
+  test('Suche und Cook-Next-Filter greifen', async ({ page }) => {
     await openSpace(page, newSpace('search'));
 
     await page.getByPlaceholder('Rezept oder Zutat suchen').fill('shakshuka');
@@ -288,8 +288,11 @@ test.describe('Rezepte', () => {
 
     await page.getByRole('button', { name: 'Suche löschen' }).click();
 
-    await page.getByRole('button', { name: 'Shakshuka zu Favoriten hinzufügen' }).click();
-    await page.getByRole('group', { name: 'Rezepte filtern' }).getByRole('button', { name: 'Favoriten' }).click();
+    await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
+    await page
+      .getByRole('group', { name: 'Rezepte filtern' })
+      .getByRole('button', { name: 'Cook Next' })
+      .click();
     await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Rezept Tomatensuppe mit Basilikum öffnen' })).toHaveCount(0);
   });
@@ -333,6 +336,106 @@ test.describe('Gerichte', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Gericht löschen' }).click();
     await page.getByRole('button', { name: 'Löschen', exact: true }).click();
     await expect(page.getByText('Gericht gelöscht')).toBeVisible();
+  });
+});
+
+test.describe('Cook Next', () => {
+  test('ein geplantes Rezept legt seine Zutaten auf die Liste und nimmt sie zurueck', async ({
+    page,
+  }) => {
+    await openSpace(page, newSpace('plan'));
+
+    await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
+
+    await goToTab(page, 'Einkaufsliste');
+    // Die Vorschau zeigt, wofuer die Liste da ist.
+    await expect(page.locator('.plannedstrip')).toContainText('Shakshuka');
+    await expect(shoppingRow(page, 'Eier')).toBeVisible();
+    await expect(shoppingRow(page, 'Pelati')).toBeVisible();
+
+    // Abwaehlen raeumt genau diese Zutaten wieder weg.
+    await goToTab(page, 'Rezepte');
+    await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
+
+    await goToTab(page, 'Einkaufsliste');
+    await expect(page.locator('.plannedstrip')).toHaveCount(0);
+    await expect(shoppingRow(page, 'Eier')).toHaveCount(0);
+    await expect(shoppingRow(page, 'Pelati')).toHaveCount(0);
+  });
+
+  test('von Hand Eingetragenes ueberlebt das Abwaehlen', async ({ page }) => {
+    await openSpace(page, newSpace('planmanuell'));
+
+    // Erst von Hand, dann zusaetzlich geplant: die Mengen summieren sich.
+    await goToTab(page, 'Einkaufsliste');
+    await page.getByPlaceholder('z. B. 400 g Poulet').fill('4 Eier');
+    await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+    await expect(shoppingRow(page, 'Eier')).toContainText('4');
+
+    await goToTab(page, 'Rezepte');
+    await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Eier')).toContainText('8');
+
+    // Nach dem Abwaehlen bleiben die eigenen vier stehen.
+    await goToTab(page, 'Rezepte');
+    await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Eier')).toContainText('4');
+  });
+
+  test('zwei geplante Rezepte teilen sich eine Zutat, ohne sich zu stoeren', async ({ page }) => {
+    await openSpace(page, newSpace('planzwei'));
+
+    await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
+    await page
+      .getByRole('button', { name: 'Tomatensuppe mit Basilikum zu Cook Next hinzufügen' })
+      .click();
+
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Pelati')).toBeVisible();
+    const zusammen = await shoppingRow(page, 'Pelati').innerText();
+
+    // Eines abwaehlen: die Zutat bleibt, nur der Anteil geht weg.
+    await goToTab(page, 'Rezepte');
+    await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Pelati')).toBeVisible();
+    expect(await shoppingRow(page, 'Pelati').innerText()).not.toBe(zusammen);
+
+    // Auch das zweite abwaehlen: jetzt ist die Zeile weg.
+    await goToTab(page, 'Rezepte');
+    await page
+      .getByRole('button', { name: 'Tomatensuppe mit Basilikum aus Cook Next entfernen' })
+      .click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Pelati')).toHaveCount(0);
+  });
+
+  test('Gericht und Rezept bleiben im Gleichschritt', async ({ page }) => {
+    await openSpace(page, newSpace('plangericht'));
+
+    await goToTab(page, 'Gerichte');
+    await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
+
+    // Das verknuepfte Rezept ist damit ebenfalls geplant.
+    await goToTab(page, 'Rezepte');
+    await expect(
+      page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }),
+    ).toBeVisible();
+
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Eier')).toBeVisible();
+
+    // Und zurueck: ueber das Rezept abwaehlen raeumt auch das Gericht ab.
+    await goToTab(page, 'Rezepte');
+    await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
+    await goToTab(page, 'Gerichte');
+    await expect(
+      page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }),
+    ).toBeVisible();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Eier')).toHaveCount(0);
   });
 });
 
@@ -586,7 +689,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
               timeMin: 25,
               ingredients: [],
               steps: [],
-              favorite: false,
+              cookNext: false,
               notes: '',
               createdAt: now,
               updatedAt: now,

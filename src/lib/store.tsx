@@ -21,7 +21,13 @@ import {
 import { mergeData, pruneTombstones, sameData } from './merge';
 import { randomId } from './id';
 import { PANTRY_CATALOGUE, PANTRY_CATEGORY_RENAMES, buildSeedData } from './seed';
-import { addAmounts, sameIngredient, scaleAmount, unitsCompatible } from './units';
+import {
+  addAmounts,
+  sameIngredient,
+  scaleAmount,
+  subtractAmounts,
+  unitsCompatible,
+} from './units';
 
 export type SyncState = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 
@@ -56,11 +62,12 @@ interface StoreValue {
 
   saveRecipe: (recipe: Recipe) => void;
   deleteRecipe: (id: string) => void;
-  toggleRecipeFavorite: (id: string) => void;
+  /** "Cook Next" umschalten – die Zutaten wandern dabei auf die Einkaufsliste und zurueck. */
+  toggleRecipeCookNext: (id: string, servings?: number) => void;
 
   saveDish: (dish: Dish) => void;
   deleteDish: (id: string) => void;
-  toggleDishFavorite: (id: string) => void;
+  toggleDishCookNext: (id: string) => void;
 
   addShoppingItem: (input: { name: string; amount?: number | null; unit?: string }) => void;
   updateShoppingItem: (item: ShoppingItem) => void;
@@ -487,12 +494,30 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     [mutate],
   );
 
-  const toggleRecipeFavorite = useCallback(
-    (id: string) => {
+  /**
+   * "Cook Next" fuer ein Rezept umschalten.
+   *
+   * Die Planung und die Einkaufsliste haengen zusammen: einschalten legt die
+   * Zutaten in die Liste, ausschalten nimmt genau diesen Anteil wieder heraus.
+   * Verknuepfte Gerichte werden mitgezogen, damit beide Bereiche dasselbe
+   * zeigen.
+   */
+  const toggleRecipeCookNext = useCallback(
+    (id: string, servings?: number) => {
       mutate((draft) => {
         const existing = draft.recipes[id];
         if (!existing) return;
-        draft.recipes[id] = { ...existing, favorite: !existing.favorite, updatedAt: stamp() };
+        const kuenftig = !existing.cookNext;
+        draft.recipes[id] = { ...existing, cookNext: kuenftig, updatedAt: stamp() };
+
+        if (kuenftig) legeGeplantAn(draft, existing, servings ?? existing.servings);
+        else nimmGeplantZurueck(draft, id);
+
+        for (const dish of activeList(draft.dishes)) {
+          if (dish.recipeId === id && dish.cookNext !== kuenftig) {
+            draft.dishes[dish.id] = { ...dish, cookNext: kuenftig, updatedAt: stamp() };
+          }
+        }
       });
     },
     [mutate],
@@ -518,12 +543,31 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     [mutate],
   );
 
-  const toggleDishFavorite = useCallback(
+  /**
+   * "Cook Next" fuer ein Gericht. Haengt ein Rezept daran, wird es mitgeplant –
+   * die Zutaten kommen dann von dort. Gerichte ohne Rezept lassen sich
+   * trotzdem vormerken, sie bringen nur nichts auf die Einkaufsliste.
+   */
+  const toggleDishCookNext = useCallback(
     (id: string) => {
       mutate((draft) => {
         const existing = draft.dishes[id];
         if (!existing) return;
-        draft.dishes[id] = { ...existing, favorite: !existing.favorite, updatedAt: stamp() };
+        const kuenftig = !existing.cookNext;
+        draft.dishes[id] = { ...existing, cookNext: kuenftig, updatedAt: stamp() };
+
+        const recipe = existing.recipeId ? draft.recipes[existing.recipeId] : null;
+        if (!recipe || recipe.deleted || recipe.cookNext === kuenftig) return;
+
+        draft.recipes[recipe.id] = { ...recipe, cookNext: kuenftig, updatedAt: stamp() };
+        if (kuenftig) legeGeplantAn(draft, recipe, recipe.servings);
+        else nimmGeplantZurueck(draft, recipe.id);
+
+        for (const dish of activeList(draft.dishes)) {
+          if (dish.id !== id && dish.recipeId === recipe.id && dish.cookNext !== kuenftig) {
+            draft.dishes[dish.id] = { ...dish, cookNext: kuenftig, updatedAt: stamp() };
+          }
+        }
       });
     },
     [mutate],
@@ -532,7 +576,16 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
   /** Zutat in die aktive Liste legen – vorhandene Eintraege werden zusammengefasst. */
   function putIntoCart(
     draft: AppData,
-    input: { name: string; amount?: number | null; unit?: string; fromRecipe?: string | null },
+    input: {
+      name: string;
+      amount?: number | null;
+      unit?: string;
+      fromRecipe?: string | null;
+      /** Id des geplanten Rezepts, wenn der Eintrag aus "Cook Next" kommt. */
+      plannedFor?: string;
+      /** true, wenn der Eintrag auch ohne Planung bestehen bleiben soll. */
+      manual?: boolean;
+    },
   ): void {
     const name = input.name.trim();
     if (!name) return;
@@ -547,6 +600,8 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         amount: summed.amount,
         unit: summed.unit,
         fromRecipe: existing.fromRecipe ?? input.fromRecipe ?? null,
+        plannedFrom: mitAnteil(existing.plannedFrom, input.plannedFor, amount, unit),
+        manual: existing.manual || input.manual === true,
         updatedAt: stamp(),
       };
       return;
@@ -567,14 +622,82 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
       unit,
       pantryId: pantryMatch ? pantryMatch.id : null,
       fromRecipe: input.fromRecipe ?? null,
+      plannedFrom: mitAnteil(undefined, input.plannedFor, amount, unit),
+      manual: input.manual === true,
       createdAt: now,
       updatedAt: now,
     };
   }
 
+  /** Den Anteil eines geplanten Rezepts in die Buchhaltung eines Eintrags schreiben. */
+  function mitAnteil(
+    bisher: ShoppingItem['plannedFrom'],
+    recipeId: string | undefined,
+    amount: number | null,
+    unit: string,
+  ): ShoppingItem['plannedFrom'] {
+    if (!recipeId) return bisher;
+    const vorher = bisher?.[recipeId];
+    // Zweimal dasselbe Rezept geplant: die Anteile summieren sich.
+    const summe = vorher ? addAmounts(vorher.amount, vorher.unit, amount, unit) : { amount, unit };
+    return { ...(bisher ?? {}), [recipeId]: summe };
+  }
+
+  /**
+   * Alles zuruecknehmen, was ein geplantes Rezept auf die Einkaufsliste
+   * gebracht hat – und nur das. Eintraege, die es auch ohne die Planung gibt
+   * (von Hand, aus der Grundliste, von einem zweiten geplanten Rezept),
+   * bleiben stehen und verlieren nur den Anteil dieses Rezepts.
+   */
+  function nimmGeplantZurueck(draft: AppData, recipeId: string): void {
+    for (const item of activeList(draft.shopping)) {
+      const anteil = item.plannedFrom?.[recipeId];
+      if (!anteil) continue;
+
+      const rest = { ...(item.plannedFrom ?? {}) };
+      delete rest[recipeId];
+      const keineAnteileMehr = Object.keys(rest).length === 0;
+
+      if (keineAnteileMehr && !item.manual) {
+        draft.shopping[item.id] = { ...item, deleted: true, updatedAt: stamp() };
+        if (item.pantryId) {
+          const pantryItem = draft.pantry[item.pantryId];
+          if (pantryItem) {
+            draft.pantry[item.pantryId] = { ...pantryItem, inCart: false, updatedAt: stamp() };
+          }
+        }
+        continue;
+      }
+
+      const uebrig = subtractAmounts(item.amount, item.unit, anteil.amount, anteil.unit);
+      draft.shopping[item.id] = {
+        ...item,
+        amount: uebrig.amount,
+        unit: uebrig.unit,
+        plannedFrom: keineAnteileMehr ? undefined : rest,
+        updatedAt: stamp(),
+      };
+    }
+  }
+
+  /** Die Zutaten eines Rezepts als Anteil dieser Planung eintragen. */
+  function legeGeplantAn(draft: AppData, recipe: Recipe, servings: number): void {
+    const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
+    for (const ingredient of recipe.ingredients) {
+      if (!ingredient.name.trim()) continue;
+      putIntoCart(draft, {
+        name: ingredient.name,
+        amount: scaleAmount(ingredient.amount, factor, ingredient.noScale),
+        unit: ingredient.unit,
+        fromRecipe: recipe.name,
+        plannedFor: recipe.id,
+      });
+    }
+  }
+
   const addShoppingItem = useCallback(
     (input: { name: string; amount?: number | null; unit?: string }) => {
-      mutate((draft) => putIntoCart(draft, input));
+      mutate((draft) => putIntoCart(draft, { ...input, manual: true }));
     },
     [mutate],
   );
@@ -646,6 +769,8 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
             amount: scaleAmount(ingredient.amount, factor, ingredient.noScale),
             unit: ingredient.unit,
             fromRecipe: recipe.name,
+            // Von Hand uebernommen: bleibt liegen, auch wenn die Planung faellt.
+            manual: true,
           });
         }
       });
@@ -803,7 +928,13 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         );
         draft.pantry[id] = { ...pantryItem, inCart: true, updatedAt: stamp() };
         if (existing) {
-          draft.shopping[existing.id] = { ...existing, pantryId: id, updatedAt: stamp() };
+          // Von Hand geholt: der Eintrag bleibt, auch wenn eine Planung faellt.
+          draft.shopping[existing.id] = {
+            ...existing,
+            pantryId: id,
+            manual: true,
+            updatedAt: stamp(),
+          };
           return;
         }
         const itemId = randomId();
@@ -815,6 +946,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
           unit: pantryItem.unit,
           pantryId: id,
           fromRecipe: null,
+          manual: true,
           createdAt: now,
           updatedAt: now,
         };
@@ -858,10 +990,10 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     getRecipe,
     saveRecipe,
     deleteRecipe,
-    toggleRecipeFavorite,
+    toggleRecipeCookNext,
     saveDish,
     deleteDish,
-    toggleDishFavorite,
+    toggleDishCookNext,
     addShoppingItem,
     updateShoppingItem,
     checkOffShoppingItem,
@@ -897,7 +1029,7 @@ export function blankRecipe(): Recipe {
     timeMin: 30,
     ingredients: [blankIngredient()],
     steps: [blankStep()],
-    favorite: false,
+    cookNext: false,
     notes: '',
     createdAt: now,
     updatedAt: now,
@@ -919,7 +1051,7 @@ export function blankDish(): Dish {
     name: '',
     category: 'high-protein',
     recipeId: null,
-    favorite: false,
+    cookNext: false,
     notes: '',
     createdAt: now,
     updatedAt: now,

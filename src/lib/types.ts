@@ -52,7 +52,12 @@ export interface Recipe extends Syncable {
   timeMin: number | null;
   ingredients: Ingredient[];
   steps: Step[];
-  favorite: boolean;
+  /**
+   * "Cook Next": geplant fuer die naechsten Tage. Solange das gesetzt ist,
+   * stehen die Zutaten des Rezepts auf der Einkaufsliste; beim Abwaehlen
+   * verschwinden genau die wieder.
+   */
+  cookNext: boolean;
   notes: string;
   createdAt: number;
 }
@@ -62,7 +67,8 @@ export interface Dish extends Syncable {
   category: DishCategory;
   /** Verknuepftes Rezept, `null` wenn (noch) keines hinterlegt ist. */
   recipeId: Id | null;
-  favorite: boolean;
+  /** "Cook Next" – siehe Recipe. Gericht und Rezept bleiben dabei im Gleichschritt. */
+  cookNext: boolean;
   notes: string;
   createdAt: number;
 }
@@ -77,6 +83,21 @@ export interface ShoppingItem extends Syncable {
   pantryId: Id | null;
   /** Herkunfts-Rezept (nur informativ, fuer die Anzeige). */
   fromRecipe: string | null;
+  /**
+   * Was geplante Rezepte zu diesem Eintrag beigesteuert haben, je Rezept-Id.
+   *
+   * Ohne diese Buchhaltung liesse sich ein abgewaehltes Rezept nicht sauber
+   * zuruecknehmen: es waere nicht zu unterscheiden, ob die 500 g Poulet vom
+   * Rezept kommen, von Hand eingetippt wurden oder von einem zweiten
+   * geplanten Rezept.
+   */
+  plannedFrom?: Record<Id, { amount: number | null; unit: string }>;
+  /**
+   * true, wenn der Eintrag auch ohne Planung bestehen bleiben soll – von Hand
+   * angelegt, aus der Grundliste geholt oder ueber "Zur Einkaufsliste
+   * hinzufuegen" uebernommen.
+   */
+  manual?: boolean;
   createdAt: number;
 }
 

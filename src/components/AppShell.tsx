@@ -119,6 +119,16 @@ export function AppShell() {
     [openOverlay],
   );
 
+  /**
+   * Die Vorschau ueber der Einkaufsliste: was fuer die naechsten Tage geplant
+   * ist. Gerichte ohne eigenes Rezept bleiben aussen vor – sie brauchen keinen
+   * Einkauf und waeren dort nur Beiwerk.
+   */
+  const geplant = useMemo(
+    () => store.recipes.filter((recipe) => recipe.cookNext).map(({ id, name }) => ({ id, name })),
+    [store.recipes],
+  );
+
   const addAction = () => {
     if (tab === 'shopping') {
       setTab('shopping');
@@ -219,7 +229,7 @@ export function AppShell() {
             recipes={store.recipes}
             onOpen={openRecipe}
             onNew={() => openOverlay({ kind: 'recipeForm', recipe: blankRecipe(), isNew: true })}
-            onToggleFavorite={store.toggleRecipeFavorite}
+            onToggleCookNext={store.toggleRecipeCookNext}
           />
         ) : tab === 'dishes' ? (
           <DishesView
@@ -228,7 +238,7 @@ export function AppShell() {
             onOpenRecipe={openRecipe}
             onEditDish={(dish) => openOverlay({ kind: 'dishForm', dish, isNew: false })}
             onNew={() => openOverlay({ kind: 'dishForm', dish: blankDish(), isNew: true })}
-            onToggleFavorite={store.toggleDishFavorite}
+            onToggleCookNext={store.toggleDishCookNext}
           />
         ) : (
           <ShoppingView
@@ -249,6 +259,8 @@ export function AppShell() {
             onAddPantryItem={store.addPantryItem}
             onSavePantryItem={store.savePantryItem}
             onDeletePantryItem={store.deletePantryItem}
+            cookNext={geplant}
+            onOpenPlanned={openRecipe}
             onAddSuggestions={() => {
               const { added, categorised } = store.addPantrySuggestions();
               showToast(
@@ -356,7 +368,7 @@ export function AppShell() {
           recipe={recipe}
           onClose={closeTop}
           onEdit={() => openOverlay({ kind: 'recipeForm', recipe, isNew: false })}
-          onToggleFavorite={() => store.toggleRecipeFavorite(recipe.id)}
+          onToggleCookNext={(servings) => store.toggleRecipeCookNext(recipe.id, servings)}
           onDelete={() => {
             store.deleteRecipe(recipe.id);
             closeTop();

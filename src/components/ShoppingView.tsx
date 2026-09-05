@@ -5,7 +5,14 @@ import { PantryItem, ShoppingItem } from '@/lib/types';
 import { PANTRY_CATEGORY_ORDER } from '@/lib/seed';
 import { formatQuantity, parseQuickAdd } from '@/lib/units';
 import { ConfirmDialog, EmptyState, NumberInput, Sheet } from './ui';
-import { IconCheck, IconChevronDown, IconPencil, IconPlus, IconTrash } from './Icons';
+import {
+  IconCheck,
+  IconChevronDown,
+  IconCookNext,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from './Icons';
 
 export function ShoppingView({
   shopping,
@@ -19,6 +26,8 @@ export function ShoppingView({
   onSavePantryItem,
   onDeletePantryItem,
   onAddSuggestions,
+  cookNext,
+  onOpenPlanned,
 }: {
   shopping: ShoppingItem[];
   /** Grundlisten-Eintraege, die gerade NICHT in der aktiven Liste liegen. */
@@ -38,6 +47,9 @@ export function ShoppingView({
   onSavePantryItem: (item: PantryItem) => void;
   onDeletePantryItem: (id: string) => void;
   onAddSuggestions: () => void;
+  /** Was fuer die naechsten Tage geplant ist – die Vorschau ueber der Liste. */
+  cookNext: { id: string; name: string }[];
+  onOpenPlanned: (id: string) => void;
 }) {
   const [text, setText] = useState('');
   const [managing, setManaging] = useState(false);
@@ -60,6 +72,26 @@ export function ShoppingView({
           ? 'Nichts offen – tippe unten auf eine Standard-Zutat.'
           : `${shopping.length} ${shopping.length === 1 ? 'Zutat' : 'Zutaten'} offen`}
       </p>
+
+      {cookNext.length > 0 ? (
+        <div className="plannedstrip">
+          <span className="plannedstrip__label">
+            <IconCookNext size={14} filled />
+            Cook Next
+          </span>
+          <div className="plannedstrip__items">
+            {cookNext.map((eintrag) => (
+              <button
+                key={eintrag.id}
+                className="chip chip--plan"
+                onClick={() => onOpenPlanned(eintrag.id)}
+              >
+                {eintrag.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <form
         className="inputrow"

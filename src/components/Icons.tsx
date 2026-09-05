@@ -53,6 +53,16 @@ export const IconHeart = ({ filled, ...p }: IconProps & { filled?: boolean }) =>
   </Base>
 );
 
+/**
+ * "Cook Next" – ein Lesezeichen. Gefuellt heisst: fuer die naechsten Tage
+ * vorgemerkt, die Zutaten stehen auf der Einkaufsliste.
+ */
+export const IconCookNext = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
+  <Base {...p} fill={filled ? 'currentColor' : 'none'}>
+    <path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" />
+  </Base>
+);
+
 export const IconCheck = (p: IconProps) => (
   <Base {...p} strokeWidth={2.6}>
     <path d="m5 12.5 4.5 4.5L19 7" />

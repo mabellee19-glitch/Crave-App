@@ -53,11 +53,18 @@ export function unitInfo(unit: string): { base: string; factor: number } | null 
   return UNIT_GROUPS[unitKey(unit)] ?? null;
 }
 
-/** Koennen zwei Einheiten zusammengezaehlt werden? */
+/**
+ * Koennen zwei Einheiten zusammengezaehlt werden?
+ *
+ * Eine fehlende Einheit passt zu jeder: wer "4 Eier" eintippt und spaeter ein
+ * Rezept mit "4 Stück Eier" plant, will acht Eier auf der Liste sehen und
+ * nicht zwei Zeilen.
+ */
 export function unitsCompatible(a: string, b: string): boolean {
   const ka = unitKey(a);
   const kb = unitKey(b);
   if (ka === kb) return true;
+  if (!ka || !kb) return true;
   const ia = unitInfo(a);
   const ib = unitInfo(b);
   if (ia && ib) return ia.base === ib.base;
@@ -86,6 +93,38 @@ export function addAmounts(
   }
   // Gleiche (oder leere) Einheit ohne Umrechnungstabelle: einfach addieren.
   return { amount: round(amountA + amountB), unit: unitA || unitB };
+}
+
+/**
+ * Menge abziehen – das Gegenstueck zu addAmounts.
+ *
+ * Gebraucht, wenn ein geplantes Rezept wieder abgewaehlt wird: dann soll nur
+ * dessen Anteil verschwinden, nicht der ganze Eintrag. Bleibt nichts uebrig
+ * oder passen die Einheiten nicht zusammen, kommt `null` zurueck – der
+ * Eintrag steht dann ohne Mengenangabe da, was ehrlicher ist als eine
+ * ausgedachte Zahl.
+ */
+export function subtractAmounts(
+  amountA: number | null,
+  unitA: string,
+  amountB: number | null,
+  unitB: string,
+): { amount: number | null; unit: string } {
+  if (amountA == null) return { amount: null, unit: unitA };
+  if (amountB == null) return { amount: amountA, unit: unitA };
+
+  const ia = unitInfo(unitA);
+  const ib = unitInfo(unitB);
+  if (ia && ib && ia.base === ib.base) {
+    const rest = amountA * ia.factor - amountB * ib.factor;
+    if (rest <= 0.0001) return { amount: null, unit: unitA };
+    return displayFromBase(rest, ia.base);
+  }
+  if ((unitA || '') !== (unitB || '')) return { amount: amountA, unit: unitA };
+
+  const rest = round(amountA - amountB);
+  if (rest <= 0) return { amount: null, unit: unitA };
+  return { amount: rest, unit: unitA };
 }
 
 function displayFromBase(totalBase: number, base: string): { amount: number; unit: string } {

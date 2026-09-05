@@ -9,7 +9,7 @@ import {
   IconCart,
   IconClock,
   IconFlame,
-  IconHeart,
+  IconCookNext,
   IconMinus,
   IconPencil,
   IconPlus,
@@ -22,7 +22,7 @@ export function RecipeDetail({
   onClose,
   onEdit,
   onDelete,
-  onToggleFavorite,
+  onToggleCookNext,
   onStartCooking,
   onAddToShopping,
 }: {
@@ -30,7 +30,7 @@ export function RecipeDetail({
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onToggleFavorite: () => void;
+  onToggleCookNext: (servings: number) => void;
   onStartCooking: (servings: number) => void;
   onAddToShopping: (servings: number) => void;
 }) {
@@ -64,12 +64,14 @@ export function RecipeDetail({
         actions={
           <>
             <button
-              className={`iconbtn iconbtn--plain${recipe.favorite ? ' iconbtn--active' : ''}`}
-              onClick={onToggleFavorite}
-              aria-label={recipe.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}
-              aria-pressed={recipe.favorite}
+              className={`iconbtn iconbtn--plain${recipe.cookNext ? ' iconbtn--active' : ''}`}
+              onClick={() => onToggleCookNext(servings)}
+              aria-label={
+                recipe.cookNext ? 'Aus Cook Next entfernen' : 'Zu Cook Next hinzufügen'
+              }
+              aria-pressed={recipe.cookNext}
             >
-              <IconHeart filled={recipe.favorite} />
+              <IconCookNext filled={recipe.cookNext} />
             </button>
             <button className="iconbtn iconbtn--plain" onClick={onEdit} aria-label="Rezept bearbeiten">
               <IconPencil />
@@ -149,6 +151,13 @@ export function RecipeDetail({
               ))}
             </ul>
           )}
+
+          {recipe.cookNext ? (
+            <p className="detail__planhint">
+              <IconCookNext size={15} filled />
+              Für die nächsten Tage geplant – die Zutaten stehen auf der Einkaufsliste.
+            </p>
+          ) : null}
 
           <button
             className="btn btn--ghost btn--block"

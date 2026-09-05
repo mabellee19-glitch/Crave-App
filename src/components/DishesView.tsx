@@ -5,9 +5,9 @@ import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, Recipe } from
 import { normalizeName } from '@/lib/units';
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './ui';
-import { IconHeart, IconLink, IconPencil, IconPlus } from './Icons';
+import { IconCookNext, IconLink, IconPencil, IconPlus } from './Icons';
 
-type Filter = 'all' | 'favorites' | DishCategory;
+type Filter = 'all' | 'cooknext' | DishCategory;
 
 export function DishesView({
   dishes,
@@ -15,14 +15,14 @@ export function DishesView({
   onOpenRecipe,
   onEditDish,
   onNew,
-  onToggleFavorite,
+  onToggleCookNext,
 }: {
   dishes: Dish[];
   recipes: Recipe[];
   onOpenRecipe: (recipeId: string) => void;
   onEditDish: (dish: Dish) => void;
   onNew: () => void;
-  onToggleFavorite: (id: string) => void;
+  onToggleCookNext: (id: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -32,18 +32,18 @@ export function DishesView({
   const visible = useMemo(() => {
     const needle = normalizeName(query);
     return dishes.filter((dish) => {
-      if (filter === 'favorites' && !dish.favorite) return false;
-      if (filter !== 'all' && filter !== 'favorites' && dish.category !== filter) return false;
+      if (filter === 'cooknext' && !dish.cookNext) return false;
+      if (filter !== 'all' && filter !== 'cooknext' && dish.category !== filter) return false;
       if (!needle) return true;
       return normalizeName(`${dish.name} ${dish.notes}`).includes(needle);
     });
   }, [dishes, query, filter]);
 
   const counts = useMemo(() => {
-    const result: Record<string, number> = { all: dishes.length, favorites: 0 };
+    const result: Record<string, number> = { all: dishes.length, cooknext: 0 };
     for (const category of DISH_CATEGORIES) result[category] = 0;
     for (const dish of dishes) {
-      if (dish.favorite) result.favorites += 1;
+      if (dish.cookNext) result.cooknext += 1;
       result[dish.category] = (result[dish.category] ?? 0) + 1;
     }
     return result;
@@ -72,12 +72,12 @@ export function DishesView({
           Alle <span className="muted">{counts.all}</span>
         </button>
         <button
-          className={`chip${filter === 'favorites' ? ' chip--active' : ''}`}
-          onClick={() => setFilter('favorites')}
-          aria-pressed={filter === 'favorites'}
+          className={`chip${filter === 'cooknext' ? ' chip--active' : ''}`}
+          onClick={() => setFilter('cooknext')}
+          aria-pressed={filter === 'cooknext'}
         >
-          <IconHeart size={15} filled={filter === 'favorites'} />
-          Favoriten <span className="muted">{counts.favorites}</span>
+          <IconCookNext size={15} filled={filter === 'cooknext'} />
+          Cook Next <span className="muted">{counts.cooknext}</span>
         </button>
         {DISH_CATEGORIES.map((category) => (
           <button
@@ -120,7 +120,7 @@ export function DishesView({
                 recipeName={recipe?.name ?? null}
                 onPrimary={() => (recipe ? onOpenRecipe(recipe.id) : onEditDish(dish))}
                 onEdit={() => onEditDish(dish)}
-                onToggleFavorite={() => onToggleFavorite(dish.id)}
+                onToggleCookNext={() => onToggleCookNext(dish.id)}
               />
             );
           })}
@@ -135,13 +135,13 @@ function DishCard({
   recipeName,
   onPrimary,
   onEdit,
-  onToggleFavorite,
+  onToggleCookNext,
 }: {
   dish: Dish;
   recipeName: string | null;
   onPrimary: () => void;
   onEdit: () => void;
-  onToggleFavorite: () => void;
+  onToggleCookNext: () => void;
 }) {
   const linked = recipeName !== null;
   return (
@@ -149,16 +149,16 @@ function DishCard({
       <div className="card__actions">
         <button
           className="card__fav"
-          style={dish.favorite ? { color: 'var(--fav)' } : undefined}
-          onClick={onToggleFavorite}
+          style={dish.cookNext ? { color: 'var(--plan)' } : undefined}
+          onClick={onToggleCookNext}
           aria-label={
-            dish.favorite
-              ? `${dish.name} aus Favoriten entfernen`
-              : `${dish.name} zu Favoriten hinzufügen`
+            dish.cookNext
+              ? `${dish.name} aus Cook Next entfernen`
+              : `${dish.name} zu Cook Next hinzufügen`
           }
-          aria-pressed={dish.favorite}
+          aria-pressed={dish.cookNext}
         >
-          <IconHeart size={19} filled={dish.favorite} />
+          <IconCookNext size={19} filled={dish.cookNext} />
         </button>
         <button className="card__fav" onClick={onEdit} aria-label={`${dish.name} bearbeiten`}>
           <IconPencil size={18} />

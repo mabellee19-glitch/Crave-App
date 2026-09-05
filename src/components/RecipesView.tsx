@@ -5,21 +5,21 @@ import { Recipe, matchDishCategory } from '@/lib/types';
 import { normalizeName } from '@/lib/units';
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './ui';
-import { IconClock, IconHeart, IconPlus, IconServings } from './Icons';
+import { IconClock, IconCookNext, IconPlus, IconServings } from './Icons';
 
 export function RecipesView({
   recipes,
   onOpen,
   onNew,
-  onToggleFavorite,
+  onToggleCookNext,
 }: {
   recipes: Recipe[];
   onOpen: (id: string) => void;
   onNew: () => void;
-  onToggleFavorite: (id: string) => void;
+  onToggleCookNext: (id: string) => void;
 }) {
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'favorites' | string>('all');
+  const [filter, setFilter] = useState<'all' | 'cooknext' | string>('all');
 
   const categories = useMemo(() => {
     const seen = new Map<string, string>();
@@ -33,8 +33,8 @@ export function RecipesView({
   const visible = useMemo(() => {
     const needle = normalizeName(query);
     return recipes.filter((recipe) => {
-      if (filter === 'favorites' && !recipe.favorite) return false;
-      if (filter !== 'all' && filter !== 'favorites') {
+      if (filter === 'cooknext' && !recipe.cookNext) return false;
+      if (filter !== 'all' && filter !== 'cooknext') {
         if (recipe.category.trim().toLowerCase() !== filter.toLowerCase()) return false;
       }
       if (!needle) return true;
@@ -70,12 +70,12 @@ export function RecipesView({
           Alle
         </button>
         <button
-          className={`chip${filter === 'favorites' ? ' chip--active' : ''}`}
-          onClick={() => setFilter('favorites')}
-          aria-pressed={filter === 'favorites'}
+          className={`chip${filter === 'cooknext' ? ' chip--active' : ''}`}
+          onClick={() => setFilter('cooknext')}
+          aria-pressed={filter === 'cooknext'}
         >
-          <IconHeart size={15} filled={filter === 'favorites'} />
-          Favoriten
+          <IconCookNext size={15} filled={filter === 'cooknext'} />
+          Cook Next
         </button>
         {categories.map((category) => (
           <button
@@ -114,7 +114,7 @@ export function RecipesView({
               key={recipe.id}
               recipe={recipe}
               onOpen={() => onOpen(recipe.id)}
-              onToggleFavorite={() => onToggleFavorite(recipe.id)}
+              onToggleCookNext={() => onToggleCookNext(recipe.id)}
             />
           ))}
         </div>
@@ -126,27 +126,27 @@ export function RecipesView({
 function RecipeCard({
   recipe,
   onOpen,
-  onToggleFavorite,
+  onToggleCookNext,
 }: {
   recipe: Recipe;
   onOpen: () => void;
-  onToggleFavorite: () => void;
+  onToggleCookNext: () => void;
 }) {
   return (
     <article className="card">
       <div className="card__actions">
         <button
           className="card__fav"
-          style={recipe.favorite ? { color: 'var(--fav)' } : undefined}
-          onClick={onToggleFavorite}
+          style={recipe.cookNext ? { color: 'var(--plan)' } : undefined}
+          onClick={onToggleCookNext}
           aria-label={
-            recipe.favorite
-              ? `${recipe.name} aus Favoriten entfernen`
-              : `${recipe.name} zu Favoriten hinzufügen`
+            recipe.cookNext
+              ? `${recipe.name} aus Cook Next entfernen`
+              : `${recipe.name} zu Cook Next hinzufügen`
           }
-          aria-pressed={recipe.favorite}
+          aria-pressed={recipe.cookNext}
         >
-          <IconHeart size={19} filled={recipe.favorite} />
+          <IconCookNext size={19} filled={recipe.cookNext} />
         </button>
       </div>
 

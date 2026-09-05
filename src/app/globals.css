@@ -37,7 +37,7 @@
   --accent-strong: #67301e;
   --accent-soft: #f7e3d8;
   --accent-ink: #fffdf7;
-  --fav: #b57056; /* Sunburn – Favoriten */
+  --plan: #b57056; /* Sunburn – Cook Next */
   --link: #475480; /* Mozart – Verknüpfungen */
   --link-soft: #e6e9f1;
   --sage: #8b7f31; /* Prickly Pear, abgedunkelt für den Haken */
@@ -97,7 +97,7 @@
     --accent-strong: #c78163;
     --accent-soft: #3a241a;
     --accent-ink: #1a120d;
-    --fav: #c98a6c;
+    --plan: #c98a6c;
     --link: #93a3d4;
     --link-soft: #232839;
     --sage: #8f8434;
@@ -503,7 +503,7 @@ ol {
 }
 
 .iconbtn--active {
-  color: var(--fav);
+  color: var(--plan);
 }
 
 /* Suche & Filter ---------------------------------------------------------- */
@@ -787,6 +787,10 @@ ol {
 .row__main {
   flex: 1;
   min-width: 0;
+  /* Name und Herkunft stehen untereinander, sonst kleben sie aneinander. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .row__name {
@@ -1438,11 +1442,11 @@ ol {
 
 /* Holzloeffel: der Stiel steht im Topf, gedreht wird um die Kelle. */
 .cookanim--start .cookanim__stiel {
-  fill: #dccd8b;
+  fill: #c08f57;
 }
 
 .cookanim__kelle {
-  fill: #c9b666;
+  fill: #96652f;
 }
 
 .cookanim__loeffel {
@@ -1590,6 +1594,51 @@ ol {
     opacity: 0;
     visibility: hidden;
   }
+}
+
+/* Vorschau ueber der Einkaufsliste: was in den naechsten Tagen gekocht wird. */
+.plannedstrip {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-bottom: 14px;
+}
+
+.plannedstrip__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--plan);
+}
+
+.plannedstrip__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip--plan {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-color: color-mix(in srgb, var(--plan) 34%, transparent);
+  background: color-mix(in srgb, var(--plan) 11%, transparent);
+  color: var(--plan);
+}
+
+.detail__planhint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--plan);
 }
 
 /* Timer ------------------------------------------------------------------- */

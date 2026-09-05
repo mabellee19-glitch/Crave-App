@@ -366,6 +366,9 @@ export function ideeZuRezept(idee: VisionIdea): Recipe {
 
 function fehlerTitel(error: string): string {
   if (error === 'no_key') return 'Bilderkennung nicht eingerichtet.';
+  if (error === 'billing') return 'Beim Anbieter fehlt die Zahlungsangabe.';
+  if (error === 'auth') return 'Der hinterlegte Schlüssel wird nicht akzeptiert.';
+  if (error === 'rate_limit') return 'Gerade zu viele Anfragen.';
   if (error === 'image_too_large') return 'Das Foto ist zu gross.';
   if (error === 'no_result' || error === 'refused') return 'Damit konnte ich nichts anfangen.';
   return 'Auswertung fehlgeschlagen.';
@@ -373,6 +376,13 @@ function fehlerTitel(error: string): string {
 
 function fehlerText(error: string): string {
   if (error === 'no_key') return 'Auf dem Server fehlt der Zugang zum Modell, siehe README.';
+  if (error === 'billing') {
+    return 'Bei Vercel unter AI Gateway eine Zahlungskarte hinterlegen – damit werden auch die Freikontingente freigeschaltet. Ein neues Deployment braucht es dafür nicht.';
+  }
+  if (error === 'auth') {
+    return 'Vermutlich wurde der Schlüssel beim Anbieter gelöscht oder ist abgelaufen. Neuen anlegen und in den Umgebungsvariablen ersetzen.';
+  }
+  if (error === 'rate_limit') return 'Kurz warten und nochmal versuchen.';
   if (error === 'image_too_large') return 'Versuch es mit einem kleineren Ausschnitt.';
   if (error === 'no_result' || error === 'refused') {
     return 'Versuch ein anderes Foto, am besten hell und von vorne.';

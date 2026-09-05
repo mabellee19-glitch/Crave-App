@@ -198,12 +198,16 @@ export async function analysePhoto(image: string): Promise<VisionResult> {
 
   let response;
   try {
-    response = await client.messages.create({ ...basis, ...kuer });
+    try {
+      response = await client.messages.create({ ...basis, ...kuer });
+    } catch (err) {
+      // Ein Gateway zwischendrin kennt nicht zwingend jedes Feld. Lieber ein
+      // schlichterer zweiter Versuch als eine Fehlermeldung fürs Kochen.
+      if (!istFeldFehler(err)) throw err;
+      response = await client.messages.create(basis);
+    }
   } catch (err) {
-    // Ein Gateway zwischendrin kennt nicht zwingend jedes Feld. Lieber ein
-    // schlichterer zweiter Versuch als eine Fehlermeldung fürs Kochen.
-    if (!istFeldFehler(err)) throw err;
-    response = await client.messages.create(basis);
+    throw new Error(einordnen(err));
   }
 
   if (response.stop_reason === 'refusal') throw new Error('refused');
@@ -212,6 +216,26 @@ export async function analysePhoto(image: string): Promise<VisionResult> {
   if (!call || call.type !== 'tool_use') throw new Error('no_result');
 
   return normalise(call.input as Partial<VisionResult>);
+}
+
+/**
+ * Fehler der Gegenstelle auf eine Handvoll Faelle eindampfen, die sich in der
+ * App erklaeren lassen. Der Rohtext des Anbieters gehoert nicht in die
+ * Oberflaeche: er ist englisch, technisch und sagt der Kochenden nichts.
+ */
+function einordnen(err: unknown): string {
+  const status = (err as { status?: number })?.status;
+  const text = String((err as { message?: string })?.message ?? '').toLowerCase();
+
+  // Vercels Gateway gibt die Freikontingente erst frei, wenn eine Zahlungskarte
+  // hinterlegt ist. Das ist der haeufigste Stolperstein beim Einrichten.
+  if (text.includes('credit card') || text.includes('customer_verification')) return 'billing';
+  if (text.includes('insufficient') || text.includes('quota') || text.includes('budget')) {
+    return 'billing';
+  }
+  if (status === 401 || status === 403) return 'auth';
+  if (status === 429) return 'rate_limit';
+  return 'upstream';
 }
 
 /**

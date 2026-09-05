@@ -88,6 +88,21 @@ async function starteGateway(modus) {
       }
       anfragen.push({ url: req.url, headers: req.headers, body });
 
+      if (modus === 'karte') {
+        // So antwortet Vercels Gateway, solange keine Zahlungskarte hinterlegt
+        // ist – der haeufigste Stolperstein beim Einrichten.
+        res.writeHead(403, { 'content-type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: {
+              type: 'customer_verification_required',
+              message: 'AI Gateway requires a valid credit card on file to service requests.',
+            },
+          }),
+        );
+        return;
+      }
+
       if (modus === 'meckert' && anfragen.length === 1) {
         res.writeHead(400, { 'content-type': 'application/json' });
         res.end(
@@ -166,6 +181,12 @@ async function durchlauf(modus) {
     });
     const daten = await res.json();
 
+    if (modus === 'karte') {
+      check('[karte] die fehlende Zahlungskarte wird als solche erkannt', daten.error === 'billing', daten.error);
+      check('[karte] der Rohtext des Anbieters bleibt draussen', !JSON.stringify(daten).includes('credit card'));
+      return;
+    }
+
     check(`[${modus}] die Route antwortet mit 200`, res.status === 200, `war ${res.status}`);
     check(`[${modus}] erkannte Lebensmittel kommen an`, daten.lebensmittel?.[0] === 'Halloumi');
     check(`[${modus}] die Idee ist vollstaendig`, daten.ideen?.[0]?.name === 'Halloumi vom Blech');
@@ -222,6 +243,7 @@ async function durchlauf(modus) {
 await durchlauf('ok');
 await durchlauf('meckert');
 await durchlauf('direkt');
+await durchlauf('karte');
 
 console.log(`\n${pass} ok, ${fail} fehlgeschlagen`);
 process.exit(fail === 0 ? 0 : 1);

@@ -80,7 +80,9 @@ export function RecipesView({
         {categories.map((category) => (
           <button
             key={category}
-            className={`chip${filter === category ? ' chip--active' : ''}`}
+            className={`chip${categoryChip(category)}${
+              filter === category ? ' chip--active' : ''
+            }`}
             onClick={() => setFilter(category)}
             aria-pressed={filter === category}
           >
@@ -176,4 +178,13 @@ function RecipeCard({
 function categoryTag(category: string): string {
   const match = matchDishCategory(category);
   return match ? ` tag--${match}` : '';
+}
+
+/**
+ * Filter-Chip in der Farbe seiner Kategorie – wie im Bereich Gerichte.
+ * Rezepte haben ein freies Kategoriefeld, deshalb wird hier erst zugeordnet.
+ */
+function categoryChip(category: string): string {
+  const match = matchDishCategory(category);
+  return match ? ` chip--${match}` : '';
 }

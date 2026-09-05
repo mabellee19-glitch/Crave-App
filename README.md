@@ -59,22 +59,43 @@ Der Kamera-Knopf oben rechts wertet ein Foto aus: er listet die erkannten
 Lebensmittel, sucht daraus passende Rezepte aus der eigenen Sammlung und
 schlägt zusätzlich neue Gerichte vor, die sich als Rezept speichern lassen.
 
-Dafür braucht der Server einen API-Schlüssel von Anthropic:
+Dafür braucht der Server einen Zugang zum Modell. Es gibt zwei Wege; die App
+nimmt automatisch den, der eingerichtet ist.
 
-1. Schlüssel unter [console.anthropic.com](https://console.anthropic.com)
-   erstellen.
-2. Als Umgebungsvariable `ANTHROPIC_API_KEY` hinterlegen – auf Vercel unter
-   `Settings → Environment Variables`, lokal in `.env.local`.
+**Weg 1 – über Vercel (empfohlen, kein zweites Konto).** Vercels AI Gateway
+reicht die Anfrage weiter und rechnet über die Vercel-Rechnung ab:
+
+1. Im Vercel-Dashboard `AI Gateway → API Keys` öffnen und einen Schlüssel
+   anlegen.
+2. Ihn beim Projekt unter `Settings → Environment Variables` als
+   `AI_GATEWAY_API_KEY` hinterlegen.
 3. Neu deployen.
 
-Ohne Schlüssel bleibt der Rest der App unberührt; der Knopf erklärt dann, was
+Auf Vercel geht es auch ganz ohne Schlüssel: ist für das Projekt OIDC aktiv
+(`Settings → Security`), legt Vercel jeder Funktion ein kurzlebiges Token unter
+`VERCEL_OIDC_TOKEN` bei, und die App nutzt es von selbst. Ein eigener Schlüssel
+ist trotzdem die verlässlichere Variante, weil er unabhängig von dieser
+Einstellung funktioniert. In beiden Fällen braucht das Gateway Guthaben
+beziehungsweise eine hinterlegte Zahlungsart bei Vercel.
+
+**Weg 2 – direkt bei Anthropic.** Schlüssel unter
+[console.anthropic.com](https://console.anthropic.com) erstellen und als
+`ANTHROPIC_API_KEY` hinterlegen – lokal in `.env.local`. Ist beides gesetzt,
+gewinnt das Gateway.
+
+Ohne beides bleibt der Rest der App unberührt; der Knopf erklärt dann, was
 fehlt. Ob es eingerichtet ist, sagt `/api/status` im Feld `vision` – nur
 ja oder nein, nie der Schlüssel selbst.
 
+Ob der Weg zum Modell technisch stimmt, prüft `npm run build && npm run
+check:vision`. Das Skript stellt eine Gegenstelle hin, die sich wie das Gateway
+verhält, und schickt eine echte Anfrage der App dagegen – es kostet also nichts
+und braucht keinen Schlüssel.
+
 Zum Ablauf: das Foto wird im Browser auf 1024 Pixel Kantenlänge verkleinert
-und dann zur Auswertung an die Anthropic-API geschickt. Es wird nirgends
-gespeichert, weder in der Datenbank noch in der Einkaufsliste. Ein Aufruf
-kostet je nach Foto grob ein bis zwei Rappen.
+und dann zur Auswertung weitergeschickt. Es wird nirgends gespeichert, weder in
+der Datenbank noch in der Einkaufsliste. Ein Aufruf kostet je nach Foto grob
+ein bis zwei Rappen.
 
 Welche eigenen Rezepte passen, rechnet die App selbst aus – aus den erkannten
 Lebensmitteln plus der Grundliste, denn Salz und Öl stehen zu Hause und nicht

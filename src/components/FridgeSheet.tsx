@@ -144,9 +144,11 @@ export function FridgeSheet({
         <>
           {visionReady === false ? (
             <div className="notice notice--warn">
-              <strong>Bilderkennung nicht eingerichtet.</strong> Dafür braucht der Server einen
-              API-Schlüssel von Anthropic in der Umgebungsvariable <code>ANTHROPIC_API_KEY</code>.
-              Siehe README.
+              <strong>Bilderkennung nicht eingerichtet.</strong> Am einfachsten über Vercel: dort
+              unter <em>AI Gateway</em> einen Schlüssel anlegen und ihn als{' '}
+              <code>AI_GATEWAY_API_KEY</code> beim Projekt hinterlegen – ein Konto beim
+              Modellanbieter braucht es dafür nicht. Wer lieber direkt abrechnet, setzt
+              stattdessen <code>ANTHROPIC_API_KEY</code>. Siehe README.
             </div>
           ) : null}
           <p className="muted" style={{ fontSize: 15, lineHeight: 1.55, marginBottom: 16 }}>
@@ -370,7 +372,7 @@ function fehlerTitel(error: string): string {
 }
 
 function fehlerText(error: string): string {
-  if (error === 'no_key') return 'Auf dem Server fehlt der API-Schlüssel, siehe README.';
+  if (error === 'no_key') return 'Auf dem Server fehlt der Zugang zum Modell, siehe README.';
   if (error === 'image_too_large') return 'Versuch es mit einem kleineren Ausschnitt.';
   if (error === 'no_result' || error === 'refused') {
     return 'Versuch ein anderes Foto, am besten hell und von vorne.';

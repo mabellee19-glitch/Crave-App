@@ -7,7 +7,7 @@ import { playAlarm, stopAlarm, vibrate } from '@/lib/audio';
 import { Portal, useBodyScrollLock } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconChevronLeft, IconChevronRight, IconClose, IconTimer } from './Icons';
-import { CookIntro, introErwuenscht } from './CookIntro';
+import { CookAnimation, animationErwuenscht } from './CookAnimation';
 
 /**
  * Kochmodus: ein Schritt pro Bildschirm, gross gesetzt, ohne Ablenkung.
@@ -30,10 +30,18 @@ export function CookMode({
   // mitscrollen, sonst tauchen beim Scrollen die Rezepte darunter auf.
   useBodyScrollLock(true);
 
-  // Kurzer Vorspann: die Cocotte, dann steht Schritt 1 da. Der Schritt ist
-  // die ganze Zeit schon gerendert, der Vorspann legt sich nur darueber.
-  const [intro, setIntro] = useState(introErwuenscht);
+  // Kurzer Vorspann: im Topf wird geruehrt, dann steht Schritt 1 da. Der
+  // Schritt ist die ganze Zeit schon gerendert, der Vorspann legt sich nur
+  // darueber. Am Schluss hebt sich der Deckel – dasselbe Bauteil, andere Rolle.
+  const [intro, setIntro] = useState(animationErwuenscht);
   const introFertig = useCallback(() => setIntro(false), []);
+  const [abschluss, setAbschluss] = useState(false);
+
+  // "Fertig gekocht": erst der Deckel, dann zurueck zum Rezept.
+  const beenden = useCallback(() => {
+    if (animationErwuenscht()) setAbschluss(true);
+    else onClose();
+  }, [onClose]);
 
   const [index, setIndex] = useState(0);
   const total = steps.length;
@@ -215,7 +223,12 @@ export function CookMode({
   return (
     <Portal>
       <div className="cook">
-        {intro ? <CookIntro title={recipe.name} onDone={introFertig} /> : null}
+        {intro ? (
+          <CookAnimation variante="start" title={recipe.name} onDone={introFertig} />
+        ) : null}
+        {abschluss ? (
+          <CookAnimation variante="fertig" title="En Guete!" onDone={onClose} />
+        ) : null}
         <div className="cook__head">
           <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
             <IconClose />
@@ -290,7 +303,7 @@ export function CookMode({
             Zurück
           </button>
           {isLast ? (
-            <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={onClose}>
+            <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={beenden}>
               Fertig gekocht
             </button>
           ) : (

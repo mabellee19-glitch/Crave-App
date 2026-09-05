@@ -96,8 +96,8 @@ test.describe('Rezepte', () => {
     await expect(page.getByText('15:00')).toBeVisible();
   });
 
-  test.describe('Vorspann', () => {
-    // Ohne Bewegungsreduktion laeuft der kurze Braeter-Vorspann.
+  test.describe('Vorspann und Abschluss', () => {
+    // Ohne Bewegungsreduktion laufen die beiden kurzen Braeter-Animationen.
     test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
     test('der Vorspann erscheint kurz und verschwindet von selbst', async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe('Rezepte', () => {
       await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
 
-      const vorspann = page.locator('.cookintro');
+      const vorspann = page.locator('.cookanim');
       await expect(vorspann).toBeVisible();
       // Hoechstens zwei Sekunden – danach steht der erste Schritt bereit.
       await expect(vorspann).toHaveCount(0, { timeout: 2500 });
@@ -119,8 +119,35 @@ test.describe('Rezepte', () => {
       await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
 
-      await page.locator('.cookintro').click();
-      await expect(page.locator('.cookintro')).toHaveCount(0, { timeout: 1000 });
+      await page.locator('.cookanim').click();
+      await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 1000 });
+    });
+
+    test('zum Start wird geruehrt, am Schluss hebt sich der Deckel', async ({ page }) => {
+      await openSpace(page, newSpace('abschluss'));
+
+      await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+
+      // Zum Start steht der Topf offen da und der Loeffel ruehrt.
+      await expect(page.locator('.cookanim--start .cookanim__loeffel')).toBeVisible();
+      await expect(page.locator('.cookanim--start .cookanim__deckel')).toHaveCount(0);
+      await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 2500 });
+
+      // Durch bis zum letzten Schritt.
+      for (let i = 0; i < 6; i += 1) {
+        await page.getByRole('button', { name: 'Weiter' }).click();
+      }
+      await expect(page.getByText('Schritt 7 von 7')).toBeVisible();
+
+      // Erst jetzt der fertige Topf mit Deckel und Dampf.
+      await page.getByRole('button', { name: 'Fertig gekocht' }).click();
+      await expect(page.locator('.cookanim--fertig .cookanim__deckel')).toBeVisible();
+      await expect(page.locator('.cookanim--fertig .cookanim__loeffel')).toHaveCount(0);
+
+      // Danach schliesst der Kochmodus von selbst.
+      await expect(page.locator('.cook')).toHaveCount(0, { timeout: 2500 });
+      await expect(page.getByRole('dialog')).toBeVisible();
     });
   });
 

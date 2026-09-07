@@ -71,6 +71,10 @@ export function setAlarmSession(aktiv: boolean): void {
  * bestimmt, damit man sie am Herd auch neben einem Dunstabzug hoert.
  */
 function planeRunde(audio: Ctx, ab: number): void {
+  // Nur die Toene dieser Runde merken. Die vorherigen sind laengst verklungen,
+  // und der Wecker kann jetzt beliebig lange laufen – die Liste duerfte sonst
+  // endlos wachsen.
+  laufendeNoten = [];
   const toene = [0, 0.2, 0.4];
   for (const versatz of toene) {
     const at = ab + versatz;
@@ -98,10 +102,14 @@ function planeRunde(audio: Ctx, ab: number): void {
 const RUNDE_MS = 1400;
 
 /**
- * Wecker starten. Klingelt in Runden weiter, bis er gestoppt wird oder
- * `dauerMs` um ist. Gibt eine Stopp-Funktion zurueck.
+ * Wecker starten. Klingelt in Runden weiter, bis er gestoppt wird – von
+ * selbst hoert er nicht auf, genau wie ein Wecker. Gestoppt wird er ueber
+ * "Fertig", ueber das Zuruecksetzen oder Neustarten des Timers und beim
+ * Verlassen des Kochmodus.
+ *
+ * `dauerMs` begrenzt das nur fuers Probeklingeln.
  */
-export function playAlarm(dauerMs = 60_000): () => void {
+export function playAlarm(dauerMs = Infinity): () => void {
   stopAlarm();
   if (!ctx) ctx = createContext();
   const audio = ctx;
@@ -116,7 +124,7 @@ export function playAlarm(dauerMs = 60_000): () => void {
     aufwecken(audio);
     planeRunde(audio, audio.currentTime + 0.02);
     vibrate([250, 120, 250]);
-    if (Date.now() - beginn + RUNDE_MS > dauerMs) stopAlarm();
+    if (Number.isFinite(dauerMs) && Date.now() - beginn + RUNDE_MS > dauerMs) stopAlarm();
   };
 
   runde();

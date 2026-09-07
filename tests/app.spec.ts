@@ -346,7 +346,18 @@ test.describe('Weckerton', () => {
 
     // Ein Wecker gibt nach einer Runde nicht auf.
     await page.clock.fastForward('00:05');
-    expect(await toene(page)).toBeGreaterThan(ersteRunde);
+    const zweiteRunde = await toene(page);
+    expect(zweiteRunde).toBeGreaterThan(ersteRunde);
+
+    // Und auch nach Minuten nicht – er klingelt, bis man drueckt.
+    await page.clock.fastForward('05:00');
+    const spaeter = await toene(page);
+    expect(spaeter).toBeGreaterThan(zweiteRunde);
+
+    // "Fertig" beendet ihn.
+    await page.getByRole('button', { name: 'Fertig', exact: true }).click();
+    await page.clock.fastForward('01:00');
+    expect(await toene(page)).toBe(spaeter);
 
     // Beenden stellt die Audio-Session zurueck.
     await page.getByRole('button', { name: 'Kochmodus beenden' }).click();

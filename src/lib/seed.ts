@@ -432,6 +432,12 @@ interface DishSeed {
   name: string;
   category: Dish['category'];
   recipeKey?: string;
+  /**
+   * Eigene Zutaten des Gerichts. Nur was ausdruecklich genannt wurde – ohne
+   * Menge, wo keine angegeben war. Erfundene Mengen waeren auf einer
+   * Einkaufsliste schlimmer als gar keine.
+   */
+  ingredients?: Array<{ name: string; amount?: number | null; unit?: string }>;
 }
 
 const DISH_SEEDS: DishSeed[] = [
@@ -444,6 +450,51 @@ const DISH_SEEDS: DishSeed[] = [
   { name: 'Rotes Linsencurry', category: 'vegi', recipeKey: 'linsencurry' },
   { name: 'Shakshuka', category: 'vegi', recipeKey: 'shakshuka' },
   { name: 'Gebratene Nudeln mit Gemüse', category: 'vegi' },
+  {
+    name: 'Blumenkohl Wraps',
+    category: 'vegi',
+    ingredients: [
+      { name: 'Blumenkohl', amount: 250, unit: 'g' },
+      { name: 'Kichererbsen', amount: 1, unit: 'Dose' },
+      { name: 'Avocado', amount: 1, unit: 'Stück' },
+      { name: 'Wraps', amount: 1, unit: 'Pck' },
+      { name: 'Griechischer Joghurt' },
+    ],
+  },
+  {
+    name: 'Cous Cous mit Gemüsepfanne und Gyoza',
+    category: 'comfort',
+    ingredients: [
+      { name: 'Couscous' },
+      { name: 'Karotten' },
+      { name: 'Lauch' },
+      { name: 'Peperoni' },
+      { name: 'Gyoza' },
+    ],
+  },
+  {
+    name: 'Brokkoli, Kartoffeln, Süsskartoffeln und Halloumi',
+    category: 'vegi',
+    ingredients: [
+      { name: 'Brokkoli' },
+      { name: 'Kartoffeln' },
+      { name: 'Süsskartoffeln' },
+      { name: 'Halloumi' },
+    ],
+  },
+  { name: 'Flammkuchen', category: 'comfort' },
+  { name: 'Fried Rice', category: 'comfort' },
+  {
+    name: 'Crispy One-Blech-Gnocchi mit Ofengemüse',
+    category: 'vegi',
+    ingredients: [
+      { name: 'Gnocchi' },
+      { name: 'Ofengemüse' },
+      { name: 'Linsen vorgekocht' },
+      { name: 'Griechischer Joghurt' },
+      { name: 'Zitrone' },
+    ],
+  },
 ];
 
 /**
@@ -606,7 +657,12 @@ export function buildSeedData(now = Date.now()): AppData {
       name: seed.name,
       category: seed.category,
       recipeId: seed.recipeKey ? (recipeIdByKey.get(seed.recipeKey) ?? null) : null,
-      ingredients: [],
+      ingredients: (seed.ingredients ?? []).map((zutat) => ({
+        id: `${id}-z${zutat.name}`,
+        name: zutat.name,
+        amount: zutat.amount ?? null,
+        unit: zutat.unit ?? '',
+      })),
       cookNext: false,
       notes: '',
       createdAt: now + index,

@@ -903,7 +903,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
     await page
       .getByRole('dialog')
-      .getByRole('button', { name: 'Fehlende Rezepte nachtragen' })
+      .getByRole('button', { name: 'Fehlende Rezepte und Gerichte nachtragen' })
       .click();
     await expect(page.getByText(/nachgetragen/)).toBeVisible();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
@@ -917,6 +917,62 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await detail.getByRole('button', { name: 'Start Cooking' }).click();
     await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
+  });
+
+  test('ein von Hand angelegtes Gericht wird ueber den Namen erkannt, nicht verdoppelt', async ({
+    page,
+    request,
+  }) => {
+    // Ein alter Stand: ein von Hand angelegtes Gericht mit abweichender
+    // Schreibweise, eigener Id und ohne Zutaten.
+    const space = newSpace('dishnachtrag');
+    const now = Date.now();
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {},
+          dishes: {
+            eigen1: {
+              id: 'eigen1',
+              name: 'blumenkohl-wraps',
+              category: 'vegi',
+              recipeId: null,
+              cookNext: false,
+              notes: '',
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          shopping: {},
+          pantry: {},
+        },
+      },
+    });
+
+    await page.goto(`/s/${space}`);
+    await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Fehlende Rezepte und Gerichte nachtragen' })
+      .click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+
+    await goToTab(page, 'Gerichte');
+    // Kein zweites Gericht in der Vorlagen-Schreibweise ...
+    await expect(
+      page.getByRole('button', { name: /^Blumenkohl Wraps zu Cook Next/ }),
+    ).toHaveCount(0);
+    // ... das eigene steht noch da und hat jetzt die Zutaten.
+    await expect(
+      page.getByRole('button', { name: /^blumenkohl-wraps zu Cook Next/ }),
+    ).toHaveCount(1);
+    const karte = page
+      .locator('.card')
+      .filter({ has: page.locator('.card__title', { hasText: /^blumenkohl-wraps$/ }) });
+    await expect(karte).toContainText('5 Zutaten');
+
+    // Und die neuen Gerichte sind ebenfalls da.
+    await expect(page.getByRole('button', { name: /^Flammkuchen bearbeiten/ }).first()).toBeVisible();
   });
 });
 

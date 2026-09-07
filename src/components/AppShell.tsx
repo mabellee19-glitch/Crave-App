@@ -346,8 +346,8 @@ export function AppShell() {
           onAddMissingRecipes={() => {
             const { added, completed } = store.addMissingRecipes();
             const teile = [
-              added > 0 ? `${added} ${added === 1 ? 'Rezept' : 'Rezepte'} nachgetragen` : '',
-              completed > 0 ? `${completed} um Schritte ergänzt` : '',
+              added > 0 ? `${added} nachgetragen` : '',
+              completed > 0 ? `${completed} ergänzt` : '',
             ].filter(Boolean);
             showToast(teile.length ? teile.join(', ') : 'Alles schon vorhanden');
           }}

@@ -123,6 +123,19 @@ function writeLocal(spaceId: string, data: AppData): void {
   }
 }
 
+/**
+ * Vergleichsschluessel fuer Namen von Gerichten: Gross-/Kleinschreibung,
+ * Umlaute, Bindestriche und Leerzeichen sind egal. So gilt "Blumenkohl Wraps"
+ * als dasselbe Gericht wie "Blumenkohl-Wraps".
+ */
+function namensschluessel(name: string): string {
+  return (name ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 /** Monoton steigende Zeitstempel, auch wenn die Systemuhr springt. */
 let lastStamp = 0;
 function stamp(): number {
@@ -949,6 +962,38 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
             steps: recipe.steps,
             timeMin: existing.timeMin ?? recipe.timeMin,
             notes: existing.notes || recipe.notes,
+            updatedAt: stamp(),
+          };
+          result.completed += 1;
+        }
+      }
+
+      /*
+       * Gerichte werden ueber den Namen abgeglichen, nicht ueber die Id: ein
+       * Gericht kann von Hand angelegt worden sein und traegt dann eine andere
+       * Id als die Vorlage. Ueber den Namen bleibt es dasselbe Gericht, und es
+       * entsteht kein Doppel.
+       */
+      for (const dish of Object.values(startInhalte.dishes)) {
+        const schluessel = namensschluessel(dish.name);
+        const vorhanden = Object.values(draft.dishes).find(
+          (eintrag) => namensschluessel(eintrag.name) === schluessel,
+        );
+
+        if (!vorhanden) {
+          const now = stamp();
+          draft.dishes[dish.id] = { ...dish, createdAt: now, updatedAt: now };
+          result.added += 1;
+          continue;
+        }
+        // Geloeschtes bleibt geloescht.
+        if (vorhanden.deleted) continue;
+
+        const eigene = (vorhanden.ingredients ?? []).filter((zutat) => zutat.name.trim());
+        if (eigene.length === 0 && dish.ingredients.length > 0) {
+          draft.dishes[vorhanden.id] = {
+            ...vorhanden,
+            ingredients: dish.ingredients,
             updatedAt: stamp(),
           };
           result.completed += 1;

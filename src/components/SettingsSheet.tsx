@@ -123,13 +123,14 @@ export function SettingsSheet({
 
       <div className="detail__h">Startinhalte</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Ein Datenraum bekommt die mitgelieferten Rezepte nur beim allerersten Öffnen. Kommen
-        später welche dazu, lassen sie sich hier nachtragen. Vorhandene Rezepte bleiben
-        unverändert, gelöschte kommen nicht zurück.
+        Ein Datenraum bekommt die mitgelieferten Rezepte und Gerichte nur beim allerersten
+        Öffnen. Kommen später welche dazu, lassen sie sich hier nachtragen. Vorhandenes bleibt
+        unverändert – nur wo Schritte oder Zutaten ganz fehlen, werden sie ergänzt. Gelöschtes
+        kommt nicht zurück.
       </p>
       <button className="btn btn--ghost" onClick={onAddMissingRecipes}>
         <IconPlus size={18} />
-        Fehlende Rezepte nachtragen
+        Fehlende Rezepte und Gerichte nachtragen
       </button>
 
       <hr className="divider" />

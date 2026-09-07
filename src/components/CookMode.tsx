@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Recipe } from '@/lib/types';
 import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
-import { playAlarm, stopAlarm, vibrate } from '@/lib/audio';
+import { playAlarm, setAlarmSession, stopAlarm } from '@/lib/audio';
 import { Portal, useBodyScrollLock } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconChevronLeft, IconChevronRight, IconClose, IconTimer } from './Icons';
@@ -97,9 +97,33 @@ export function CookMode({
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
 
+  /*
+   * Der Wecker darf nicht im State-Updater ausgeloest werden: React fuehrt den
+   * verzoegert und unter Umstaenden mehrfach aus. Erkannt wird der Ablauf
+   * deshalb hier, aus einem Ref, und je Timer nur einmal.
+   */
+  const timersRef = useRef(timers);
+  timersRef.current = timers;
+  const geklungen = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     const tick = () => {
       const now = Date.now();
+
+      let abgelaufen = false;
+      for (const [id, state] of Object.entries(timersRef.current)) {
+        if (state.endsAt === null) continue;
+        if (state.endsAt - now > 0) {
+          // Neu gestartet: darf spaeter wieder klingeln.
+          geklungen.current.delete(id);
+          continue;
+        }
+        if (geklungen.current.has(id)) continue;
+        geklungen.current.add(id);
+        abgelaufen = true;
+      }
+      if (abgelaufen) playAlarm();
+
       setTimers((current) => {
         let changed = false;
         const next: Record<string, TimerState> = { ...current };
@@ -109,8 +133,6 @@ export function CookMode({
           if (left <= 0) {
             next[id] = { endsAt: null, remaining: 0, ringing: true };
             changed = true;
-            playAlarm();
-            vibrate([300, 150, 300, 150, 500]);
           } else if (left !== state.remaining) {
             next[id] = { ...state, remaining: left };
             changed = true;
@@ -129,7 +151,17 @@ export function CookMode({
     };
   }, []);
 
-  useEffect(() => () => stopAlarm(), []);
+  /*
+   * Waehrend des Kochens gilt der Ton als Medienwiedergabe – sonst bliebe der
+   * Wecker stumm, wenn am iPhone der Klingelschalter auf lautlos steht.
+   */
+  useEffect(() => {
+    setAlarmSession(true);
+    return () => {
+      setAlarmSession(false);
+      stopAlarm();
+    };
+  }, []);
 
   /** Timer, die laufen oder klingeln und nicht zum angezeigten Schritt gehören. */
   const backgroundTimers = useMemo(() => {

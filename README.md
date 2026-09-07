@@ -19,7 +19,8 @@ Drei Bereiche:
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
 | Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
-| Kochmodus | Timer pro Schritt mit Ton und Vibration, Display bleibt an |
+| Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
+| Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
 | Gerichte | Filter nach Kategorie und Cook Next, Suche |
 | Gerichte | Verknüpfte Gerichte öffnen direkt das hinterlegte Rezept |

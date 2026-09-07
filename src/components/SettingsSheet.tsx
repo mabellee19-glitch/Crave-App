@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { SyncInfo } from '@/lib/store';
 import { Sheet } from './ui';
-import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare } from './Icons';
+import { testAlarm } from '@/lib/audio';
+import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare, IconTimer } from './Icons';
 
 export function SettingsSheet({
   spaceId,
@@ -131,6 +132,19 @@ export function SettingsSheet({
       <button className="btn btn--ghost" onClick={onAddMissingRecipes}>
         <IconPlus size={18} />
         Fehlende Rezepte und Gerichte nachtragen
+      </button>
+
+      <hr className="divider" />
+
+      <div className="detail__h">Kochtimer</div>
+      <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
+        Läuft ein Schritt mit Timer ab, klingelt CRAVE und vibriert. Während des Kochens zählt
+        der Ton als Medienwiedergabe – er kommt also auch durch, wenn am iPhone der Schalter auf
+        lautlos steht. Hier lässt er sich vorher ausprobieren.
+      </p>
+      <button className="btn btn--ghost" onClick={() => testAlarm()}>
+        <IconTimer size={18} />
+        Weckerton testen
       </button>
 
       <hr className="divider" />

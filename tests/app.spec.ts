@@ -298,6 +298,72 @@ test.describe('Rezepte', () => {
   });
 });
 
+test.describe('Weckerton', () => {
+  /** Toene zaehlen und die Audio-Session nachbilden, die es nur in Safari gibt. */
+  async function hoerrohr(page: import('@playwright/test').Page) {
+    await page.addInitScript(() => {
+      const fenster = window as unknown as { __toene: number };
+      fenster.__toene = 0;
+      const original = AudioContext.prototype.createOscillator;
+      AudioContext.prototype.createOscillator = function createOscillator(this: AudioContext) {
+        fenster.__toene += 1;
+        return original.call(this);
+      };
+      (navigator as unknown as { audioSession: { type: string } }).audioSession = {
+        type: 'auto',
+      };
+    });
+  }
+
+  const toene = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => (window as unknown as { __toene: number }).__toene);
+
+  const session = (page: import('@playwright/test').Page) =>
+    page.evaluate(
+      () => (navigator as unknown as { audioSession: { type: string } }).audioSession.type,
+    );
+
+  test('ein abgelaufener Schritt klingelt und klingelt weiter', async ({ page }) => {
+    await hoerrohr(page);
+    await page.clock.install();
+    await openSpace(page, newSpace('wecker'));
+
+    await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+
+    // Waehrend des Kochens gilt der Ton als Medienwiedergabe.
+    expect(await session(page)).toBe('playback');
+
+    await page.getByRole('button', { name: 'Timer starten' }).click();
+    expect(await toene(page)).toBe(0);
+
+    // Schritt 1 dauert 15 Minuten.
+    await page.clock.fastForward('16:00');
+    await expect(page.getByText('Zeit ist um')).toBeVisible();
+    const ersteRunde = await toene(page);
+    expect(ersteRunde).toBeGreaterThan(0);
+
+    // Ein Wecker gibt nach einer Runde nicht auf.
+    await page.clock.fastForward('00:05');
+    expect(await toene(page)).toBeGreaterThan(ersteRunde);
+
+    // Beenden stellt die Audio-Session zurueck.
+    await page.getByRole('button', { name: 'Kochmodus beenden' }).click();
+    expect(await session(page)).toBe('auto');
+  });
+
+  test('der Weckerton laesst sich in den Einstellungen ausprobieren', async ({ page }) => {
+    await hoerrohr(page);
+    await openSpace(page, newSpace('weckertest'));
+
+    await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
+    expect(await toene(page)).toBe(0);
+    await page.getByRole('dialog').getByRole('button', { name: 'Weckerton testen' }).click();
+    expect(await toene(page)).toBeGreaterThan(0);
+  });
+});
+
 test.describe('Gerichte', () => {
   test('filtert nach Kategorie und oeffnet das verknuepfte Rezept', async ({ page }) => {
     await openSpace(page, newSpace('dishes'));

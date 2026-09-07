@@ -144,6 +144,8 @@ function DishCard({
   onToggleCookNext: () => void;
 }) {
   const linked = recipeName !== null;
+  // Gerichte aus aelteren Staenden haben noch keine Zutatenliste.
+  const zutaten = (dish.ingredients ?? []).filter((item) => item.name.trim()).length;
   return (
     <article className="card">
       <div className="card__actions">
@@ -179,6 +181,10 @@ function DishCard({
             <span className="tag tag--link">
               <IconLink size={12} />
               Rezept
+            </span>
+          ) : zutaten > 0 ? (
+            <span className="muted">
+              {zutaten} {zutaten === 1 ? 'Zutat' : 'Zutaten'}
             </span>
           ) : (
             <span className="muted">Kein Rezept</span>

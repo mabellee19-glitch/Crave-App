@@ -606,6 +606,7 @@ export function buildSeedData(now = Date.now()): AppData {
       name: seed.name,
       category: seed.category,
       recipeId: seed.recipeKey ? (recipeIdByKey.get(seed.recipeKey) ?? null) : null,
+      ingredients: [],
       cookNext: false,
       notes: '',
       createdAt: now + index,

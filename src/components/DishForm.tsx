@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, Recipe } from '@/lib/types';
+import { blankIngredient } from '@/lib/store';
 import { ConfirmDialog, Field, Sheet } from './ui';
+import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconTrash } from './Icons';
 
 export function DishForm({
@@ -20,7 +22,11 @@ export function DishForm({
   onDelete?: () => void;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<Dish>(initial);
+  // Gerichte aus aelteren Staenden haben noch gar keine Zutatenliste.
+  const [draft, setDraft] = useState<Dish>(() => ({
+    ...initial,
+    ingredients: initial.ingredients?.length ? initial.ingredients : [blankIngredient()],
+  }));
   const [confirming, setConfirming] = useState(false);
 
   const set = <K extends keyof Dish>(key: K, value: Dish[K]) =>
@@ -42,7 +48,14 @@ export function DishForm({
               className="btn btn--primary"
               style={{ flex: 1 }}
               disabled={!nameValid}
-              onClick={() => nameValid && onSave({ ...draft, name: draft.name.trim() })}
+              onClick={() =>
+                nameValid &&
+                onSave({
+                  ...draft,
+                  name: draft.name.trim(),
+                  ingredients: aufgeraeumteZutaten(draft.ingredients),
+                })
+              }
             >
               Speichern
             </button>
@@ -96,6 +109,32 @@ export function DishForm({
             ))}
           </select>
         </Field>
+
+        <hr className="divider" />
+
+        <div className="detail__sectionhead">
+          <span className="detail__h">Zutaten</span>
+          <span className="row__note">Menge · Einheit · Zutat</span>
+        </div>
+
+        {draft.recipeId ? (
+          <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+            Für Cook Next und die Einkaufsliste zählen die Zutaten des verknüpften Rezepts. Was du
+            hier einträgst, bleibt als Notiz am Gericht stehen.
+          </p>
+        ) : (
+          <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+            Ohne hinterlegtes Rezept kommen diese Zutaten auf die Einkaufsliste, sobald du das
+            Gericht auf Cook Next setzt.
+          </p>
+        )}
+
+        <IngredientEditor
+          ingredients={draft.ingredients}
+          onChange={(next) => set('ingredients', next)}
+        />
+
+        <hr className="divider" />
 
         <Field label="Notiz" htmlFor="dish-notes">
           <textarea

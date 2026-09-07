@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Ingredient, Recipe, Step } from '@/lib/types';
+import { Recipe, Step } from '@/lib/types';
 import { blankIngredient, blankStep } from '@/lib/store';
 import { Field, NumberInput, Sheet } from './ui';
+import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconArrowUp, IconPlus, IconTrash } from './Icons';
 
 const CATEGORY_SUGGESTIONS = ['High-Protein', 'Comfort', 'Vegi', 'Frühstück', 'Dessert', 'Snack'];
@@ -30,12 +31,6 @@ export function RecipeForm({
 
   const nameValid = draft.name.trim().length > 0;
 
-  const setIngredient = (id: string, patch: Partial<Ingredient>) =>
-    set(
-      'ingredients',
-      draft.ingredients.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
-
   const setStep = (id: string, patch: Partial<Step>) =>
     set(
       'steps',
@@ -59,9 +54,7 @@ export function RecipeForm({
       name: draft.name.trim(),
       category: draft.category.trim(),
       servings: draft.servings > 0 ? draft.servings : 1,
-      ingredients: draft.ingredients
-        .filter((item) => item.name.trim().length > 0)
-        .map((item) => ({ ...item, name: item.name.trim(), unit: item.unit.trim() })),
+      ingredients: aufgeraeumteZutaten(draft.ingredients),
       steps: draft.steps
         .filter((item) => item.text.trim().length > 0)
         .map((item) => ({ ...item, text: item.text.trim() })),
@@ -144,55 +137,10 @@ export function RecipeForm({
         <span className="row__note">Menge · Einheit · Zutat</span>
       </div>
 
-      {draft.ingredients.map((ingredient, index) => (
-        <div className="editrow" key={ingredient.id}>
-          <NumberInput
-            className="input editrow__amount"
-            value={ingredient.amount}
-            onChange={(value) => setIngredient(ingredient.id, { amount: value })}
-            placeholder="400"
-            ariaLabel={`Menge für Zutat ${index + 1}`}
-          />
-          <input
-            className="input editrow__unit"
-            value={ingredient.unit}
-            placeholder="g"
-            aria-label={`Einheit für Zutat ${index + 1}`}
-            onChange={(event) => setIngredient(ingredient.id, { unit: event.target.value })}
-            autoComplete="off"
-          />
-          <input
-            className="input editrow__grow"
-            value={ingredient.name}
-            placeholder="Zutat"
-            aria-label={`Name für Zutat ${index + 1}`}
-            onChange={(event) => setIngredient(ingredient.id, { name: event.target.value })}
-            autoComplete="off"
-          />
-          <button
-            className="iconbtn iconbtn--plain"
-            aria-label={`Zutat ${index + 1} entfernen`}
-            onClick={() =>
-              set(
-                'ingredients',
-                draft.ingredients.length > 1
-                  ? draft.ingredients.filter((item) => item.id !== ingredient.id)
-                  : [blankIngredient()],
-              )
-            }
-          >
-            <IconTrash size={19} />
-          </button>
-        </div>
-      ))}
-
-      <button
-        className="btn btn--ghost btn--block"
-        onClick={() => set('ingredients', [...draft.ingredients, blankIngredient()])}
-      >
-        <IconPlus size={18} />
-        Zutat hinzufügen
-      </button>
+      <IngredientEditor
+        ingredients={draft.ingredients}
+        onChange={(next) => set('ingredients', next)}
+      />
 
       <hr className="divider" />
 

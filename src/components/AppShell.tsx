@@ -124,10 +124,22 @@ export function AppShell() {
    * ist. Gerichte ohne eigenes Rezept bleiben aussen vor – sie brauchen keinen
    * Einkauf und waeren dort nur Beiwerk.
    */
-  const geplant = useMemo(
-    () => store.recipes.filter((recipe) => recipe.cookNext).map(({ id, name }) => ({ id, name })),
-    [store.recipes],
-  );
+  const geplant = useMemo(() => {
+    const lebendeRezepte = new Set(store.recipes.map((recipe) => recipe.id));
+    return [
+      ...store.recipes
+        .filter((recipe) => recipe.cookNext)
+        .map((recipe) => ({ id: recipe.id, name: recipe.name, kind: 'recipe' as const })),
+      // Gerichte mit Rezept stuenden sonst doppelt da – ihre Zutaten kommen
+      // ohnehin vom Rezept.
+      ...store.dishes
+        .filter(
+          (dish) =>
+            dish.cookNext && !(dish.recipeId && lebendeRezepte.has(dish.recipeId)),
+        )
+        .map((dish) => ({ id: dish.id, name: dish.name, kind: 'dish' as const })),
+    ];
+  }, [store.recipes, store.dishes]);
 
   const addAction = () => {
     if (tab === 'shopping') {
@@ -260,7 +272,17 @@ export function AppShell() {
             onSavePantryItem={store.savePantryItem}
             onDeletePantryItem={store.deletePantryItem}
             cookNext={geplant}
-            onOpenPlanned={openRecipe}
+            onOpenPlanned={(eintrag) => {
+              if (eintrag.kind === 'recipe') {
+                openRecipe(eintrag.id);
+                return;
+              }
+              const dish = store.dishes.find((entry) => entry.id === eintrag.id);
+              if (dish) {
+                setTab('dishes');
+                openOverlay({ kind: 'dishForm', dish, isNew: false });
+              }
+            }}
             onAddSuggestions={() => {
               const { added, categorised } = store.addPantrySuggestions();
               showToast(

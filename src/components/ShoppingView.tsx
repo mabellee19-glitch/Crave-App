@@ -48,8 +48,8 @@ export function ShoppingView({
   onDeletePantryItem: (id: string) => void;
   onAddSuggestions: () => void;
   /** Was fuer die naechsten Tage geplant ist – die Vorschau ueber der Liste. */
-  cookNext: { id: string; name: string }[];
-  onOpenPlanned: (id: string) => void;
+  cookNext: { id: string; name: string; kind: 'recipe' | 'dish' }[];
+  onOpenPlanned: (eintrag: { id: string; kind: 'recipe' | 'dish' }) => void;
 }) {
   const [text, setText] = useState('');
   const [managing, setManaging] = useState(false);
@@ -84,7 +84,7 @@ export function ShoppingView({
               <button
                 key={eintrag.id}
                 className="chip chip--plan"
-                onClick={() => onOpenPlanned(eintrag.id)}
+                onClick={() => onOpenPlanned(eintrag)}
               >
                 {eintrag.name}
               </button>

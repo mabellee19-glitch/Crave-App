@@ -337,6 +337,109 @@ test.describe('Gerichte', () => {
     await page.getByRole('button', { name: 'Löschen', exact: true }).click();
     await expect(page.getByText('Gericht gelöscht')).toBeVisible();
   });
+
+  test('ein Gericht ohne Rezept fuehrt eine eigene Zutatenliste', async ({ page }) => {
+    await openSpace(page, newSpace('dishzutaten'));
+    await goToTab(page, 'Gerichte');
+
+    await page.getByRole('button', { name: 'Neues Gericht' }).click();
+    const form = page.getByRole('dialog');
+    await form.getByLabel('Name', { exact: true }).fill('Skyr-Bowl');
+    await form.getByLabel('Menge für Zutat 1').fill('200');
+    await form.getByLabel('Einheit für Zutat 1').fill('g');
+    await form.getByLabel('Name für Zutat 1').fill('Skyr');
+    await form.getByRole('button', { name: 'Zutat hinzufügen' }).click();
+    await form.getByLabel('Menge für Zutat 2').fill('150');
+    await form.getByLabel('Einheit für Zutat 2').fill('g');
+    await form.getByLabel('Name für Zutat 2').fill('Heidelbeeren');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Gericht angelegt')).toBeVisible();
+
+    // Die Karte sagt, dass es Zutaten gibt, obwohl kein Rezept dahaengt.
+    await expect(page.getByText('2 Zutaten')).toBeVisible();
+
+    // Cook Next legt genau diese Zutaten auf die Einkaufsliste.
+    await page.getByRole('button', { name: 'Skyr-Bowl zu Cook Next hinzufügen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(page.locator('.plannedstrip')).toContainText('Skyr-Bowl');
+    await expect(shoppingRow(page, 'Skyr')).toContainText('200');
+    await expect(shoppingRow(page, 'Heidelbeeren')).toContainText('150');
+
+    // Und wieder herunter.
+    await goToTab(page, 'Gerichte');
+    await page.getByRole('button', { name: 'Skyr-Bowl aus Cook Next entfernen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Skyr')).toHaveCount(0);
+    await expect(shoppingRow(page, 'Heidelbeeren')).toHaveCount(0);
+  });
+
+  test('ein Gericht aus einem aelteren Stand ohne Zutatenfeld laesst sich oeffnen', async ({
+    page,
+    request,
+  }) => {
+    // So sahen Gerichte aus, bevor es die Zutatenliste gab: ganz ohne das Feld.
+    const space = newSpace('dishalt');
+    const now = Date.now();
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {},
+          dishes: {
+            alt1: {
+              id: 'alt1',
+              name: 'Altes Gericht',
+              category: 'comfort',
+              recipeId: null,
+              cookNext: false,
+              notes: '',
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          shopping: {},
+          pantry: {},
+        },
+      },
+    });
+
+    await page.goto(`/s/${space}`);
+    await goToTab(page, 'Gerichte');
+    await expect(page.getByText('Kein Rezept')).toBeVisible();
+
+    // Bearbeiten darf nicht scheitern, und eine Zutat laesst sich nachtragen.
+    await page.getByRole('button', { name: 'Altes Gericht bearbeiten' }).first().click();
+    const form = page.getByRole('dialog');
+    await form.getByLabel('Name für Zutat 1').fill('Zwiebeln');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('1 Zutat', { exact: true })).toBeVisible();
+  });
+
+  test('geaenderte Zutaten eines geplanten Gerichts ziehen die Liste nach', async ({ page }) => {
+    await openSpace(page, newSpace('dishnachziehen'));
+    await goToTab(page, 'Gerichte');
+
+    await page.getByRole('button', { name: 'Neues Gericht' }).click();
+    let form = page.getByRole('dialog');
+    await form.getByLabel('Name', { exact: true }).fill('Toast Hawaii');
+    await form.getByLabel('Menge für Zutat 1').fill('2');
+    await form.getByLabel('Name für Zutat 1').fill('Ananasscheiben');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+
+    await page.getByRole('button', { name: 'Toast Hawaii zu Cook Next hinzufügen' }).click();
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Ananasscheiben')).toBeVisible();
+
+    // Zutat austauschen, waehrend das Gericht geplant ist.
+    await goToTab(page, 'Gerichte');
+    await page.getByRole('button', { name: 'Toast Hawaii bearbeiten' }).first().click();
+    form = page.getByRole('dialog');
+    await form.getByLabel('Name für Zutat 1').fill('Kochschinken');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+
+    await goToTab(page, 'Einkaufsliste');
+    await expect(shoppingRow(page, 'Kochschinken')).toBeVisible();
+    await expect(shoppingRow(page, 'Ananasscheiben')).toHaveCount(0);
+  });
 });
 
 test.describe('Cook Next', () => {

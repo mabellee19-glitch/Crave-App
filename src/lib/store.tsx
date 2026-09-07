@@ -472,6 +472,12 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     (recipe: Recipe) => {
       mutate((draft) => {
         draft.recipes[recipe.id] = { ...recipe, updatedAt: stamp(), deleted: false };
+        // Ist das Rezept geplant, haengt die Einkaufsliste daran: geaenderte
+        // Zutaten muessen dort ankommen, sonst kauft man nach altem Stand ein.
+        if (recipe.cookNext) {
+          nimmGeplantZurueck(draft, recipe.id);
+          legeGeplantAn(draft, recipe, recipe.servings);
+        }
       });
     },
     [mutate],
@@ -526,7 +532,31 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
   const saveDish = useCallback(
     (dish: Dish) => {
       mutate((draft) => {
+        const vorher = draft.dishes[dish.id];
         draft.dishes[dish.id] = { ...dish, updatedAt: stamp(), deleted: false };
+        if (!dish.cookNext) return;
+
+        // Ein geplantes Gericht ohne Rezept traegt seine Zutaten selbst auf die
+        // Liste – nach dem Bearbeiten also neu eintragen. Kam eben erst ein
+        // Rezept dazu, uebernimmt dieses, und der eigene Anteil faellt weg.
+        nimmGeplantZurueck(draft, dish.id);
+        const recipe = dish.recipeId ? draft.recipes[dish.recipeId] : null;
+        if (recipe && !recipe.deleted) {
+          if (!recipe.cookNext) {
+            draft.recipes[recipe.id] = { ...recipe, cookNext: true, updatedAt: stamp() };
+            legeGeplantAn(draft, recipe, recipe.servings);
+          }
+          return;
+        }
+        // Kein (mehr) verknuepftes Rezept: dessen Anteil geht, der eigene kommt.
+        if (vorher?.recipeId && vorher.recipeId !== dish.recipeId) {
+          const alt = draft.recipes[vorher.recipeId];
+          if (alt && alt.cookNext) {
+            draft.recipes[alt.id] = { ...alt, cookNext: false, updatedAt: stamp() };
+            nimmGeplantZurueck(draft, alt.id);
+          }
+        }
+        legeGerichtAn(draft, dish);
       });
     },
     [mutate],
@@ -557,7 +587,15 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         draft.dishes[id] = { ...existing, cookNext: kuenftig, updatedAt: stamp() };
 
         const recipe = existing.recipeId ? draft.recipes[existing.recipeId] : null;
-        if (!recipe || recipe.deleted || recipe.cookNext === kuenftig) return;
+
+        // Ohne hinterlegtes Rezept zaehlen die eigenen Zutaten des Gerichts.
+        if (!recipe || recipe.deleted) {
+          if (kuenftig) legeGerichtAn(draft, existing);
+          else nimmGeplantZurueck(draft, id);
+          return;
+        }
+
+        if (recipe.cookNext === kuenftig) return;
 
         draft.recipes[recipe.id] = { ...recipe, cookNext: kuenftig, updatedAt: stamp() };
         if (kuenftig) legeGeplantAn(draft, recipe, recipe.servings);
@@ -683,14 +721,32 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
   /** Die Zutaten eines Rezepts als Anteil dieser Planung eintragen. */
   function legeGeplantAn(draft: AppData, recipe: Recipe, servings: number): void {
     const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
-    for (const ingredient of recipe.ingredients) {
+    legeZutatenAn(draft, recipe.id, recipe.name, recipe.ingredients, factor);
+  }
+
+  /**
+   * Die Zutaten eines Gerichts eintragen, das kein Rezept hinterlegt hat.
+   * Ohne Rezept gibt es keine Portionenzahl, also wird auch nichts skaliert.
+   */
+  function legeGerichtAn(draft: AppData, dish: Dish): void {
+    legeZutatenAn(draft, dish.id, dish.name, dish.ingredients ?? [], 1);
+  }
+
+  function legeZutatenAn(
+    draft: AppData,
+    quelleId: string,
+    quelleName: string,
+    ingredients: Ingredient[],
+    factor: number,
+  ): void {
+    for (const ingredient of ingredients) {
       if (!ingredient.name.trim()) continue;
       putIntoCart(draft, {
         name: ingredient.name,
         amount: scaleAmount(ingredient.amount, factor, ingredient.noScale),
         unit: ingredient.unit,
-        fromRecipe: recipe.name,
-        plannedFor: recipe.id,
+        fromRecipe: quelleName,
+        plannedFor: quelleId,
       });
     }
   }
@@ -1051,6 +1107,7 @@ export function blankDish(): Dish {
     name: '',
     category: 'high-protein',
     recipeId: null,
+    ingredients: [blankIngredient()],
     cookNext: false,
     notes: '',
     createdAt: now,

@@ -67,6 +67,12 @@ export interface Dish extends Syncable {
   category: DishCategory;
   /** Verknuepftes Rezept, `null` wenn (noch) keines hinterlegt ist. */
   recipeId: Id | null;
+  /**
+   * Eigene Zutaten des Gerichts. Nicht jedes Gericht braucht ein Rezept –
+   * eine Skyr-Bowl hat keine Zubereitungsschritte, aber sehr wohl eine
+   * Einkaufsliste. Haengt ein Rezept am Gericht, gelten dessen Zutaten.
+   */
+  ingredients: Ingredient[];
   /** "Cook Next" – siehe Recipe. Gericht und Rezept bleiben dabei im Gleichschritt. */
   cookNext: boolean;
   notes: string;

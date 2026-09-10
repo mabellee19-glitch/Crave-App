@@ -40,10 +40,14 @@ Startinhalte bekommt ein Datenraum nur beim allerersten Öffnen. Wer die App
 schon benutzt, sieht später ergänzte Inhalte deshalb nicht automatisch. Dafür
 gibt es zwei Knöpfe in der App selbst:
 
-- `Einstellungen & Sync → Fehlende Rezepte nachtragen` legt Rezepte an, die es
-  unter ihrer Id noch nie gab. Vorhandene bleiben unverändert, gelöschte
-  kommen nicht zurück. Einzige Ausnahme: fehlen einem vorhandenen Rezept die
-  Zubereitungsschritte komplett, werden sie ergänzt.
+- `Einstellungen & Sync → Fehlende Rezepte und Gerichte nachtragen` legt an,
+  was es noch nie gab. Vorhandenes bleibt unverändert, Gelöschtes kommt nicht
+  zurück. Ergänzt wird nur, wo etwas komplett fehlt: Zubereitungsschritte oder
+  Zutaten. Gerichte werden dabei über den Namen abgeglichen, Rezepte über ihre
+  Id und ersatzweise über den Namen.
+- Dasselbe geht direkt im Rezept: hat es keine Zubereitungsschritte, steht der
+  Knopf `Aus der Vorlage nachtragen` dort, wo man das Problem sieht – nämlich
+  neben dem ausgegrauten `Start Cooking`.
 - `Einkaufsliste → Verwalten → Vorschlagsliste ergänzen` trägt fehlende
   Standard-Zutaten nach und ordnet vorhandene ohne Rubrik ein.
 

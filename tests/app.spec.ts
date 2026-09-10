@@ -298,6 +298,71 @@ test.describe('Rezepte', () => {
   });
 });
 
+test.describe('Zubereitung nachtragen', () => {
+  test('ein Rezept ohne Schritte laesst sich direkt im Rezept vervollstaendigen', async ({
+    page,
+    request,
+  }) => {
+    // So sieht es aus, wenn ein Rezept angelegt wurde, bevor es Schritte gab:
+    // "Start Cooking" bleibt grau.
+    const space = newSpace('schrittenachtrag');
+    const now = Date.now();
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {
+            'seed-r-halloumiburger': {
+              id: 'seed-r-halloumiburger',
+              name: 'Halloumiburger mit Honig-Senf-Sauce',
+              category: 'Vegi',
+              servings: 2,
+              timeMin: 25,
+              ingredients: [],
+              steps: [],
+              cookNext: false,
+              notes: '',
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          dishes: {},
+          shopping: {},
+          pantry: {},
+        },
+      },
+    });
+
+    await page.goto(`/s/${space}`);
+    await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeDisabled();
+
+    // Der Hinweis steht im Rezept, nicht irgendwo in den Einstellungen.
+    await detail.getByRole('button', { name: 'Aus der Vorlage nachtragen' }).click();
+    await expect(page.getByText('Aus der Vorlage nachgetragen')).toBeVisible();
+
+    await expect(detail.getByText('8 Schritte')).toBeVisible();
+    // Die Zutaten fehlten ebenfalls und sind jetzt da.
+    await expect(detail.getByText('250 g')).toBeVisible();
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
+    await detail.getByRole('button', { name: 'Start Cooking' }).click();
+    await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
+  });
+
+  test('ein selbst angelegtes Rezept sagt ehrlich, dass nichts hinterlegt ist', async ({ page }) => {
+    await openSpace(page, newSpace('schrittekeine'));
+
+    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    const form = page.getByRole('dialog');
+    await form.getByLabel('Name', { exact: true }).fill('Eigenes ohne Schritte');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+
+    await page.getByRole('button', { name: 'Rezept Eigenes ohne Schritte öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Aus der Vorlage nachtragen' }).click();
+    await expect(page.getByText('Für dieses Rezept ist keine Vorlage hinterlegt')).toBeVisible();
+  });
+});
+
 test.describe('Weckerton', () => {
   /** Toene zaehlen und die Audio-Session nachbilden, die es nur in Safari gibt. */
   async function hoerrohr(page: import('@playwright/test').Page) {
@@ -991,6 +1056,8 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
     const detail = page.getByRole('dialog');
     await expect(detail.getByText('8 Schritte')).toBeVisible();
+    // Die Zutaten fehlten ebenfalls und sind jetzt da.
+    await expect(detail.getByText('250 g')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await detail.getByRole('button', { name: 'Start Cooking' }).click();
     await expect(page.getByText('Schritt 1 von 8')).toBeVisible();

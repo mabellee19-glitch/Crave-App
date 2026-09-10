@@ -84,6 +84,11 @@ interface StoreValue {
   }) => void;
   /** Vorschlagsliste nachtragen; gibt zurück, was tatsächlich passiert ist. */
   addPantrySuggestions: () => { added: number; categorised: number };
+  /**
+   * Einem Rezept nachtragen, was in der Vorlage steht und hier ganz fehlt.
+   * Gibt zurueck, ob es etwas nachzutragen gab.
+   */
+  fillRecipeSteps: (id: string) => boolean;
   /** Fehlende Startrezepte nachtragen; vorhandene bleiben unangetastet. */
   addMissingRecipes: () => { added: number; completed: number };
   deletePantryItem: (id: string) => void;
@@ -944,6 +949,50 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
    * Rezept bleibt gelöscht. Ein vorhandenes Rezept wird nicht überschrieben;
    * einzige Ausnahme sind Zubereitungsschritte, die dort noch ganz fehlen.
    */
+  /**
+   * Schritte eines einzelnen Rezepts nachtragen.
+   *
+   * "Start Cooking" bleibt grau, solange ein Rezept keine Schritte hat – und
+   * das passiert, wenn die Schritte erst nach dem Anlegen dazugekommen sind.
+   * Der Weg ueber die Einstellungen taete dasselbe, ist an der Stelle aber
+   * nicht zu erraten. Deshalb geht es auch direkt am Rezept.
+   */
+  const fillRecipeSteps = useCallback((id: string) => {
+    let geklappt = false;
+    const startInhalte = buildSeedData();
+    mutate((draft) => {
+      const recipe = draft.recipes[id];
+      if (!recipe || recipe.deleted) return;
+
+      // Erst ueber die Id, dann ueber den Namen: ein von Hand angelegtes
+      // Rezept traegt eine andere Id als die Vorlage.
+      const schluessel = namensschluessel(recipe.name);
+      const vorlage =
+        startInhalte.recipes[id] ??
+        Object.values(startInhalte.recipes).find(
+          (eintrag) => namensschluessel(eintrag.name) === schluessel,
+        );
+      if (!vorlage) return;
+
+      // Nur ergaenzen, wo gar nichts steht – Eigenes wird nie ueberschrieben.
+      const schritte = recipe.steps.length === 0 ? vorlage.steps : recipe.steps;
+      const zutaten = recipe.ingredients.length === 0 ? vorlage.ingredients : recipe.ingredients;
+      if (schritte === recipe.steps && zutaten === recipe.ingredients) return;
+
+      draft.recipes[id] = {
+        ...recipe,
+        steps: schritte,
+        ingredients: zutaten,
+        servings: recipe.servings > 0 ? recipe.servings : vorlage.servings,
+        timeMin: recipe.timeMin ?? vorlage.timeMin,
+        notes: recipe.notes || vorlage.notes,
+        updatedAt: stamp(),
+      };
+      geklappt = true;
+    });
+    return geklappt;
+  }, [mutate]);
+
   const addMissingRecipes = useCallback(() => {
     const result = { added: 0, completed: 0 };
     const startInhalte = buildSeedData();
@@ -956,16 +1005,24 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
           result.added += 1;
           continue;
         }
-        if (!existing.deleted && existing.steps.length === 0 && recipe.steps.length > 0) {
-          draft.recipes[recipe.id] = {
-            ...existing,
-            steps: recipe.steps,
-            timeMin: existing.timeMin ?? recipe.timeMin,
-            notes: existing.notes || recipe.notes,
-            updatedAt: stamp(),
-          };
-          result.completed += 1;
-        }
+        if (existing.deleted) continue;
+
+        // Dieselbe Regel wie beim Nachtragen am einzelnen Rezept: ergaenzt
+        // wird nur, wo gar nichts steht.
+        const schritte = existing.steps.length === 0 ? recipe.steps : existing.steps;
+        const zutaten =
+          existing.ingredients.length === 0 ? recipe.ingredients : existing.ingredients;
+        if (schritte === existing.steps && zutaten === existing.ingredients) continue;
+
+        draft.recipes[recipe.id] = {
+          ...existing,
+          steps: schritte,
+          ingredients: zutaten,
+          timeMin: existing.timeMin ?? recipe.timeMin,
+          notes: existing.notes || recipe.notes,
+          updatedAt: stamp(),
+        };
+        result.completed += 1;
       }
 
       /*
@@ -1103,6 +1160,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     savePantryItem,
     addPantryItem,
     addPantrySuggestions,
+    fillRecipeSteps,
     addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,

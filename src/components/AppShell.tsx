@@ -391,6 +391,14 @@ export function AppShell() {
           onClose={closeTop}
           onEdit={() => openOverlay({ kind: 'recipeForm', recipe, isNew: false })}
           onToggleCookNext={(servings) => store.toggleRecipeCookNext(recipe.id, servings)}
+          onFillSteps={() => {
+            const geklappt = store.fillRecipeSteps(recipe.id);
+            showToast(
+              geklappt
+                ? 'Aus der Vorlage nachgetragen'
+                : 'Für dieses Rezept ist keine Vorlage hinterlegt',
+            );
+          }}
           onDelete={() => {
             store.deleteRecipe(recipe.id);
             closeTop();

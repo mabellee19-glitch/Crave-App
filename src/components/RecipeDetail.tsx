@@ -25,6 +25,7 @@ export function RecipeDetail({
   onToggleCookNext,
   onStartCooking,
   onAddToShopping,
+  onFillSteps,
 }: {
   recipe: Recipe;
   onClose: () => void;
@@ -33,6 +34,8 @@ export function RecipeDetail({
   onToggleCookNext: (servings: number) => void;
   onStartCooking: (servings: number) => void;
   onAddToShopping: (servings: number) => void;
+  /** Hinterlegte Zubereitungsschritte nachtragen, wenn das Rezept keine hat. */
+  onFillSteps: () => void;
 }) {
   const base = recipe.servings > 0 ? recipe.servings : 1;
   const [servings, setServings] = useState(base);
@@ -176,9 +179,17 @@ export function RecipeDetail({
             <span className="row__note">{steps.length} Schritte</span>
           </div>
           {steps.length === 0 ? (
-            <p className="muted" style={{ fontSize: 14.5 }}>
-              Noch keine Zubereitungsschritte erfasst.
-            </p>
+            <div className="notice">
+              <strong>Noch keine Zubereitungsschritte erfasst.</strong> Deshalb lässt sich der
+              Kochmodus nicht starten. Für die mitgelieferten Rezepte sind Zubereitung und
+              Zutaten hinterlegt – was hier fehlt, lässt sich daraus nachtragen. Eigenes bleibt
+              unverändert; sonst über <em>Bearbeiten</em> selbst eintragen.
+              <div style={{ height: 10 }} />
+              <button className="btn btn--ghost" onClick={onFillSteps}>
+                <IconPlus size={18} />
+                Aus der Vorlage nachtragen
+              </button>
+            </div>
           ) : (
             <ol className="steps">
               {steps.map((step, index) => (

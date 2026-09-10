@@ -17,6 +17,7 @@ Drei Bereiche:
 | Bereich | Funktion |
 | --- | --- |
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
+| Rezepte | `Rezept über Link hinzufügen`: Adresse einfügen, Zutaten und Zubereitung kommen mit – samt Timern |
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
 | Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
@@ -59,6 +60,25 @@ Für den Weg über die Kommandozeile gibt es zusätzlich:
 ```bash
 npm run add-recipes -- https://deine-app.vercel.app/s/DEINE-ID
 ```
+
+## Rezepte über einen Link übernehmen
+
+Beim Anlegen eines Rezepts steht oben das Feld `Rezept über Link hinzufügen`.
+Die Adresse einer Rezeptseite einfügen, `Holen` – Name, Portionen, Zeit,
+Zutaten und Zubereitungsschritte stehen danach im Formular und lassen sich vor
+dem Speichern noch ändern. Timer werden dabei aus den Schritttexten gelesen
+(«für ca. 3 – 5 Min. anbraten» wird zu drei Minuten – bei Bereichen gilt der
+untere Wert, damit man eher zu früh als zu spät nachschaut).
+
+Das braucht weder Schlüssel noch Guthaben: die meisten Rezeptseiten legen ihre
+Daten als schema.org-Rezept im Quelltext ab, dasselbe, woraus Google seine
+Rezeptkarten baut. Fehlt das – bei manchen Blogs und Videoseiten – sagt die App
+das und man tippt von Hand.
+
+Die Adresse wird serverseitig abgerufen, deshalb prüft `src/lib/safeFetch.ts`
+jede Adresse und jede Weiterleitung: Ziele im eigenen Netz (auch die
+Metadaten-Adresse des Hosters) werden abgelehnt, ebenso andere Schemata als
+http und https. Grösse und Dauer sind begrenzt.
 
 ## Kühlschrankfoto einrichten (optional)
 

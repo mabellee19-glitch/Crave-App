@@ -298,6 +298,93 @@ test.describe('Rezepte', () => {
   });
 });
 
+test.describe('Rezept über Link', () => {
+  /** Antwort der Import-Route nachstellen, damit der Test ohne Netz auskommt. */
+  async function importStub(page: import('@playwright/test').Page, antwort: unknown, status = 200) {
+    await page.route('**/api/import', async (route) => {
+      await route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(antwort),
+      });
+    });
+  }
+
+  test('füllt das Formular und der Kochmodus laeuft danach', async ({ page }) => {
+    await openSpace(page, newSpace('importlink'));
+    await importStub(page, {
+      ok: true,
+      recipe: {
+        name: 'Halloumi-Burger mit Honig-Senf-Sauce',
+        servings: 4,
+        timeMin: 110,
+        ingredients: [
+          { name: 'Halloumi', amount: 500, unit: 'g' },
+          { name: 'rote Zwiebel', amount: 1, unit: '' },
+        ],
+        steps: [
+          { text: 'Zwiebel in Ringe schneiden.', durationSec: null },
+          { text: 'Halloumi für ca. 2 – 3 Min. braten.', durationSec: 120 },
+        ],
+        source: 'https://www.kitchenstories.com/rezepte/halloumi-burger',
+      },
+    });
+
+    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    const form = page.getByRole('dialog');
+
+    await form.getByLabel('Rezept über Link hinzufügen').fill('kitchenstories.com/rezepte/halloumi-burger');
+    await form.getByRole('button', { name: 'Holen' }).click();
+
+    // Alles steht im Formular und laesst sich vor dem Speichern noch pruefen.
+    await expect(form.getByLabel('Name', { exact: true })).toHaveValue(
+      'Halloumi-Burger mit Honig-Senf-Sauce',
+    );
+    await expect(form.getByLabel('Name für Zutat 1')).toHaveValue('Halloumi');
+    await expect(form.getByLabel('Menge für Zutat 1')).toHaveValue('500');
+    await expect(form.getByLabel('Einheit für Zutat 2')).toHaveValue('');
+    await expect(form.getByLabel('Text für Schritt 2')).toHaveValue(
+      'Halloumi für ca. 2 – 3 Min. braten.',
+    );
+
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Rezept angelegt')).toBeVisible();
+
+    // Und das Wichtigste: der Kochmodus startet sofort, mit Timer.
+    await page
+      .getByRole('button', { name: 'Rezept Halloumi-Burger mit Honig-Senf-Sauce öffnen' })
+      .click();
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
+    await detail.getByRole('button', { name: 'Start Cooking' }).click();
+    await expect(page.getByText('Schritt 1 von 2')).toBeVisible();
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await expect(page.getByText('02:00')).toBeVisible();
+  });
+
+  test('eine Seite ohne Rezept wird erklaert, nicht verschluckt', async ({ page }) => {
+    await openSpace(page, newSpace('importleer'));
+    await importStub(page, { ok: false, error: 'no_recipe' }, 422);
+
+    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    const form = page.getByRole('dialog');
+    await form.getByLabel('Rezept über Link hinzufügen').fill('https://beispiel.test/blog');
+    await form.getByRole('button', { name: 'Holen' }).click();
+
+    await expect(form.getByText(/kein maschinenlesbares Rezept/)).toBeVisible();
+    // Das Formular bleibt leer und benutzbar.
+    await expect(form.getByLabel('Name', { exact: true })).toHaveValue('');
+  });
+
+  test('beim Bearbeiten gibt es das Feld nicht', async ({ page }) => {
+    await openSpace(page, newSpace('importbearbeiten'));
+
+    await page.getByRole('button', { name: 'Rezept Shakshuka öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Rezept bearbeiten' }).click();
+    await expect(page.getByRole('dialog').getByLabel('Rezept über Link hinzufügen')).toHaveCount(0);
+  });
+});
+
 test.describe('Zubereitung nachtragen', () => {
   test('ein Rezept ohne Schritte laesst sich direkt im Rezept vervollstaendigen', async ({
     page,

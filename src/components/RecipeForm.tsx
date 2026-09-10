@@ -9,6 +9,30 @@ import { IconArrowUp, IconPlus, IconTrash } from './Icons';
 
 const CATEGORY_SUGGESTIONS = ['High-Protein', 'Comfort', 'Vegi', 'Frühstück', 'Dessert', 'Snack'];
 
+/** Fehler der Import-Route in einen Satz uebersetzen, der weiterhilft. */
+function importMeldung(code: string): string {
+  switch (code) {
+    case 'no_recipe':
+      return 'Auf dieser Seite steht kein maschinenlesbares Rezept. Die meisten Rezeptseiten liefern eines – bei Blogs und Videoseiten fehlt es oft. Dann hilft nur von Hand.';
+    case 'not_found':
+      return 'Die Seite gibt es nicht (404). Stimmt die Adresse?';
+    case 'blocked_by_site':
+      return 'Die Seite hat den Abruf abgelehnt. Manche Seiten lassen nur Browser zu.';
+    case 'not_html':
+      return 'Das ist keine Webseite, sondern eine Datei.';
+    case 'too_large':
+      return 'Die Seite ist zu gross.';
+    case 'blocked_host':
+    case 'unsupported_scheme':
+    case 'unsupported_url':
+      return 'Diese Adresse lässt sich nicht abrufen.';
+    case 'missing_url':
+      return 'Bitte eine Adresse einfügen.';
+    default:
+      return 'Die Seite liess sich nicht laden. Versuch es nochmal.';
+  }
+}
+
 export function RecipeForm({
   initial,
   isNew,
@@ -30,6 +54,63 @@ export function RecipeForm({
     setDraft((current) => ({ ...current, [key]: value }));
 
   const nameValid = draft.name.trim().length > 0;
+
+  /* ------------------------------ Import ---------------------------------- */
+
+  const [url, setUrl] = useState('');
+  const [laedt, setLaedt] = useState(false);
+  const [importFehler, setImportFehler] = useState<string | null>(null);
+
+  /**
+   * Rezeptseite einlesen und das Formular damit fuellen. Bewusst nicht direkt
+   * speichern: so sieht man vorher, was angekommen ist, und kann es geraderuecken.
+   */
+  const holen = async () => {
+    const adresse = url.trim();
+    if (!adresse || laedt) return;
+    setLaedt(true);
+    setImportFehler(null);
+    try {
+      const antwort = await fetch('/api/import', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: adresse }),
+      });
+      const daten = await antwort.json();
+      if (!antwort.ok || !daten.ok) {
+        setImportFehler(importMeldung(String(daten?.error ?? 'unknown')));
+        return;
+      }
+
+      const rezept = daten.recipe as {
+        name: string;
+        servings: number | null;
+        timeMin: number | null;
+        ingredients: Array<{ name: string; amount: number | null; unit: string }>;
+        steps: Array<{ text: string; durationSec: number | null }>;
+        source: string;
+      };
+
+      setDraft((current) => ({
+        ...current,
+        name: rezept.name || current.name,
+        servings: rezept.servings ?? current.servings,
+        timeMin: rezept.timeMin ?? current.timeMin,
+        ingredients: rezept.ingredients.length
+          ? rezept.ingredients.map((zutat) => ({ ...blankIngredient(), ...zutat }))
+          : current.ingredients,
+        steps: rezept.steps.length
+          ? rezept.steps.map((schritt) => ({ ...blankStep(), ...schritt }))
+          : current.steps,
+        notes: current.notes || `Übernommen von ${rezept.source}`,
+      }));
+      setUrl('');
+    } catch {
+      setImportFehler('Die Seite liess sich nicht laden. Prüfe die Verbindung.');
+    } finally {
+      setLaedt(false);
+    }
+  };
 
   const setStep = (id: string, patch: Partial<Step>) =>
     set(
@@ -77,6 +158,52 @@ export function RecipeForm({
       }
     >
       <div style={{ height: 16 }} />
+
+      {isNew ? (
+        <>
+          <Field
+            label="Rezept über Link hinzufügen"
+            htmlFor="recipe-url"
+            hint="Adresse einer Rezeptseite einfügen – Zutaten und Zubereitung werden übernommen, samt Timern. Danach lässt sich alles noch ändern."
+          >
+            <div className="inputrow">
+              <input
+                id="recipe-url"
+                className="input"
+                type="url"
+                inputMode="url"
+                value={url}
+                placeholder="https://…"
+                onChange={(event) => setUrl(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void holen();
+                  }
+                }}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
+              <button
+                className="btn btn--primary"
+                onClick={() => void holen()}
+                disabled={!url.trim() || laedt}
+              >
+                {laedt ? 'Lädt…' : 'Holen'}
+              </button>
+            </div>
+          </Field>
+
+          {importFehler ? (
+            <div className="notice notice--warn" style={{ marginBottom: 16 }}>
+              {importFehler}
+            </div>
+          ) : null}
+
+          <hr className="divider" />
+        </>
+      ) : null}
 
       <Field label="Name" htmlFor="recipe-name">
         <input

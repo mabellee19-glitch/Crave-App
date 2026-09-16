@@ -298,6 +298,36 @@ test.describe('Rezepte', () => {
   });
 });
 
+test.describe('Meldungen', () => {
+  test('ein langer Zutatenname sprengt die Meldung nicht', async ({ page }) => {
+    await openSpace(page, newSpace('toastlang'));
+    await goToTab(page, 'Einkaufsliste');
+
+    const lang = 'Tomaten, stückige (mit Kräutern, z. B. aus dem Tetrapack)';
+    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill(lang);
+    await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+
+    await shoppingRow(page, lang).click();
+
+    const toast = page.locator('.toast');
+    await expect(toast).toBeVisible();
+
+    const box = (await toast.boundingBox())!;
+    // Zwei Zeilen sind genug – vorher wuchs die Meldung zur Kugel.
+    expect(box.height).toBeLessThan(110);
+    expect(box.width).toBeLessThanOrEqual(page.viewportSize()!.width - 24);
+
+    // Und "Rückgängig" bleibt erreichbar, nicht vom Text verdraengt.
+    const knopf = toast.getByRole('button', { name: 'Rückgängig' });
+    await expect(knopf).toBeVisible();
+    const knopfBox = (await knopf.boundingBox())!;
+    expect(knopfBox.width).toBeGreaterThan(60);
+
+    await knopf.click();
+    await expect(shoppingRow(page, lang)).toBeVisible();
+  });
+});
+
 test.describe('Rezept über Link', () => {
   /** Antwort der Import-Route nachstellen, damit der Test ohne Netz auskommt. */
   async function importStub(page: import('@playwright/test').Page, antwort: unknown, status = 200) {

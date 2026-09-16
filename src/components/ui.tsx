@@ -224,7 +224,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss: ()
   return (
     <Portal>
       <div className="toast" role="status" aria-live="polite">
-        <span>{toast.text}</span>
+        <span className="toast__text">{toast.text}</span>
         {toast.actionLabel && toast.onAction ? (
           <button
             className="toast__action"

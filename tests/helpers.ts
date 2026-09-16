@@ -31,11 +31,16 @@ export async function waitForSync(page: Page) {
   await expect(page.getByText('Alles synchronisiert').first()).toBeVisible({ timeout: 20_000 });
 }
 
+/** Sonderzeichen entschaerfen – Zutatennamen enthalten auch mal Klammern. */
+function alsRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Eine Zeile der aktiven Einkaufsliste, exakt ueber den Zutatennamen. */
 export function shoppingRow(page: Page, name: string) {
   return page
     .locator('.row')
-    .filter({ has: page.locator('.row__name', { hasText: new RegExp(`^${name}$`) }) });
+    .filter({ has: page.locator('.row__name', { hasText: new RegExp(`^${alsRegex(name)}$`) }) });
 }
 
 /** Ein Chip der Grundliste, exakt ueber den Zutatennamen. */

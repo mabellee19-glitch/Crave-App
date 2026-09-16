@@ -111,6 +111,14 @@ export function AppShell() {
 
   const top = stack[stack.length - 1] ?? null;
 
+  /**
+   * Namen fuer eine Meldung kuerzen. Zutaten heissen auch mal "Tomaten,
+   * stückige (mit Kräutern, z. B. aus dem Tetrapack)" – ungekuerzt fuellt das
+   * den halben Bildschirm.
+   */
+  const kurz = (name: string, max = 28) =>
+    name.length > max ? `${name.slice(0, max - 1).trimEnd()}…` : name;
+
   const openRecipe = useCallback(
     (id: string) => {
       setTab('recipes');
@@ -259,12 +267,16 @@ export function AppShell() {
             allPantry={allPantry}
             onAdd={(input) => {
               store.addShoppingItem(input);
-              showToast(`${input.name} hinzugefügt`);
+              showToast(`${kurz(input.name)} hinzugefügt`);
             }}
             onCheckOff={(id) => {
               const item = store.shopping.find((entry) => entry.id === id);
               store.checkOffShoppingItem(id);
-              showToast(`${item?.name ?? 'Zutat'} erledigt`, 'Rückgängig', () => storeRef.current.undo?.());
+              showToast(
+                `${kurz(item?.name ?? 'Zutat')} erledigt`,
+                'Rückgängig',
+                () => storeRef.current.undo?.(),
+              );
             }}
             onClear={store.clearShoppingList}
             onMovePantryToCart={store.movePantryItemToCart}

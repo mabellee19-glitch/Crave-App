@@ -8,6 +8,15 @@ import {
   shoppingRow,
   waitForSync,
 } from './helpers';
+import { buildSeedData } from '../src/lib/seed';
+
+/**
+ * Wie viele Rezepte die App mitliefert. Aus der Vorlage gelesen statt als
+ * Zahl hingeschrieben: sonst muessten diese Tests bei jedem neuen Rezept
+ * nachgezogen werden, und sie pruefen ja nicht die Zahl, sondern dass alles
+ * angekommen ist.
+ */
+const START_REZEPTE = Object.keys(buildSeedData().recipes).length;
 
 test.describe('Navigation und Grundgeruest', () => {
   test('wechselt zwischen den drei Bereichen', async ({ page }) => {
@@ -966,7 +975,7 @@ test.describe('Kühlschrankfoto', () => {
     await expect(page.getByText('„Zitronen-Poulet aus der Pfanne“ gespeichert')).toBeVisible();
 
     await blatt.getByRole('button', { name: 'Schliessen' }).click();
-    await expect(page.getByText('13 Rezepte gespeichert')).toBeVisible();
+    await expect(page.getByText(`${START_REZEPTE + 1} Rezepte gespeichert`)).toBeVisible();
 
     // Die gespeicherte Idee ist ein vollwertiges Rezept samt Timer.
     await page.getByRole('button', { name: 'Rezept Zitronen-Poulet aus der Pfanne öffnen' }).click();
@@ -1167,7 +1176,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await expect(page.getByText(/nachgetragen/)).toBeVisible();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    await expect(page.getByText('12 Rezepte gespeichert')).toBeVisible();
+    await expect(page.getByText(`${START_REZEPTE} Rezepte gespeichert`)).toBeVisible();
 
     // Das vorhandene Rezept ohne Schritte hat jetzt welche und lässt sich kochen.
     await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();

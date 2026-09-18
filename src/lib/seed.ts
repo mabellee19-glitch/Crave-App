@@ -404,10 +404,49 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ),
     ],
   },
+  {
+    key: 'thunfisch-pasta',
+    name: 'Pasta mit Thunfisch, Cherrytomaten & Zitrone',
+    category: 'Comfort',
+    servings: 2,
+    timeMin: 20,
+    ingredients: [
+      ing('Pasta (Spaghetti oder Penne)', 200, 'g'),
+      ing('Thunfisch aus der Dose, abgetropft', 150, 'g'),
+      ing('Cherrytomaten', 250, 'g'),
+      ing('Knoblauch', 2, 'Zehen'),
+      ing('Olivenöl', 3, 'EL'),
+      ing('Kapern', 1, 'EL'),
+      ing('Chiliflocken', 0.25, 'TL'),
+      ing('Bio-Zitrone', 0.5, 'Stück'),
+      ing('Petersilie oder Basilikum', 1, 'Handvoll'),
+      ing('Salz', 0.5, 'TL'),
+      ing('Pfeffer', 0.25, 'TL'),
+    ],
+    steps: [
+      step(
+        'Pasta in kräftig gesalzenem Wasser al dente kochen. Vor dem Abgiessen eine Tasse Pastawasser beiseitestellen.',
+      ),
+      step(
+        'Während die Pasta kocht, das Olivenöl in einer grossen Pfanne erhitzen. Knoblauch in Scheiben und die Chiliflocken bei mittlerer Hitze kurz anschwitzen, bis es duftet. Der Knoblauch soll dabei nicht braun werden.',
+      ),
+      step(
+        'Cherrytomaten halbieren, dazugeben und bei mittlerer bis hoher Hitze schmoren, bis sie weich werden und aufplatzen. Leicht mit der Kelle andrücken, damit Saft austritt.',
+      ),
+      step(
+        'Thunfisch und Kapern dazugeben, den Thunfisch grob zerpflücken und kurz mitwärmen.',
+      ),
+      step(
+        'Die Pasta mit einem Schuss Pastawasser in die Pfanne geben und gut schwenken, bis eine leicht sämige Sauce entsteht. Mit Zitronenabrieb und -saft, Kräutern, Salz und Pfeffer abschmecken und sofort servieren.',
+      ),
+    ],
+  },
 ];
 
 /** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
 const RECIPE_NOTES: Record<string, string> = {
+  'thunfisch-pasta':
+    'Schnelle Vorratsküchen-Pasta, frisch und leicht scharf. Tipp: Thunfisch in Olivenöl nehmen und einen Teil des Öls aus der Dose anstelle von frischem Olivenöl verwenden, das gibt mehr Geschmack. Passt auch dazu: schwarze Oliven, eine Handvoll Rucola am Schluss oder knusprig geröstete Paniermehl-Brösel (Pangrattato) als Topping. Parmesan ist in Italien bei Fischpasta eher unüblich, aber erlaubt ist, was schmeckt.',
   halloumiburger:
     'Zubereitung nach Kitchen Stories, angepasst an diese Zutatenliste: dort sind es vier Portionen mit Aubergine, hier zwei ohne. Die Marinierzeit von 30–60 Minuten steckt in der Zubereitungszeit.',
   'spinat-feta-taschen':
@@ -426,6 +465,7 @@ export const LATER_RECIPE_KEYS = [
   'rotes-linsen-dal',
   'lachs-honig-senf',
   'halloumiburger',
+  'thunfisch-pasta',
 ];
 
 interface DishSeed {

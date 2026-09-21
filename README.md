@@ -23,7 +23,7 @@ Drei Bereiche:
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Gerichte | Filter nach Kategorie und Cook Next, Suche |
+| Gerichte | Filter nach Kategorie (High-Protein, Comfort, Vegi, Dessert) und Cook Next, Suche |
 | Gerichte | Verknüpfte Gerichte öffnen direkt das hinterlegte Rezept |
 | Einkaufsliste | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
 | Einkaufsliste | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
@@ -132,6 +132,18 @@ Welche eigenen Rezepte passen, rechnet die App selbst aus – aus den erkannten
 Lebensmitteln plus der Grundliste, denn Salz und Öl stehen zu Hause und nicht
 im Kühlschrank. Das Modell schlägt nur neue Gerichte vor und kann deshalb
 nichts empfehlen, was es gar nicht gibt.
+
+## Die App durchsehen
+
+```bash
+npm run build && npm start &
+BASE_URL=http://localhost:3000 npm run check:ui
+```
+
+Das Skript geht die ganze App durch – in drei Breiten (iPhone, Desktop,
+320 px) und in hell wie dunkel – und meldet, was kein einzelner Test abdeckt:
+Konsolenfehler, fehlgeschlagene Anfragen, seitlich überlaufende Seiten, zu
+kleine Bedienelemente und Knöpfe ohne Beschriftung.
 
 ## Der Link ist der Datenraum
 

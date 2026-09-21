@@ -7,7 +7,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "icons": "node scripts/make-icons.mjs",
@@ -15,6 +14,7 @@
     "test": "npm run test:unit && npm run test:e2e",
     "check:live": "node scripts/check-live.mjs",
     "check:vision": "node scripts/check-vision.mjs",
+    "check:ui": "node scripts/check-ui.mjs",
     "add-recipes": "node scripts/add-recipes.mjs"
   },
   "dependencies": {

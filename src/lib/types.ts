@@ -15,13 +15,14 @@ export interface Syncable {
 }
 
 /** Kategorien fuer Gerichte (Bereich "Gerichte"). */
-export const DISH_CATEGORIES = ['high-protein', 'comfort', 'vegi'] as const;
+export const DISH_CATEGORIES = ['high-protein', 'comfort', 'vegi', 'dessert'] as const;
 export type DishCategory = (typeof DISH_CATEGORIES)[number];
 
 export const DISH_CATEGORY_LABEL: Record<DishCategory, string> = {
   'high-protein': 'High-Protein',
   comfort: 'Comfort',
   vegi: 'Vegi',
+  dessert: 'Dessert',
 };
 
 export interface Ingredient {
@@ -148,6 +149,9 @@ export function matchDishCategory(text: string | null | undefined): DishCategory
   if (key === 'highprotein' || key === 'protein') return 'high-protein';
   if (key === 'comfort' || key === 'comfortfood') return 'comfort';
   if (key === 'vegi' || key === 'veggie' || key === 'vegetarisch') return 'vegi';
+  if (key === 'dessert' || key === 'desserts' || key === 'nachtisch' || key === 'suess') {
+    return 'dessert';
+  }
   return null;
 }
 

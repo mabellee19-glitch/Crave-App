@@ -441,10 +441,60 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ),
     ],
   },
+  {
+    key: 'one-pot-orzo',
+    name: 'One-Pot-Orzo mit Zucchini, Tomaten, weissen Bohnen & Feta',
+    category: 'Comfort',
+    servings: 4,
+    timeMin: 25,
+    ingredients: [
+      ing('Orzo', 300, 'g'),
+      ing('Zucchini', 250, 'g'),
+      ing('Cherrytomaten', 250, 'g'),
+      ing('Weisse Bohnen (Cannellini), abgetropft', 240, 'g'),
+      ing('Babyspinat', 100, 'g'),
+      ing('Feta', 150, 'g'),
+      ing('Gemüsebouillon, heiss', 850, 'ml'),
+      ing('Zwiebel', 1, 'Stück'),
+      ing('Knoblauch', 3, 'Zehen'),
+      ing('Zitrone', 1, 'Stück'),
+      ing('Olivenöl', 2, 'EL'),
+      ing('Oregano getrocknet', 1, 'TL'),
+      ing('Chiliflocken', 0.5, 'TL'),
+      ing('Pfeffer', 0.5, 'TL'),
+      ing('Basilikum oder Dill', 2, 'EL'),
+    ],
+    steps: [
+      step(
+        'Olivenöl in einem grossen, weiten Topf bei mittlerer Hitze erwärmen. Zwiebel fein hacken und darin weich und glasig dünsten.',
+      ),
+      step(
+        'Knoblauch fein hacken und mit Oregano und Chiliflocken dazugeben. Kurz mitbraten, bis es duftet – der Knoblauch soll nicht braun werden.',
+      ),
+      step(
+        'Zucchini würfeln, dazugeben und unter Rühren braten, bis sie weich werden und etwas Farbe nehmen.',
+      ),
+      step(
+        'Orzo dazugeben und umrühren, bis er vom Öl überzogen ist. Kurz mitrösten, das gibt mehr Geschmack.',
+      ),
+      step(
+        'Cherrytomaten halbieren, mit der heissen Bouillon dazugeben und aufkochen. Dann auf kleine Hitze zurückschalten und offen köcheln lassen, dabei oft rühren, damit der Orzo nicht ansetzt – bis er weich ist und die Flüssigkeit fast aufgesogen. Wird es zu trocken, einen Schuss Wasser zugeben.',
+      ),
+      step('Weisse Bohnen unterrühren und warm werden lassen.'),
+      step(
+        'Topf von der Platte nehmen. Babyspinat unterrühren, bis er zusammenfällt, dann Zitronenabrieb, Zitronensaft und Pfeffer dazugeben.',
+      ),
+      step(
+        'Die Hälfte des Fetas unterrühren, bis er schmilzt und alles cremig wird. Abschmecken und nur salzen, falls nötig. Den restlichen Feta und die Kräuter darüberstreuen und vor dem Servieren zwei Minuten ruhen lassen.',
+      ),
+    ],
+  },
 ];
 
 /** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
 const RECIPE_NOTES: Record<string, string> = {
+  'one-pot-orzo':
+    'Erst ganz am Schluss abschmecken – Bouillon und Feta sind beide salzig. Reste halten sich 3–4 Tage im Kühlschrank; beim Aufwärmen einen Schuss Wasser oder Bouillon zugeben, weil der Orzo weiter Flüssigkeit zieht. Eine 400-g-Dose Bohnen ergibt abgetropft rund 240 g.',
   'thunfisch-pasta':
     'Schnelle Vorratsküchen-Pasta, frisch und leicht scharf. Tipp: Thunfisch in Olivenöl nehmen und einen Teil des Öls aus der Dose anstelle von frischem Olivenöl verwenden, das gibt mehr Geschmack. Passt auch dazu: schwarze Oliven, eine Handvoll Rucola am Schluss oder knusprig geröstete Paniermehl-Brösel (Pangrattato) als Topping. Parmesan ist in Italien bei Fischpasta eher unüblich, aber erlaubt ist, was schmeckt.',
   halloumiburger:
@@ -466,6 +516,7 @@ export const LATER_RECIPE_KEYS = [
   'lachs-honig-senf',
   'halloumiburger',
   'thunfisch-pasta',
+  'one-pot-orzo',
 ];
 
 interface DishSeed {

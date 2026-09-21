@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Recipe, matchDishCategory } from '@/lib/types';
+import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Recipe, matchDishCategory } from '@/lib/types';
 import { normalizeName } from '@/lib/units';
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './ui';
@@ -21,13 +21,24 @@ export function RecipesView({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'cooknext' | string>('all');
 
+  /*
+   * Die festen Sparten stehen immer da – auch wenn noch kein Rezept darin
+   * liegt. Sonst waere "Dessert" bei den Gerichten sichtbar und bei den
+   * Rezepten nicht, je nachdem was gerade gespeichert ist. Eigene Kategorien
+   * kommen dahinter, alphabetisch.
+   */
   const categories = useMemo(() => {
-    const seen = new Map<string, string>();
+    const fest = DISH_CATEGORIES.map((key) => DISH_CATEGORY_LABEL[key]);
+    const bekannt = new Set(fest.map((label) => label.toLowerCase()));
+
+    const eigene = new Map<string, string>();
     for (const recipe of recipes) {
       const label = recipe.category.trim();
-      if (label) seen.set(label.toLowerCase(), label);
+      if (!label || bekannt.has(label.toLowerCase())) continue;
+      eigene.set(label.toLowerCase(), label);
     }
-    return [...seen.values()].sort((a, b) => a.localeCompare(b, 'de'));
+
+    return [...fest, ...[...eigene.values()].sort((a, b) => a.localeCompare(b, 'de'))];
   }, [recipes]);
 
   const visible = useMemo(() => {

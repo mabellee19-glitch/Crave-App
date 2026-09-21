@@ -57,6 +57,11 @@
      auf hellem Grund zu nah bei Master Key. */
   --cat-vegi: #4f5820;
   --cat-vegi-soft: #eaeed8;
+  /* Mozart, ins Violette gezogen: die einzige kühle Farbe der Palette passt zu
+     Dessert, muss sich aber vom Rezept-Link unterscheiden – ein Dessert mit
+     hinterlegtem Rezept trägt sonst zwei gleich blaue Etiketten nebeneinander. */
+  --cat-dessert: #56487f;
+  --cat-dessert-soft: #ece7f4;
 
   /* Form */
   --radius-sm: 10px;
@@ -112,6 +117,8 @@
     --cat-comfort-soft: #33241c;
     --cat-vegi: #b8a94a; /* Prickly Pear, aufgehellt */
     --cat-vegi-soft: #2a2717;
+    --cat-dessert: #a99ada; /* Mozart, aufgehellt und ins Violette gezogen */
+    --cat-dessert-soft: #282339;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.4);
@@ -610,6 +617,12 @@ ol {
   color: var(--cat-vegi);
 }
 
+.chip--dessert.chip--active {
+  background: var(--cat-dessert-soft);
+  border-color: var(--cat-dessert);
+  color: var(--cat-dessert);
+}
+
 /* Karten ------------------------------------------------------------------ */
 
 .grid {
@@ -725,6 +738,11 @@ ol {
 .tag--high-protein {
   background: var(--cat-high-protein-soft);
   color: var(--cat-high-protein);
+}
+
+.tag--dessert {
+  background: var(--cat-dessert-soft);
+  color: var(--cat-dessert);
 }
 
 .tag--comfort {

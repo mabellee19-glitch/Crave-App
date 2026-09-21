@@ -307,6 +307,52 @@ test.describe('Rezepte', () => {
   });
 });
 
+test.describe('Sparte Dessert', () => {
+  test('steht bei Rezepten und Gerichten zur Verfuegung', async ({ page }) => {
+    await openSpace(page, newSpace('dessert'));
+
+    // Bei den Rezepten steht die Sparte da, auch wenn noch keines drin liegt.
+    const filter = page.getByRole('group', { name: 'Rezepte filtern' });
+    await expect(filter.getByRole('button', { name: /^Dessert/ })).toBeVisible();
+    await filter.getByRole('button', { name: /^Dessert/ }).click();
+    await expect(page.getByText('Nichts gefunden')).toBeVisible();
+
+    // Ein Rezept in dieser Sparte anlegen.
+    await filter.getByRole('button', { name: 'Alle' }).click();
+    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    let form = page.getByRole('dialog');
+    await form.getByLabel('Name', { exact: true }).fill('Schoggimousse');
+    await form.getByLabel('Kategorie').fill('Dessert');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Rezept angelegt')).toBeVisible();
+
+    await filter.getByRole('button', { name: /^Dessert/ }).click();
+    await expect(page.getByRole('button', { name: 'Rezept Schoggimousse öffnen' })).toBeVisible();
+    // Das Etikett traegt die Farbe der Sparte, wie bei den anderen auch.
+    await expect(page.locator('.tag--dessert').first()).toBeVisible();
+
+    // Und bei den Gerichten steht sie in der Auswahl.
+    await goToTab(page, 'Gerichte');
+    await expect(
+      page.getByRole('group', { name: 'Gerichte filtern' }).getByRole('button', { name: /^Dessert/ }),
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Neues Gericht' }).click();
+    form = page.getByRole('dialog');
+    await form.getByLabel('Name', { exact: true }).fill('Tiramisu');
+    await form.getByLabel('Kategorie').selectOption('dessert');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Gericht angelegt')).toBeVisible();
+
+    await page
+      .getByRole('group', { name: 'Gerichte filtern' })
+      .getByRole('button', { name: /^Dessert/ })
+      .click();
+    await expect(page.getByRole('button', { name: /^Tiramisu bearbeiten/ }).first()).toBeVisible();
+    await expect(page.locator('.tag--dessert').first()).toBeVisible();
+  });
+});
+
 test.describe('Meldungen', () => {
   test('ein langer Zutatenname sprengt die Meldung nicht', async ({ page }) => {
     await openSpace(page, newSpace('toastlang'));

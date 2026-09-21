@@ -37,9 +37,13 @@ Drei Bereiche:
 
 ## Startinhalte nachtragen
 
-Startinhalte bekommt ein Datenraum nur beim allerersten Öffnen. Wer die App
-schon benutzt, sieht später ergänzte Inhalte deshalb nicht automatisch. Dafür
-gibt es zwei Knöpfe in der App selbst:
+Neue mitgelieferte Rezepte und Gerichte erscheinen beim Öffnen der App von
+selbst. Nachgezogen wird dabei nur, was es in diesem Datenraum noch nie gab –
+keine Spur unter der Id, kein Grabstein. Gelöschtes bleibt gelöscht, und an
+vorhandenen Einträgen wird nichts verändert. Das läuft erst, wenn der
+Serverstand da ist: vorher wären die Grabsteine unbekannt.
+
+Für den Rest gibt es zwei Knöpfe in der App selbst:
 
 - `Einstellungen & Sync → Fehlende Rezepte und Gerichte nachtragen` legt an,
   was es noch nie gab. Vorhandenes bleibt unverändert, Gelöschtes kommt nicht

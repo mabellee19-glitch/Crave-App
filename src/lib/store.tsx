@@ -170,6 +170,47 @@ function renameCategories(data: AppData, now: number): AppData | null {
   return changed ? { ...data, pantry: updated } : null;
 }
 
+/**
+ * Neue mitgelieferte Rezepte und Gerichte nachziehen.
+ *
+ * Startinhalte bekam ein Datenraum bisher nur beim allerersten Oeffnen; alles,
+ * was spaeter dazukam, musste von Hand ueber einen Knopf in den Einstellungen
+ * geholt werden. Das hat niemand erraten - ein neues Rezept war da und blieb
+ * unsichtbar.
+ *
+ * Nachgezogen wird nur, was es in diesem Datenraum noch nie gab: keine Spur
+ * unter der Id, kein Grabstein. Geloeschtes bleibt geloescht, Eigenes bleibt
+ * unangetastet. Ergaenzt wird an vorhandenen Eintraegen bewusst nichts - das
+ * waere eine Aenderung an fremden Daten und bleibt beim Knopf.
+ *
+ * Laeuft erst, wenn der Serverstand da ist: vorher waeren die Grabsteine
+ * unbekannt und Geloeschtes kaeme zurueck.
+ */
+function pullNewSeedContent(data: AppData, now: number): AppData | null {
+  const vorlage = buildSeedData();
+  let changed = false;
+  const recipes = { ...data.recipes };
+  const dishes = { ...data.dishes };
+
+  for (const recipe of Object.values(vorlage.recipes)) {
+    if (recipes[recipe.id]) continue;
+    recipes[recipe.id] = { ...recipe, createdAt: now, updatedAt: now };
+    changed = true;
+  }
+
+  // Gerichte ueber den Namen: von Hand angelegte tragen eine andere Id und
+  // stuenden sonst doppelt da.
+  const bekannt = new Set(Object.values(dishes).map((dish) => namensschluessel(dish.name)));
+  for (const dish of Object.values(vorlage.dishes)) {
+    if (dishes[dish.id] || bekannt.has(namensschluessel(dish.name))) continue;
+    dishes[dish.id] = { ...dish, createdAt: now, updatedAt: now };
+    bekannt.add(namensschluessel(dish.name));
+    changed = true;
+  }
+
+  return changed ? { ...data, recipes, dishes } : null;
+}
+
 function isEmpty(data: AppData): boolean {
   return (
     Object.keys(data.recipes).length === 0 &&
@@ -415,6 +456,16 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
       if (umbenannt) {
         next = umbenannt;
         dirtyRef.current = true;
+      }
+
+      // Und nachziehen, was seit dem letzten Mal dazugekommen ist. Nur mit
+      // Antwort vom Server: ohne sie sind die Grabsteine unbekannt.
+      if (res?.ok) {
+        const nachschub = pullNewSeedContent(next, stamp());
+        if (nachschub) {
+          next = nachschub;
+          dirtyRef.current = true;
+        }
       }
 
       commit(next);

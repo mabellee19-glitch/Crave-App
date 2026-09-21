@@ -124,10 +124,10 @@ export function SettingsSheet({
 
       <div className="detail__h">Startinhalte</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Ein Datenraum bekommt die mitgelieferten Rezepte und Gerichte nur beim allerersten
-        Öffnen. Kommen später welche dazu, lassen sie sich hier nachtragen. Vorhandenes bleibt
-        unverändert – nur wo Schritte oder Zutaten ganz fehlen, werden sie ergänzt. Gelöschtes
-        kommt nicht zurück.
+        Neue mitgelieferte Rezepte und Gerichte erscheinen von selbst, sobald du die App
+        öffnest – Gelöschtes kommt dabei nicht zurück. Dieser Knopf ist für den Rest: wo einem
+        vorhandenen Rezept die Zubereitung oder die Zutaten ganz fehlen, werden sie ergänzt.
+        Eigenes bleibt unverändert.
       </p>
       <button className="btn btn--ghost" onClick={onAddMissingRecipes}>
         <IconPlus size={18} />

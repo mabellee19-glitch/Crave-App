@@ -672,7 +672,10 @@ test.describe('Gerichte', () => {
 
     await page.goto(`/s/${space}`);
     await goToTab(page, 'Gerichte');
-    await expect(page.getByText('Kein Rezept')).toBeVisible();
+    const karteAlt = page
+      .locator('.card')
+      .filter({ has: page.locator('.card__title', { hasText: /^Altes Gericht$/ }) });
+    await expect(karteAlt).toContainText('Kein Rezept');
 
     // Bearbeiten darf nicht scheitern, und eine Zutat laesst sich nachtragen.
     await page.getByRole('button', { name: 'Altes Gericht bearbeiten' }).first().click();
@@ -1160,33 +1163,81 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await expect(pantryChip(page, 'Rüebli')).toHaveCount(1);
   });
 
-  test('fehlende Rezepte werden nachgetragen, Schritte ergänzt', async ({ page, request }) => {
-    const space = newSpace('rezeptnachtrag');
+  test('neue Rezepte sind beim Oeffnen schon da, ohne Knopfdruck', async ({ page, request }) => {
+    const space = newSpace('rezeptnachschub');
     await alterStand(request, space);
 
     await page.goto(`/s/${space}`);
     await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
-    await expect(page.getByText('1 Rezept gespeichert')).toBeVisible();
 
+    // Der Datenraum hatte ein einziges Rezept; der Rest kommt von selbst dazu.
+    await expect(page.getByText(`${START_REZEPTE} Rezepte gespeichert`)).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Rezept Pasta mit Thunfisch, Cherrytomaten & Zitrone öffnen' }),
+    ).toBeVisible();
+
+    // An vorhandenen Eintraegen wird dabei nichts geaendert: das Rezept ohne
+    // Schritte hat weiterhin keine.
+    await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
+    let detail = page.getByRole('dialog');
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeDisabled();
+    await detail.getByRole('button', { name: 'Schliessen' }).click();
+
+    // Dafuer gibt es den Knopf – der ergaenzt Schritte und Zutaten.
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
     await page
       .getByRole('dialog')
       .getByRole('button', { name: 'Fehlende Rezepte und Gerichte nachtragen' })
       .click();
-    await expect(page.getByText(/nachgetragen/)).toBeVisible();
+    await expect(page.locator('.toast__text')).toContainText('ergänzt');
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    await expect(page.getByText(`${START_REZEPTE} Rezepte gespeichert`)).toBeVisible();
-
-    // Das vorhandene Rezept ohne Schritte hat jetzt welche und lässt sich kochen.
     await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
-    const detail = page.getByRole('dialog');
+    detail = page.getByRole('dialog');
     await expect(detail.getByText('8 Schritte')).toBeVisible();
-    // Die Zutaten fehlten ebenfalls und sind jetzt da.
     await expect(detail.getByText('250 g')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await detail.getByRole('button', { name: 'Start Cooking' }).click();
     await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
+  });
+
+  test('ein geloeschtes Rezept kommt nicht von selbst zurueck', async ({ page, request }) => {
+    const space = newSpace('geloescht');
+    const now = Date.now();
+    // Ein Grabstein: das Rezept gab es, es wurde geloescht.
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {
+            'seed-r-shakshuka': {
+              id: 'seed-r-shakshuka',
+              name: 'Shakshuka',
+              category: 'Vegi',
+              servings: 2,
+              timeMin: 25,
+              ingredients: [],
+              steps: [],
+              cookNext: false,
+              notes: '',
+              deleted: true,
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          dishes: {},
+          shopping: {},
+          pantry: {},
+        },
+      },
+    });
+
+    await page.goto(`/s/${space}`);
+    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+    // Die uebrigen Rezepte kommen, das geloeschte bleibt weg.
+    await expect(
+      page.getByRole('button', { name: 'Rezept Rotes Linsencurry öffnen' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toHaveCount(0);
   });
 
   test('ein von Hand angelegtes Gericht wird ueber den Namen erkannt, nicht verdoppelt', async ({

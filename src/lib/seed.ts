@@ -691,6 +691,9 @@ export function buildSeedData(now = Date.now()): AppData {
   });
 
   DISH_SEEDS.forEach((seed, index) => {
+    // Die Id haengt an der Position. Wer ein Gericht mitten in DISH_SEEDS
+    // einfuegt, verschiebt alle folgenden Ids - der Abgleich laeuft deshalb
+    // ueberall ueber den Namen, nicht ueber die Id.
     const id = `seed-d-${index + 1}`;
     const dish: Dish = {
       id,

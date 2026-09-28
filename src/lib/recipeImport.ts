@@ -9,7 +9,7 @@
  * Dieses Modul rechnet nur; es holt nichts aus dem Netz. Das macht die Route.
  */
 
-import { unitInfo } from './units';
+import { WORT_EINHEITEN, canonicalUnit, unitInfo } from './units';
 
 export interface ImportedIngredient {
   name: string;
@@ -79,42 +79,6 @@ const BRUECHE: Record<string, number> = {
   '⅔': 2 / 3,
 };
 
-/**
- * Woerter, die in Rezepten als Einheit gemeint sind. Ohne diese Liste wuerde
- * aus "1 rote Zwiebel" die Einheit "rote" – kurze Woerter sehen nun einmal
- * aus wie Einheiten.
- */
-const WORT_EINHEITEN = new Set([
-  'stück',
-  'stk',
-  'bund',
-  'dose',
-  'dosen',
-  'packung',
-  'pck',
-  'päckchen',
-  'becher',
-  'glas',
-  'gläser',
-  'zehe',
-  'zehen',
-  'prise',
-  'knolle',
-  'blatt',
-  'blätter',
-  'zweig',
-  'zweige',
-  'scheibe',
-  'scheiben',
-  'stange',
-  'stangen',
-  'kopf',
-  'tasse',
-  'tassen',
-  'msp',
-  'portion',
-  'portionen',
-]);
 
 /** Eine Zutatenzeile wie "500 g Halloumi" oder "4 Blätter Radicchio" zerlegen. */
 export function parseIngredientLine(zeile: string): ImportedIngredient {
@@ -141,7 +105,7 @@ export function parseIngredientLine(zeile: string): ImportedIngredient {
 
   const schluessel = einheit.toLowerCase().replace(/\.$/, '');
   const bekannt = unitInfo(einheit) !== null || WORT_EINHEITEN.has(schluessel);
-  if (bekannt) return { name: rest, amount, unit: einheit };
+  if (bekannt) return { name: rest, amount, unit: canonicalUnit(einheit) };
 
   // Unbekanntes Wort gehoert zum Namen, nicht zur Einheit.
   return { name: `${einheit} ${rest}`.trim(), amount, unit: '' };

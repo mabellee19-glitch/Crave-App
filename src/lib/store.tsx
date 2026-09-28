@@ -23,6 +23,7 @@ import { randomId } from './id';
 import { PANTRY_CATALOGUE, PANTRY_CATEGORY_RENAMES, buildSeedData } from './seed';
 import {
   addAmounts,
+  canonicalUnit,
   sameIngredient,
   scaleAmount,
   subtractAmounts,
@@ -697,7 +698,9 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     const name = input.name.trim();
     if (!name) return;
     const amount = input.amount ?? null;
-    const unit = (input.unit ?? '').trim();
+    // Bekannte Einheiten einheitlich schreiben – sonst steht "500 Gramm" neben
+    // "500 g" und sieht nach zwei verschiedenen Dingen aus.
+    const unit = canonicalUnit(input.unit ?? '');
 
     const existing = activeList(draft.shopping).find((item) => sameIngredient(item.name, name));
     if (existing && (amount == null || existing.amount == null || unitsCompatible(existing.unit, unit))) {

@@ -50,6 +50,43 @@ async function pruefeSeite(p, wo) {
   });
   if (klein.length) melde(wo, `zu kleine Ziele: ${klein.join(' | ')}`);
 
+  // Kopf- und Fussleiste muessen am Rand kleben, auch weit unten in einer
+  // langen Liste. Loest sich eine davon, steht sie mitten im Inhalt.
+  const leisten = await p.evaluate(async () => {
+    // Bei offenem Overlay ist die Seite bewusst eingefroren: der Rumpf steht
+    // dann auf position:fixed mit negativem Versatz, und die Kopfleiste liegt
+    // planmaessig ausserhalb. Messen ergibt hier nichts.
+    if (document.querySelector('.sheet, .cook, .cookanim, .confirm')) return [];
+    const messen = () => {
+      const nav = document.querySelector('.tabbar');
+      const kopf = document.querySelector('.topbar');
+      return {
+        navUnten: nav ? Math.round(nav.getBoundingClientRect().bottom) : null,
+        navSichtbar: nav ? getComputedStyle(nav).display !== 'none' : false,
+        kopfOben: kopf ? Math.round(kopf.getBoundingClientRect().top) : null,
+        hoehe: window.innerHeight,
+        scrollY: Math.round(window.scrollY),
+      };
+    };
+    const raus = [];
+    const vorher = window.scrollY;
+    for (const ziel of [0, 400, 1200, 99999]) {
+      window.scrollTo(0, ziel);
+      await new Promise((r) => setTimeout(r, 120));
+      raus.push(messen());
+    }
+    window.scrollTo(0, vorher);
+    return raus;
+  });
+  for (const m of leisten) {
+    if (m.navSichtbar && m.navUnten !== null && Math.abs(m.navUnten - m.hoehe) > 1) {
+      melde(wo, `Fussleiste nicht am unteren Rand bei scrollY=${m.scrollY}: unten ${m.navUnten}, Fenster ${m.hoehe}`);
+    }
+    if (m.kopfOben !== null && Math.abs(m.kopfOben) > 1) {
+      melde(wo, `Kopfleiste nicht am oberen Rand bei scrollY=${m.scrollY}: oben ${m.kopfOben}`);
+    }
+  }
+
   // Knoepfe ohne zugaengliche Beschriftung.
   const namenlos = await p.evaluate(() => {
     const raus = [];

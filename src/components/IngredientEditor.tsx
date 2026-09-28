@@ -3,6 +3,7 @@
 import React from 'react';
 import { Ingredient } from '@/lib/types';
 import { blankIngredient } from '@/lib/store';
+import { canonicalUnit } from '@/lib/units';
 import { NumberInput } from './ui';
 import { IconPlus, IconTrash } from './Icons';
 
@@ -81,5 +82,5 @@ export function IngredientEditor({
 export function aufgeraeumteZutaten(ingredients: Ingredient[]): Ingredient[] {
   return ingredients
     .filter((item) => item.name.trim().length > 0)
-    .map((item) => ({ ...item, name: item.name.trim(), unit: item.unit.trim() }));
+    .map((item) => ({ ...item, name: item.name.trim(), unit: canonicalUnit(item.unit) }));
 }

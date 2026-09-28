@@ -307,6 +307,41 @@ test.describe('Rezepte', () => {
   });
 });
 
+test.describe('Einheiten', () => {
+  test('bekannte Einheiten werden einheitlich geschrieben', async ({ page }) => {
+    await openSpace(page, newSpace('einheiten'));
+    await goToTab(page, 'Einkaufsliste');
+
+    // So kommen sie aus uebernommenen Rezepten: ausgeschrieben.
+    for (const [eingabe, erwartet] of [
+      ['500 Gramm Weizenmehl', '500 g'],
+      ['1 Liter Gemüsebrühe', '1 l'],
+      ['2 Esslöffel Olivenöl', '2 EL'],
+      ['1 Kilo Kartoffeln', '1 kg'],
+    ] as const) {
+      await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill(eingabe);
+      await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+      await page.waitForTimeout(150);
+    }
+
+    await expect(shoppingRow(page, 'Weizenmehl')).toContainText('500 g');
+    await expect(shoppingRow(page, 'Gemüsebrühe')).toContainText('1 l');
+    await expect(shoppingRow(page, 'Olivenöl')).toContainText('2 EL');
+    await expect(shoppingRow(page, 'Kartoffeln')).toContainText('1 kg');
+
+    // Unbekanntes bleibt, wie es eingetippt wurde.
+    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('2 Zweige Rosmarin');
+    await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+    await expect(shoppingRow(page, 'Rosmarin')).toContainText('2 Zweige');
+
+    // Und dieselbe Zutat in anderer Schreibweise landet in einer Zeile.
+    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('250 g Weizenmehl');
+    await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+    await expect(shoppingRow(page, 'Weizenmehl')).toHaveCount(1);
+    await expect(shoppingRow(page, 'Weizenmehl')).toContainText('750 g');
+  });
+});
+
 test.describe('Sparte Dessert', () => {
   test('steht bei Rezepten und Gerichten zur Verfuegung', async ({ page }) => {
     await openSpace(page, newSpace('dessert'));

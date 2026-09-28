@@ -20,6 +20,7 @@ const UNIT_GROUPS: Record<string, { base: string; factor: number }> = {
   liter: { base: 'ml', factor: 1000 },
   tl: { base: 'tl', factor: 1 },
   teeloeffel: { base: 'tl', factor: 1 },
+  teelöffel: { base: 'tl', factor: 1 },
   el: { base: 'tl', factor: 3 },
   esslöffel: { base: 'tl', factor: 3 },
   essloeffel: { base: 'tl', factor: 3 },
@@ -40,6 +41,83 @@ const DISPLAY_STEPS: Record<string, Array<{ unit: string; factor: number; min: n
     { unit: 'TL', factor: 1, min: 0 },
   ],
 };
+
+/**
+ * Woerter, die in Rezepten als Einheit gemeint sind, obwohl sie in keiner
+ * Umrechnungstabelle stehen. Ohne diese Liste wuerde aus "2 Zweige Rosmarin"
+ * die Zutat "Zweige Rosmarin".
+ *
+ * Eine Liste fuer die Schnelleingabe und fuer uebernommene Rezepte – sonst
+ * zerlegen die beiden dieselbe Zeile unterschiedlich.
+ */
+export const WORT_EINHEITEN = new Set([
+  'stück',
+  'stk',
+  'bund',
+  'dose',
+  'dosen',
+  'packung',
+  'pck',
+  'päckchen',
+  'becher',
+  'glas',
+  'gläser',
+  'zehe',
+  'zehen',
+  'prise',
+  'knolle',
+  'blatt',
+  'blätter',
+  'zweig',
+  'zweige',
+  'scheibe',
+  'scheiben',
+  'stange',
+  'stangen',
+  'kopf',
+  'tasse',
+  'tassen',
+  'msp',
+  'portion',
+  'portionen',
+  'handvoll',
+]);
+
+/**
+ * Wie eine bekannte Einheit geschrieben wird. Aus dem Netz uebernommene
+ * Rezepte bringen "500 Gramm" und "1 Liter" mit; auf einer Liste, auf der
+ * daneben "500 g" steht, sieht das nach zwei verschiedenen Dingen aus.
+ */
+const UNIT_DISPLAY: Record<string, string> = {
+  g: 'g',
+  gramm: 'g',
+  gr: 'g',
+  kg: 'kg',
+  kilo: 'kg',
+  ml: 'ml',
+  cl: 'cl',
+  dl: 'dl',
+  l: 'l',
+  liter: 'l',
+  tl: 'TL',
+  teeloeffel: 'TL',
+  teelöffel: 'TL',
+  el: 'EL',
+  esslöffel: 'EL',
+  essloeffel: 'EL',
+};
+
+/**
+ * Bekannte Einheit auf ihre uebliche Schreibweise bringen. Unbekanntes bleibt
+ * unveraendert – wer "Handvoll" eintippt, soll "Handvoll" behalten.
+ */
+export function canonicalUnit(unit: string): string {
+  const roh = (unit ?? '').trim();
+  if (!roh) return '';
+  // Jede Schreibweise steht einzeln in der Tabelle. Ueber die Basis zu gehen
+  // waere falsch: kg und g teilen sie sich, Liter und Milliliter auch.
+  return UNIT_DISPLAY[unitKey(roh)] ?? roh;
+}
 
 function unitKey(unit: string): string {
   return unit
@@ -271,11 +349,10 @@ export function parseQuickAdd(input: string): { name: string; amount: number | n
   // gelb" soll nicht die Einheit "Zwiebeln" ergeben.
   const known = unitInfo(maybeUnit) !== null;
   const shortWord = maybeUnit.replace('.', '').length <= 4;
-  const wordUnits = ['stück', 'stk', 'bund', 'dose', 'packung', 'becher', 'zehe', 'zehen', 'prise', 'knolle'];
-  const isWordUnit = wordUnits.includes(maybeUnit.toLowerCase().replace('.', ''));
+  const isWordUnit = WORT_EINHEITEN.has(maybeUnit.toLowerCase().replace('.', ''));
 
   if (known || isWordUnit || (shortWord && rest.length > 0)) {
-    return { name: rest, amount, unit: maybeUnit };
+    return { name: rest, amount, unit: canonicalUnit(maybeUnit) };
   }
   return { name: `${maybeUnit} ${rest}`.trim(), amount, unit: '' };
 }

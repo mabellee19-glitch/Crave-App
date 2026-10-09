@@ -101,10 +101,13 @@ async function pruefeSeite(p, wo) {
   if (namenlos.length) melde(wo, `Knopf ohne Beschriftung: ${namenlos.join(' | ')}`);
 }
 
-async function durchlauf(browser, geraet, schema) {
-  const ctx = await browser.newContext({ ...geraet, colorScheme: schema });
+async function durchlauf(browser, geraet, theme) {
+  // Das System steht auf dunkel: die App muss trotzdem in der gewaehlten
+  // Farbwelt erscheinen, nicht in der des Telefons.
+  const ctx = await browser.newContext({ ...geraet, colorScheme: 'dark' });
+  await ctx.addInitScript((t) => localStorage.setItem('crave:theme', t), theme);
   const p = await ctx.newPage();
-  const wo0 = `${geraet.__name}/${schema}`;
+  const wo0 = `${geraet.__name}/${theme}`;
 
   p.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') melde(wo0, `Konsole ${m.type()}: ${m.text().slice(0, 160)}`);
@@ -146,6 +149,13 @@ async function durchlauf(browser, geraet, schema) {
   }
   await p.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
+  // Neues Rezept: Kategorie-Automatik, Vorbereitung, KI-Knopf
+  await p.getByRole('button', { name: 'Neues Rezept' }).click();
+  await p.waitForTimeout(400);
+  await pruefeSeite(p, `${wo0}/Neues-Rezept`);
+  await p.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click();
+  await p.waitForTimeout(300);
+
   // Gerichte
   await p.getByRole('button', { name: 'Gerichte' }).first().click();
   await p.waitForTimeout(400);
@@ -185,9 +195,11 @@ delete iphone.browserName;
 const desktop = { viewport: { width: 1280, height: 900 }, __name: 'Desktop' };
 const klein = { viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true, __name: 'Schmal320' };
 
+// Auf dem iPhone jede Farbwelt, sonst die Standardfarbe und die dunkle.
+const ALLE = ['creme', 'salbei', 'pfirsich', 'himmel', 'klar', 'dunkel'];
 for (const g of [iphone, desktop, klein]) {
-  for (const schema of ['light', 'dark']) {
-    await durchlauf(b, g, schema);
+  for (const theme of g === iphone ? ALLE : ['creme', 'dunkel']) {
+    await durchlauf(b, g, theme);
   }
 }
 await b.close();

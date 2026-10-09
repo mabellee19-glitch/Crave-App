@@ -241,3 +241,21 @@ export const IconSpark = (p: IconProps) => (
     <path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z" />
   </Base>
 );
+
+/** Kuechenmesser – steht fuer die Vorbereitung. */
+export const IconKnife = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M20.5 3.5 9 15l3 3c4.6-3.3 7.7-8 8.5-14.5Z" />
+    <path d="m10.3 16.7-5.6 5.6" strokeWidth={3} />
+  </Base>
+);
+
+/** Palette – fuer die Wahl der Farbwelt. */
+export const IconPalette = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-1 .8-1.7 1.8-1.7h2.2a3.7 3.7 0 0 0 3.7-3.7C20.5 7 16.7 3.5 12 3.5Z" />
+    <circle cx="7.8" cy="11.2" r="1.1" />
+    <circle cx="10.5" cy="7.6" r="1.1" />
+    <circle cx="15" cy="7.8" r="1.1" />
+  </Base>
+);

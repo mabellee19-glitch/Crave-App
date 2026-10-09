@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Recipe, matchDishCategory } from '@/lib/types';
 import { formatQuantity, scaleAmount } from '@/lib/units';
+import { ABMESSEN } from '@/lib/prep';
 import { Sheet, ConfirmDialog } from './ui';
 import { TimerHint } from './Timer';
 import {
@@ -10,6 +11,7 @@ import {
   IconClock,
   IconFlame,
   IconCookNext,
+  IconKnife,
   IconMinus,
   IconPencil,
   IconPlus,
@@ -48,6 +50,9 @@ export function RecipeDetail({
   const factor = servings / base;
   const ingredients = recipe.ingredients.filter((i) => i.name.trim().length > 0);
   const steps = recipe.steps.filter((s) => s.text.trim().length > 0);
+  const prep = (recipe.prep ?? []).filter((task) => task.trim().length > 0);
+  // Abmessen gehoert immer dazu, sobald es Zutaten gibt.
+  const hatVorbereitung = prep.length > 0 || ingredients.length > 0;
 
   return (
     <>
@@ -176,8 +181,27 @@ export function RecipeDetail({
         <div className="detail__section">
           <div className="detail__sectionhead">
             <span className="detail__h">Zubereitung</span>
-            <span className="row__note">{steps.length} Schritte</span>
+            <span className="row__note">
+              {hatVorbereitung ? 'Vorbereitung + ' : ''}
+              {steps.length} {steps.length === 1 ? 'Schritt' : 'Schritte'}
+            </span>
           </div>
+          {hatVorbereitung ? (
+            <div className="step step--prep" style={{ marginBottom: 10 }}>
+              <span className="step__num step__num--prep" aria-hidden="true">
+                <IconKnife size={15} />
+              </span>
+              <div>
+                <div className="step__title">Vorbereitung</div>
+                <ul className="preplist">
+                  {prep.map((task, index) => (
+                    <li key={`${index}-${task}`}>{task}</li>
+                  ))}
+                  {ingredients.length > 0 ? <li>{ABMESSEN}</li> : null}
+                </ul>
+              </div>
+            </div>
+          ) : null}
           {steps.length === 0 ? (
             <div className="notice">
               <strong>Noch keine Zubereitungsschritte erfasst.</strong> Deshalb lässt sich der

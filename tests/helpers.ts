@@ -53,3 +53,13 @@ export async function openPantryGroup(page: Page, category: string) {
   const head = page.getByRole('button', { name: new RegExp(`^${category}`) });
   if ((await head.getAttribute('aria-expanded')) === 'false') await head.click();
 }
+
+/**
+ * Den Kochmodus starten und die Vorbereitung hinter sich bringen. Seit es sie
+ * gibt, steht vor Schritt 1 ein eigener Bildschirm zum Schneiden und Abmessen.
+ */
+export async function startCooking(page: Page) {
+  await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+  await expect(page.getByText('Erst schnibbeln und abmessen', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Los geht’s' }).click();
+}

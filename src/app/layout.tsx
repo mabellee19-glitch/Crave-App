@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,15 +27,18 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#faf6ea' },
-    { media: '(prefers-color-scheme: dark)', color: '#17110d' },
-  ],
+  // Die gewaehlte Farbwelt passt die Farbe beim Start selbst an (lib/theme).
+  themeColor: '#faf6ea',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    // Die Farbwelt setzt das Skript im Kopf, bevor React laeuft – daher darf
+    // das Attribut am <html> vom Server-HTML abweichen.
+    <html lang="de" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

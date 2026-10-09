@@ -7,6 +7,9 @@
  * echte Anfrage der App dagegen. Geprueft wird, was die App abschickt und was
  * sie aus der Antwort macht.
  *
+ * Dasselbe gilt fuer das Vereinfachen uebernommener Rezepte, das ueber
+ * denselben Zugang laeuft – es wird am Schluss ebenso durchgespielt.
+ *
  * Aufruf: npm run build && npm run check:vision
  */
 import { spawn } from 'node:child_process';
@@ -58,6 +61,42 @@ const ANTWORT = {
   usage: { input_tokens: 10, output_tokens: 10 },
 };
 
+/** Antwort fuer das Vereinfachen eines uebernommenen Rezepts. */
+const VEREINFACHT = {
+  id: 'msg_test2',
+  type: 'message',
+  role: 'assistant',
+  model: 'anthropic/claude-opus-5.5',
+  stop_reason: 'tool_use',
+  content: [
+    {
+      type: 'tool_use',
+      id: 'toolu_test2',
+      name: 'rezept_vereinfacht',
+      input: {
+        vorbereitung: ['Zwiebel fein hacken'],
+        // Die Backzeit von 20 Minuten fehlt absichtlich: die App muss das merken.
+        schritte: [
+          { text: 'Zwiebel 5 Minuten glasig dünsten.', minuten: 5 },
+          { text: 'Bei 180 °C backen.', minuten: 0 },
+        ],
+      },
+    },
+  ],
+  usage: { input_tokens: 10, output_tokens: 10 },
+};
+
+/** Ein Rezept, wie es von einer Seite kommt. */
+const REZEPT = {
+  name: 'Zwiebelkuchen',
+  servings: 4,
+  ingredients: [{ name: 'Zwiebeln', amount: 500, unit: 'g' }],
+  steps: [
+    { text: 'Zwiebel fein hacken und in einer Pfanne 5 Minuten glasig dünsten.', durationSec: 300 },
+    { text: 'Im Ofen bei 180 °C 20 Minuten backen.', durationSec: 1200 },
+  ],
+};
+
 /** Einen freien Port vom Betriebssystem erfragen, statt einen zu raten. */
 async function freierPort() {
   const server = createServer();
@@ -100,6 +139,23 @@ async function starteGateway(modus) {
             },
           }),
         );
+        return;
+      }
+
+      if (body?.tools?.[0]?.name === 'rezept_vereinfacht') {
+        // 'unbekannt': das Gateway kennt die neuere Modellfassung (noch) nicht.
+        if (modus === 'unbekannt' && body.model === 'anthropic/claude-opus-5.5') {
+          res.writeHead(404, { 'content-type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              type: 'error',
+              error: { type: 'not_found_error', message: 'model not found' },
+            }),
+          );
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(VEREINFACHT));
         return;
       }
 
@@ -240,10 +296,87 @@ async function durchlauf(modus) {
   }
 }
 
+/**
+ * Dasselbe fuer das Vereinfachen uebernommener Rezepte. Hier zaehlt vor
+ * allem: die Zutaten gehen mit, das Ergebnis kommt in der Form der App an,
+ * und eine verlorene Zahl aus dem Original wird gemeldet.
+ */
+async function vereinfachen(modus) {
+  const direkt = modus === 'direkt';
+  const gateway = await starteGateway(direkt ? 'ok' : modus);
+  const appPort = await freierPort();
+  const app = await starteApp(gateway.port, appPort, direkt);
+
+  try {
+    const res = await fetch(`http://127.0.0.1:${appPort}/api/simplify`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ recipe: REZEPT }),
+    });
+    const daten = await res.json();
+
+    check(`[vereinfachen ${modus}] die Route antwortet mit 200`, res.status === 200, `war ${res.status} ${daten.error ?? ''}`);
+    check(`[vereinfachen ${modus}] die Vorbereitung kommt an`, daten.prep?.[0] === 'Zwiebel fein hacken');
+    check(`[vereinfachen ${modus}] Timer aus den Minuten`, daten.steps?.[0]?.durationSec === 300);
+    check(
+      `[vereinfachen ${modus}] die verlorene Backzeit wird gemeldet`,
+      JSON.stringify(daten.missingNumbers) === '["20"]',
+      JSON.stringify(daten.missingNumbers),
+    );
+
+    const letzte = gateway.anfragen[gateway.anfragen.length - 1];
+    check(
+      `[vereinfachen ${modus}] Anfrage geht an /v1/messages`,
+      String(letzte?.url).startsWith('/v1/messages'),
+      letzte?.url,
+    );
+    check(
+      `[vereinfachen ${modus}] die Zutaten gehen mit`,
+      JSON.stringify(letzte?.body?.messages ?? '').includes('500 g Zwiebeln'),
+    );
+    check(
+      `[vereinfachen ${modus}] das Werkzeug ist angemeldet`,
+      letzte?.body?.tools?.[0]?.name === 'rezept_vereinfacht',
+    );
+
+    if (direkt) {
+      check('[vereinfachen direkt] das Modell heisst richtig', letzte?.body?.model === 'claude-opus-5-5', letzte?.body?.model);
+      check('[vereinfachen direkt] wenig Nachdenken', letzte?.body?.output_config?.effort === 'low');
+      check('[vereinfachen direkt] Ersatzmodell bei Ablehnung', letzte?.body?.fallbacks === 'default');
+      check(
+        '[vereinfachen direkt] mit dem passenden Beta-Kopf',
+        String(letzte?.headers?.['anthropic-beta'] ?? '').includes('server-side-fallback-2026-07-01'),
+        letzte?.headers?.['anthropic-beta'],
+      );
+    } else if (modus === 'unbekannt') {
+      check('[vereinfachen unbekannt] zwei Versuche', gateway.anfragen.length === 2, String(gateway.anfragen.length));
+      check(
+        '[vereinfachen unbekannt] zuerst die neuere Fassung, dann die bewaehrte',
+        gateway.anfragen[0]?.body?.model === 'anthropic/claude-opus-5.5' &&
+          gateway.anfragen[1]?.body?.model === 'anthropic/claude-opus-5',
+      );
+    } else {
+      check(`[vereinfachen ${modus}] das Modell heisst richtig`, letzte?.body?.model === 'anthropic/claude-opus-5.5', letzte?.body?.model);
+      check(`[vereinfachen ${modus}] ueber das Gateway kein output_config`, letzte?.body?.output_config === undefined);
+    }
+    if (!direkt) {
+      // Derselbe schlichte Weg wie beim Foto: ohne Beta-Pfad und Beta-Kopf.
+      check(`[vereinfachen ${modus}] ohne Beta-Pfad`, letzte?.url === '/v1/messages', letzte?.url);
+      check(`[vereinfachen ${modus}] ohne Ersatzmodell-Feld`, letzte?.body?.fallbacks === undefined);
+    }
+  } finally {
+    app.kill();
+    gateway.server.close();
+  }
+}
+
 await durchlauf('ok');
 await durchlauf('meckert');
 await durchlauf('direkt');
 await durchlauf('karte');
+await vereinfachen('ok');
+await vereinfachen('unbekannt');
+await vereinfachen('direkt');
 
 console.log(`\n${pass} ok, ${fail} fehlgeschlagen`);
 process.exit(fail === 0 ? 0 : 1);

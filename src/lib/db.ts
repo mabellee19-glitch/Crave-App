@@ -44,14 +44,6 @@ async function getPool(): Promise<Pool> {
         connectionTimeoutMillis: 10_000,
         ssl: needsSsl() ? { rejectUnauthorized: false } : undefined,
       });
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS crave_spaces (
-          id text PRIMARY KEY,
-          data jsonb NOT NULL,
-          version bigint NOT NULL DEFAULT 0,
-          updated_at timestamptz NOT NULL DEFAULT now()
-        )
-      `);
       return pool;
     })().catch((err) => {
       poolPromise = null;
@@ -59,6 +51,29 @@ async function getPool(): Promise<Pool> {
     });
   }
   return poolPromise;
+}
+
+/*
+ * Die Tabelle wird erst angelegt, wenn eine Abfrage sie vermisst. Vorher lief
+ * das CREATE TABLE bei jedem Kaltstart der Funktion vorweg – ein zusaetzlicher
+ * Weg zur Datenbank, genau dann, wenn die App beim Oeffnen auf ihre Daten
+ * wartet. Die Tabelle gibt es nach dem allerersten Speichern fuer immer.
+ */
+const TABELLE_FEHLT = '42P01';
+
+function tabelleFehlt(err: unknown): boolean {
+  return (err as { code?: string })?.code === TABELLE_FEHLT;
+}
+
+async function createTable(pool: Pool): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS crave_spaces (
+      id text PRIMARY KEY,
+      data jsonb NOT NULL,
+      version bigint NOT NULL DEFAULT 0,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
 }
 
 function needsSsl(): boolean {
@@ -69,10 +84,17 @@ function needsSsl(): boolean {
 
 async function pgRead(id: string): Promise<SpaceRecord | null> {
   const pool = await getPool();
-  const res = await pool.query(
-    'SELECT data, version, extract(epoch from updated_at) * 1000 AS updated_ms FROM crave_spaces WHERE id = $1',
-    [id],
-  );
+  let res;
+  try {
+    res = await pool.query(
+      'SELECT data, version, extract(epoch from updated_at) * 1000 AS updated_ms FROM crave_spaces WHERE id = $1',
+      [id],
+    );
+  } catch (err) {
+    // Ohne Tabelle gibt es auch noch keinen Datenraum.
+    if (tabelleFehlt(err)) return null;
+    throw err;
+  }
   if (res.rowCount === 0) return null;
   const row = res.rows[0];
   return {
@@ -84,6 +106,16 @@ async function pgRead(id: string): Promise<SpaceRecord | null> {
 
 async function pgMerge(id: string, incoming: AppData): Promise<SpaceRecord> {
   const pool = await getPool();
+  try {
+    return await pgMergeOnce(pool, id, incoming);
+  } catch (err) {
+    if (!tabelleFehlt(err)) throw err;
+    await createTable(pool);
+    return pgMergeOnce(pool, id, incoming);
+  }
+}
+
+async function pgMergeOnce(pool: Pool, id: string, incoming: AppData): Promise<SpaceRecord> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

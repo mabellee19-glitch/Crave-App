@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Recipe, Step } from '@/lib/types';
 import { blankIngredient, blankStep } from '@/lib/store';
+import { kategorieErkennen } from '@/lib/category';
+import { vorbereitungAusText, vorbereitungVorschlagen } from '@/lib/prep';
 import { Field, NumberInput, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
-import { IconArrowUp, IconPlus, IconTrash } from './Icons';
+import { IconArrowUp, IconPlus, IconSpark, IconTrash } from './Icons';
 
 const CATEGORY_SUGGESTIONS = ['High-Protein', 'Comfort', 'Vegi', 'Frühstück', 'Dessert', 'Snack'];
 
@@ -33,6 +35,35 @@ function importMeldung(code: string): string {
   }
 }
 
+/** Warum das Vereinfachen nicht geklappt hat – das Rezept bleibt in jedem Fall stehen. */
+function kiMeldung(code: string): string {
+  switch (code) {
+    case 'no_key':
+      return 'Auf dem Server ist kein Zugang zum Modell eingerichtet – die Schritte bleiben, wie sie übernommen wurden.';
+    case 'billing':
+      return 'Beim Anbieter fehlt die Zahlungsangabe (Vercel → AI Gateway). Die Schritte bleiben, wie sie sind.';
+    case 'auth':
+      return 'Der hinterlegte Schlüssel wird nicht akzeptiert. Die Schritte bleiben, wie sie sind.';
+    case 'rate_limit':
+      return 'Gerade zu viele Anfragen. Kurz warten und nochmal versuchen.';
+    case 'too_large':
+      return 'Das Rezept ist zu lang zum Vereinfachen.';
+    default:
+      return 'Vereinfachen hat nicht geklappt. Die Schritte bleiben, wie sie sind.';
+  }
+}
+
+type KiStand =
+  | { phase: 'aus' }
+  | { phase: 'laeuft'; ort: 'oben' | 'schritte' }
+  | {
+      phase: 'fertig';
+      ort: 'oben' | 'schritte';
+      vorher: { steps: Step[]; prepText: string };
+      fehlend: string[];
+    }
+  | { phase: 'fehler'; ort: 'oben' | 'schritte'; meldung: string; nochmal: boolean };
+
 export function RecipeForm({
   initial,
   isNew,
@@ -49,11 +80,189 @@ export function RecipeForm({
     ingredients: initial.ingredients.length ? initial.ingredients : [blankIngredient()],
     steps: initial.steps.length ? initial.steps : [blankStep()],
   }));
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const set = <K extends keyof Recipe>(key: K, value: Recipe[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
 
   const nameValid = draft.name.trim().length > 0;
+
+  /* ----------------------------- Kategorie -------------------------------- */
+
+  /*
+   * Bei einem neuen Rezept fuellt sich die Kategorie von selbst, waehrend die
+   * Zutaten eingetragen werden. Wer selbst etwas eintippt, behaelt das.
+   */
+  const [kategorieAuto, setKategorieAuto] = useState(isNew && !initial.category.trim());
+  const erkennung = useMemo(
+    () =>
+      kategorieErkennen({
+        name: draft.name,
+        servings: draft.servings,
+        ingredients: draft.ingredients,
+      }),
+    [draft.name, draft.servings, draft.ingredients],
+  );
+  const kategorie = kategorieAuto ? (erkennung?.kategorie ?? '') : draft.category;
+
+  /* ---------------------------- Vorbereitung ------------------------------ */
+
+  // Als Text gefuehrt, eine Aufgabe pro Zeile: so bleibt eine eben getippte
+  // Leerzeile stehen, bis die naechste Aufgabe drinsteht.
+  const [prepText, setPrepText] = useState(() => (initial.prep ?? []).join('\n'));
+  const [prepHinweis, setPrepHinweis] = useState<string | null>(null);
+
+  const vorschlagen = () => {
+    const vorhanden = vorbereitungAusText(prepText);
+    const neu = vorbereitungVorschlagen(draft).filter(
+      (aufgabe) => !vorhanden.some((alt) => alt.toLowerCase() === aufgabe.toLowerCase()),
+    );
+    if (neu.length === 0) {
+      setPrepHinweis('In den Schritten steht nichts, was vorher geschnitten werden müsste.');
+      return;
+    }
+    setPrepHinweis(null);
+    setPrepText([...vorhanden, ...neu].join('\n'));
+  };
+
+  /* ------------------------------ KI -------------------------------------- */
+
+  const [ki, setKi] = useState<KiStand>({ phase: 'aus' });
+
+  /**
+   * Schritte kuerzer und einfacher machen und die Vorbereitung nach vorne
+   * ziehen. Zutaten bleiben unangetastet. Das Ergebnis ersetzt die Schritte
+   * nur, wenn sie in der Zwischenzeit niemand geaendert hat – und laesst sich
+   * mit einem Tipp zuruecknehmen.
+   */
+  const vereinfachen = async (
+    ort: 'oben' | 'schritte',
+    quelle: Pick<Recipe, 'name' | 'servings' | 'ingredients' | 'steps'> = draftRef.current,
+    prepVorher: string = prepText,
+  ) => {
+    const steps = quelle.steps.filter((step) => step.text.trim());
+    if (steps.length === 0) return;
+    setKi({ phase: 'laeuft', ort });
+    try {
+      const antwort = await fetch('/api/simplify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          recipe: {
+            name: quelle.name,
+            servings: quelle.servings,
+            ingredients: quelle.ingredients
+              .filter((zutat) => zutat.name.trim())
+              .map(({ name, amount, unit }) => ({ name, amount, unit })),
+            steps: steps.map(({ text, durationSec }) => ({ text, durationSec })),
+          },
+        }),
+      });
+      const daten = await antwort.json().catch(() => null);
+      if (!antwort.ok || !daten?.ok) {
+        const code = String(daten?.error ?? 'unknown');
+        setKi({
+          phase: 'fehler',
+          ort,
+          meldung: kiMeldung(code),
+          nochmal: code !== 'no_key' && code !== 'too_large',
+        });
+        return;
+      }
+
+      // Hat jemand die Schritte inzwischen geaendert, wird nichts ueberschrieben.
+      const aktuell = draftRef.current.steps.filter((step) => step.text.trim());
+      const unveraendert =
+        aktuell.length === steps.length && aktuell.every((step, i) => step.text === steps[i].text);
+      if (!unveraendert) {
+        setKi({
+          phase: 'fehler',
+          ort,
+          meldung: 'Die Schritte wurden in der Zwischenzeit geändert – deshalb bleibt deine Fassung stehen.',
+          nochmal: true,
+        });
+        return;
+      }
+
+      const vorherSchritte = draftRef.current.steps;
+      const neueSchritte = (daten.steps as Array<{ text: string; durationSec: number | null }>).map(
+        (schritt) => ({ ...blankStep(), text: schritt.text, durationSec: schritt.durationSec }),
+      );
+      setDraft((current) => ({ ...current, steps: neueSchritte }));
+      setPrepText((daten.prep as string[]).join('\n'));
+      setPrepHinweis(null);
+      setKi({
+        phase: 'fertig',
+        ort,
+        vorher: { steps: vorherSchritte, prepText: prepVorher },
+        fehlend: Array.isArray(daten.missingNumbers) ? daten.missingNumbers : [],
+      });
+    } catch {
+      setKi({
+        phase: 'fehler',
+        ort,
+        meldung: 'Keine Verbindung zum Server. Die Schritte bleiben, wie sie sind.',
+        nochmal: true,
+      });
+    }
+  };
+
+  const zuruecknehmen = () => {
+    if (ki.phase !== 'fertig') return;
+    setDraft((current) => ({ ...current, steps: ki.vorher.steps }));
+    setPrepText(ki.vorher.prepText);
+    setKi({ phase: 'aus' });
+  };
+
+  const kiHinweis = (ort: 'oben' | 'schritte') => {
+    if (ki.phase === 'aus' || ki.ort !== ort) return null;
+    if (ki.phase === 'laeuft') {
+      return (
+        <div className="notice notice--ki" role="status">
+          <IconSpark size={17} />
+          <span>Die Schritte werden mit KI vereinfacht …</span>
+        </div>
+      );
+    }
+    if (ki.phase === 'fehler') {
+      return (
+        <div className="notice" role="status">
+          {ki.meldung}
+          {ki.nochmal ? (
+            <>
+              {' '}
+              <button className="btn btn--quiet" onClick={() => void vereinfachen(ort)}>
+                Nochmal versuchen
+              </button>
+            </>
+          ) : null}
+        </div>
+      );
+    }
+    return (
+      <div className={`notice notice--ki${ki.fehlend.length ? ' notice--warn' : ''}`} role="status">
+        <IconSpark size={17} />
+        <div>
+          <strong>Mit KI vereinfacht.</strong> Kürzere Schritte, das Schnibbeln steht jetzt in der
+          Vorbereitung. Zutaten, Mengen und Reihenfolge bleiben gleich.
+          {ki.fehlend.length ? (
+            <>
+              {' '}
+              <strong>
+                Bitte kurz prüfen: im Original stand noch {ki.fehlend.join(', ')}.
+              </strong>
+            </>
+          ) : null}
+          <div>
+            <button className="btn btn--quiet" style={{ paddingInline: 0 }} onClick={zuruecknehmen}>
+              Original wiederherstellen
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   /* ------------------------------ Import ---------------------------------- */
 
@@ -91,7 +300,8 @@ export function RecipeForm({
         source: string;
       };
 
-      setDraft((current) => ({
+      const current = draftRef.current;
+      const uebernommen: Recipe = {
         ...current,
         name: rezept.name || current.name,
         servings: rezept.servings ?? current.servings,
@@ -103,8 +313,15 @@ export function RecipeForm({
           ? rezept.steps.map((schritt) => ({ ...blankStep(), ...schritt }))
           : current.steps,
         notes: current.notes || `Übernommen von ${rezept.source}`,
-      }));
+      };
+      // Sofort eine Vorbereitung aus dem Text – die KI ersetzt sie gleich
+      // durch eine bessere, falls sie eingerichtet ist.
+      const vorbereitung = vorbereitungVorschlagen(uebernommen).join('\n');
+      draftRef.current = uebernommen;
+      setDraft(uebernommen);
+      setPrepText(vorbereitung);
       setUrl('');
+      if (rezept.steps.length) void vereinfachen('oben', uebernommen, vorbereitung);
     } catch {
       setImportFehler('Die Seite liess sich nicht laden. Prüfe die Verbindung.');
     } finally {
@@ -130,15 +347,26 @@ export function RecipeForm({
 
   const submit = () => {
     if (!nameValid) return;
+    const ingredients = aufgeraeumteZutaten(draft.ingredients);
+    const steps = draft.steps
+      .filter((item) => item.text.trim().length > 0)
+      .map((item) => ({ ...item, text: item.text.trim() }));
+
+    // Ein neues Rezept bekommt immer eine Vorbereitung: steht keine drin, wird
+    // sie aus den Schritten gelesen. Ein altes Rezept ohne Vorbereitung bleibt
+    // so, bis der Start sie einmal ergaenzt.
+    let prep: string[] | undefined = vorbereitungAusText(prepText);
+    if (prep.length === 0 && isNew) prep = vorbereitungVorschlagen({ ingredients, steps });
+    if (prep.length === 0 && initial.prep === undefined && !isNew) prep = undefined;
+
     onSave({
       ...draft,
       name: draft.name.trim(),
-      category: draft.category.trim(),
+      category: kategorie.trim(),
       servings: draft.servings > 0 ? draft.servings : 1,
-      ingredients: aufgeraeumteZutaten(draft.ingredients),
-      steps: draft.steps
-        .filter((item) => item.text.trim().length > 0)
-        .map((item) => ({ ...item, text: item.text.trim() })),
+      ingredients,
+      prep,
+      steps,
     });
   };
 
@@ -201,6 +429,8 @@ export function RecipeForm({
             </div>
           ) : null}
 
+          {kiHinweis('oben')}
+
           <hr className="divider" />
         </>
       ) : null}
@@ -216,14 +446,34 @@ export function RecipeForm({
         />
       </Field>
 
-      <Field label="Kategorie" htmlFor="recipe-category">
+      <Field
+        label="Kategorie"
+        htmlFor="recipe-category"
+        hint={
+          kategorieAuto && erkennung ? (
+            <>Automatisch erkannt: {erkennung.grund}</>
+          ) : isNew && !kategorieAuto && erkennung && erkennung.kategorie !== kategorie ? (
+            <button
+              type="button"
+              className="btn btn--quiet"
+              style={{ paddingInline: 0, minHeight: 32 }}
+              onClick={() => setKategorieAuto(true)}
+            >
+              Vorschlag aus den Zutaten: {erkennung.kategorie}
+            </button>
+          ) : undefined
+        }
+      >
         <input
           id="recipe-category"
           className="input"
           list={listId}
-          value={draft.category}
-          placeholder="z. B. High-Protein"
-          onChange={(event) => set('category', event.target.value)}
+          value={kategorie}
+          placeholder={isNew ? 'Wird aus den Zutaten erkannt' : 'z. B. High-Protein'}
+          onChange={(event) => {
+            setKategorieAuto(false);
+            set('category', event.target.value);
+          }}
           autoComplete="off"
         />
         <datalist id={listId}>
@@ -272,9 +522,49 @@ export function RecipeForm({
       <hr className="divider" />
 
       <div className="detail__sectionhead">
-        <span className="detail__h">Zubereitung</span>
-        <span className="row__note">Timer optional</span>
+        <label className="detail__h" htmlFor="recipe-prep">
+          Vorbereitung
+        </label>
+        <span className="row__note">eine Aufgabe pro Zeile</span>
       </div>
+      <textarea
+        id="recipe-prep"
+        className="textarea"
+        value={prepText}
+        rows={Math.max(3, prepText.split('\n').length + 1)}
+        placeholder={'z. B. Zwiebel fein hacken\nZucchini würfeln\nCherrytomaten halbieren'}
+        onChange={(event) => {
+          setPrepText(event.target.value);
+          setPrepHinweis(null);
+        }}
+      />
+      <div className="rowline" style={{ marginTop: 6, alignItems: 'flex-start' }}>
+        <span className="row__note" style={{ flex: 1, minWidth: 180 }}>
+          {prepHinweis ??
+            'Was vor dem Kochen geschnitten und bereitgelegt wird. Das Abmessen der Zutaten kommt im Kochmodus von selbst dazu.'}
+        </span>
+        <button type="button" className="btn btn--quiet" onClick={vorschlagen}>
+          Aus den Schritten vorschlagen
+        </button>
+      </div>
+
+      <hr className="divider" />
+
+      <div className="detail__sectionhead">
+        <span className="detail__h">Zubereitung</span>
+        <button
+          type="button"
+          className="btn btn--quiet"
+          style={{ minHeight: 34 }}
+          onClick={() => void vereinfachen('schritte')}
+          disabled={ki.phase === 'laeuft' || !draft.steps.some((step) => step.text.trim())}
+        >
+          <IconSpark size={16} />
+          Mit KI vereinfachen
+        </button>
+      </div>
+
+      {kiHinweis('schritte')}
 
       {draft.steps.map((step, index) => (
         <div className="editcard" key={step.id}>

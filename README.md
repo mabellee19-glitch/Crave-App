@@ -18,8 +18,11 @@ Drei Bereiche:
 | --- | --- |
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
 | Rezepte | `Rezept über Link hinzufügen`: Adresse einfügen, Zutaten und Zubereitung kommen mit – samt Timern |
+| Rezepte | Übernommene Schritte werden mit KI kürzer und einfacher – Zutaten, Mengen und Reihenfolge bleiben, das Original lässt sich zurückholen |
+| Rezepte | Die Kategorie (High-Protein, Comfort, Vegi, Dessert) wird beim Anlegen aus den Zutaten erkannt |
+| Rezepte | Jedes Rezept hat eine **Vorbereitung**: was vorher geschnitten und bereitgelegt wird |
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
-| Rezepte | `Start Cooking`: ein Schritt pro Bildschirm, gross gesetzt |
+| Rezepte | `Start Cooking`: zuerst die Vorbereitung zum Abhaken, dann ein Schritt pro Bildschirm |
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
@@ -34,6 +37,8 @@ Drei Bereiche:
 | Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann auf der Einkaufsliste |
 | Cook Next | Abwählen nimmt genau diese Zutaten wieder von der Liste |
 | Überall | Suche, automatisches Speichern, Geräte-Abgleich |
+| Überall | Sechs Farbwelten zur Auswahl unter `Einstellungen & Sync → Design` |
+| Überall | Startet sofort mit dem Stand auf dem Gerät, der Abgleich läuft im Hintergrund |
 
 ## Startinhalte nachtragen
 
@@ -65,6 +70,48 @@ Für den Weg über die Kommandozeile gibt es zusätzlich:
 npm run add-recipes -- https://deine-app.vercel.app/s/DEINE-ID
 ```
 
+## Vorbereitung
+
+Viele Rezepte mischen Schneiden und Kochen: «Zwiebel fein hacken und glasig
+dünsten» – die Pfanne ist heiss, und man steht noch am Brett. Deshalb hat jedes
+Rezept eine Vorbereitung, eine Liste von Aufgaben wie «Zwiebel fein hacken»
+oder «Cherrytomaten halbieren». Sie steht in der Rezeptansicht vor dem ersten
+Schritt, und der Kochmodus beginnt damit: oben die Aufgaben, darunter alle
+Zutaten mit den Mengen für die gewählte Portionenzahl – beides zum Abhaken.
+Das Abmessen wird nicht extra notiert, es ergibt sich aus der Zutatenliste.
+
+- **Mitgelieferte Rezepte** haben eine von Hand geschriebene Vorbereitung. Wer
+  ein solches Rezept nie verändert hat, bekommt beim nächsten Öffnen auch die
+  neuen Schritte, aus denen das Schneiden herausgenommen ist. Wer die Schritte
+  selbst bearbeitet hat, behält sie; dort kommt nur die Vorbereitung dazu.
+  Erkannt wird das an einem Fingerabdruck der ausgelieferten Schritte
+  (`SCHRITTE_VOR_DER_VORBEREITUNG` in `src/lib/seed.ts`).
+- **Eigene Rezepte** bekommen eine Vorbereitung, die aus Zutaten («Knoblauch
+  (gehackt)») und Schritten gelesen wird. Ihre Schritte bleiben unverändert.
+- **Neue Rezepte** – von Hand, über einen Link oder aus dem Kühlschrankfoto –
+  bekommen sie immer. Im Formular steht sie als eigenes Feld, eine Aufgabe pro
+  Zeile, mit dem Knopf `Aus den Schritten vorschlagen`.
+
+Ergänzt wird jedes Rezept genau einmal. Wer die Vorbereitung leert, bekommt
+sie nicht zurück.
+
+## Kategorie aus den Zutaten
+
+Beim Anlegen füllt sich das Feld `Kategorie` von selbst, während die Zutaten
+eingetragen werden, und darunter steht, warum («Pouletbrust, rund 200 g pro
+Portion»). Die Regeln stehen in `src/lib/category.ts` und sind an den
+mitgelieferten Rezepten geeicht – alle vierzehn werden so erkannt, wie sie
+eingeordnet sind:
+
+- Fleisch oder Fisch ab gut 100 g pro Portion: **High-Protein**. Weniger davon
+  in Pasta oder Teig: **Comfort** (Thunfisch-Pasta, Gyoza).
+- Ohne Fleisch: Pasta, Suppe, Rahm und Käse machen **Comfort**, sonst **Vegi**.
+  Tofu, Skyr, Quark und Co. ohne Pasta machen **High-Protein**.
+- Deutlich süss und nichts Herzhaftes darin: **Dessert**.
+
+Wer selbst etwas eintippt, behält das; der Vorschlag bleibt als Knopf darunter
+stehen. Das läuft im Browser, ohne Modell und ohne Netz.
+
 ## Rezepte über einen Link übernehmen
 
 Beim Anlegen eines Rezepts steht oben das Feld `Rezept über Link hinzufügen`.
@@ -78,6 +125,32 @@ Das braucht weder Schlüssel noch Guthaben: die meisten Rezeptseiten legen ihre
 Daten als schema.org-Rezept im Quelltext ab, dasselbe, woraus Google seine
 Rezeptkarten baut. Fehlt das – bei manchen Blogs und Videoseiten – sagt die App
 das und man tippt von Hand.
+
+### Mit KI vereinfacht
+
+Ist der Zugang zum Modell eingerichtet (derselbe wie fürs Kühlschrankfoto,
+siehe unten), werden die übernommenen Schritte gleich danach kürzer und
+einfacher: höchstens zwei kurze Sätze pro Schritt, Befehlsform, kein
+Drumherum. Das Schneiden wandert in die Vorbereitung. Am Rezept selbst ändert
+sich nichts:
+
+- Die Zutaten gehen gar nicht erst durchs Modell, sie bleiben wie übernommen.
+- Jede Zahl aus den alten Schritten – Temperaturen, Minuten, Mengen – muss in
+  der neuen Fassung wieder vorkommen. Fehlt eine, steht im Formular «Bitte kurz
+  prüfen: im Original stand noch …».
+- `Original wiederherstellen` holt die übernommenen Schritte zurück.
+
+Der Knopf `Mit KI vereinfachen` über der Zubereitung macht dasselbe für jedes
+andere Rezept, auch beim Bearbeiten. Ohne eingerichteten Zugang bleibt alles
+wie übernommen; die App sagt das in einem Satz. Ein Aufruf kostet grob ein
+bis zwei Rappen.
+
+Gefragt wird Claude Opus 5.5 mit wenig Nachdenkzeit, damit die Wartezeit im
+Formular kurz bleibt. Über Vercels Gateway versucht die App zuerst
+`anthropic/claude-opus-5.5` und nimmt, falls das Gateway diese Fassung nicht
+kennt, `anthropic/claude-opus-5` wie beim Foto. Direkt bei Anthropic springt
+bei einer Ablehnung durch die Sicherheitsprüfung serverseitig ein anderes
+Modell ein (`fallbacks: "default"`).
 
 Die Adresse wird serverseitig abgerufen, deshalb prüft `src/lib/safeFetch.ts`
 jede Adresse und jede Weiterleitung: Ziele im eigenen Netz (auch die
@@ -120,8 +193,9 @@ ja oder nein, nie der Schlüssel selbst.
 
 Ob der Weg zum Modell technisch stimmt, prüft `npm run build && npm run
 check:vision`. Das Skript stellt eine Gegenstelle hin, die sich wie das Gateway
-verhält, und schickt eine echte Anfrage der App dagegen – es kostet also nichts
-und braucht keinen Schlüssel.
+verhält, und schickt echte Anfragen der App dagegen – fürs Kühlschrankfoto und
+fürs Vereinfachen von Rezepten. Es kostet also nichts und braucht keinen
+Schlüssel.
 
 Zum Ablauf: das Foto wird im Browser auf 1024 Pixel Kantenlänge verkleinert
 und dann zur Auswertung weitergeschickt. Es wird nirgends gespeichert, weder in
@@ -141,7 +215,7 @@ BASE_URL=http://localhost:3000 npm run check:ui
 ```
 
 Das Skript geht die ganze App durch – in drei Breiten (iPhone, Desktop,
-320 px) und in hell wie dunkel – und meldet, was kein einzelner Test abdeckt:
+320 px) und in allen Farbwelten – und meldet, was kein einzelner Test abdeckt:
 Konsolenfehler, fehlgeschlagene Anfragen, seitlich überlaufende Seiten, zu
 kleine Bedienelemente und Knöpfe ohne Beschriftung.
 
@@ -227,7 +301,9 @@ Datenraum, weil jedes `/s/<id>` sein eigenes Web-App-Manifest ausliefert.
 Die App ist *local-first*:
 
 1. Jede Änderung landet sofort im lokalen Speicher des Geräts – die Oberfläche
-   wartet nie auf das Netz und funktioniert auch offline.
+   wartet nie auf das Netz und funktioniert auch offline. Auch beim Öffnen
+   steht der gespeicherte Stand sofort da; nur auf einem Gerät, das die App
+   zum ersten Mal sieht, wird auf den Server gewartet.
 2. Kurz darauf wird der Stand zum Server geschickt.
 3. Der Server führt beide Stände zusammen und schickt das Ergebnis zurück.
 4. Alle sieben Sekunden sowie beim Zurückkehren zur App wird erneut geholt.
@@ -283,6 +359,10 @@ src/
   components/                 Oberfläche
   lib/
     vision.ts                 Auswertung des Kühlschrankfotos
+    recipeAi.ts               Vereinfachen übernommener Rezepte mit KI
+    prep.ts                   Vorbereitung: aus Text lesen, Fingerabdruck
+    category.ts               Kategorie aus den Zutaten
+    theme.ts                  Farbwelten
     store.tsx                 lokaler Zustand und Abgleich
     merge.ts                  Zusammenführen zweier Stände
     db.ts                     Postgres bzw. Datei-Fallback
@@ -291,7 +371,29 @@ src/
     seed.ts                   Startinhalte
 ```
 
+## Farbwelten
+
+Unter `Einstellungen & Sync → Design` stehen sechs Farbwelten zur Wahl, jede
+mit einer kleinen Vorschau. Die Wahl gilt sofort und wird pro Gerät gemerkt.
+
+| Farbwelt | Charakter |
+| --- | --- |
+| Creme | warm und ruhig, Kupfer als Akzent – der Standard |
+| Salbei | frisch und grün, viel Weiss |
+| Pfirsich | fröhlich und warm, Koralle als Akzent |
+| Himmel | hell und luftig, Blau als Akzent |
+| Klar | reinweiss und modern, Tomatenrot |
+| Dunkel | die bisherige Nachtfassung |
+
+Die App ist immer hell, solange niemand `Dunkel` wählt – auch auf einem
+iPhone im dunklen Modus. Gesetzt wird die Farbwelt von einem kleinen Skript
+im Kopf der Seite, bevor etwas gezeichnet wird; so blitzt beim Öffnen keine
+falsche Farbe auf. Alle Farbwelten haben mindestens den Kontrast der
+Creme-Palette.
+
 ## Farben
+
+Die Grundpalette, aus der Creme und Dunkel gebaut sind:
 
 | Name | Hex | Verwendung |
 | --- | --- | --- |
@@ -301,9 +403,10 @@ src/
 | Sunburn | `#b57056` | Favoriten, Comfort, Akzent im dunklen Modus |
 | Roycroft Copper Red | `#7f3b25` | Knöpfe, Timer, App-Symbol |
 
-Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`,
-jeweils einmal für hell und einmal für dunkel. Wer die Palette austauschen
-will, ändert nur diesen Block. Für kleine Schrift auf hellem Grund sind
+Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`:
+oben Creme, darunter je ein Block `:root[data-theme=…]` für jede weitere
+Farbwelt. Name, Beschreibung und Vorschau stehen in `src/lib/theme.ts`. Wer
+eine Farbwelt dazubauen will, ergänzt beides. Für kleine Schrift auf hellem Grund sind
 abgedunkelte Abstufungen hinterlegt, damit der Text lesbar bleibt.
 
 ## App-Symbol

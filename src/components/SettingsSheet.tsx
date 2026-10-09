@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { SyncInfo } from '@/lib/store';
 import { Sheet } from './ui';
 import { testAlarm } from '@/lib/audio';
+import { STANDARD_THEME, THEMES, applyTheme, readTheme } from '@/lib/theme';
 import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare, IconTimer } from './Icons';
 
 export function SettingsSheet({
@@ -23,6 +24,11 @@ export function SettingsSheet({
 }) {
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [theme, setTheme] = useState(STANDARD_THEME);
+
+  useEffect(() => {
+    setTheme(readTheme());
+  }, []);
 
   useEffect(() => {
     setUrl(`${window.location.origin}/s/${spaceId}`);
@@ -49,6 +55,46 @@ export function SettingsSheet({
   return (
     <Sheet title="Einstellungen & Sync" onClose={onClose}>
       <div style={{ height: 16 }} />
+
+      <div className="detail__h" id="design-heading">
+        Design
+      </div>
+      <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
+        Such dir eine Farbwelt aus – sie gilt sofort und bleibt auf diesem Gerät gespeichert.
+      </p>
+      <div className="themegrid" role="radiogroup" aria-labelledby="design-heading">
+        {THEMES.map((entry) => {
+          const aktiv = theme === entry.id;
+          const [grund, karte, akzent, zweit] = entry.vorschau;
+          return (
+            <button
+              key={entry.id}
+              role="radio"
+              aria-checked={aktiv}
+              className={`themecard${aktiv ? ' themecard--active' : ''}`}
+              onClick={() => {
+                applyTheme(entry.id);
+                setTheme(entry.id);
+              }}
+            >
+              <span className="themecard__preview" style={{ background: grund }} aria-hidden="true">
+                <span className="themecard__card" style={{ background: karte }}>
+                  <span className="themecard__line" style={{ background: akzent }} />
+                  <span className="themecard__line themecard__line--short" style={{ background: zweit }} />
+                </span>
+                <span className="themecard__button" style={{ background: akzent }} />
+              </span>
+              <span className="themecard__name">
+                {entry.name}
+                {aktiv ? <IconCheck size={15} /> : null}
+              </span>
+              <span className="themecard__text">{entry.beschreibung}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <hr className="divider" />
 
       <div className="detail__h">Dein Link</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>

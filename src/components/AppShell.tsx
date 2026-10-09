@@ -241,9 +241,16 @@ export function AppShell() {
         ) : null}
 
         {!store.ready ? (
-          <p className="muted" style={{ padding: '40px 0' }}>
-            Daten werden geladen…
-          </p>
+          // Nur beim allerersten Oeffnen auf einem Geraet: danach steht der
+          // lokale Stand sofort da. Die Form der Seite ist schon erkennbar.
+          <div className="skeleton" role="status" aria-label="Daten werden geladen">
+            <div className="skeleton__title" />
+            <div className="skeleton__line" />
+            <div className="skeleton__search" />
+            {[0, 1, 2, 3, 4].map((index) => (
+              <div className="skeleton__card" key={index} />
+            ))}
+          </div>
         ) : tab === 'recipes' ? (
           <RecipesView
             recipes={store.recipes}

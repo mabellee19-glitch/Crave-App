@@ -25,6 +25,8 @@ export interface VisionIdea {
   portionen: number;
   zeitMin: number;
   zutaten: VisionIngredient[];
+  /** Was vor dem Kochen geschnitten und bereitgelegt wird. */
+  vorbereitung: string[];
   schritte: VisionStep[];
   /** Zutaten, die auf dem Foto nicht zu sehen sind. */
   fehlt: string[];
@@ -96,6 +98,9 @@ Regeln:
 - Schreibe auf Deutsch, in Schweizer Schreibweise ohne Eszett.
 - Mengen beziehen sich auf die angegebene Portionenzahl. Ohne Mengenangabe: 0.
 - "minuten" nur setzen, wenn der Schritt wirklich eine Wartezeit hat, sonst 0.
+- Unter "vorbereitung" steht, was vor dem Kochen geschnitten, gewaschen oder
+  bereitgelegt wird, eine kurze Aufgabe pro Eintrag ("Zwiebel fein hacken").
+  Die "schritte" beginnen danach und wiederholen das Schneiden nicht.
 - Antworte ausschliesslich über das Werkzeug kuehlschrank_auswertung.`;
 
 const TOOL = {
@@ -113,7 +118,16 @@ const TOOL = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['name', 'kategorie', 'portionen', 'zeitMin', 'zutaten', 'schritte', 'fehlt'],
+          required: [
+            'name',
+            'kategorie',
+            'portionen',
+            'zeitMin',
+            'zutaten',
+            'vorbereitung',
+            'schritte',
+            'fehlt',
+          ],
           properties: {
             name: { type: 'string' },
             kategorie: { type: 'string', enum: ['High-Protein', 'Comfort', 'Vegi'] },
@@ -132,6 +146,7 @@ const TOOL = {
                 },
               },
             },
+            vorbereitung: { type: 'array', items: { type: 'string' } },
             schritte: {
               type: 'array',
               items: {
@@ -223,7 +238,7 @@ export async function analysePhoto(image: string): Promise<VisionResult> {
  * App erklaeren lassen. Der Rohtext des Anbieters gehoert nicht in die
  * Oberflaeche: er ist englisch, technisch und sagt der Kochenden nichts.
  */
-function einordnen(err: unknown): string {
+export function einordnen(err: unknown): string {
   const status = (err as { status?: number })?.status;
   const text = String((err as { message?: string })?.message ?? '').toLowerCase();
 
@@ -242,7 +257,7 @@ function einordnen(err: unknown): string {
  * Ob die Anfrage an einem Feld gescheitert ist, das die Gegenstelle nicht
  * kennt – und nicht etwa am Schlüssel, am Guthaben oder am Bild.
  */
-function istFeldFehler(err: unknown): boolean {
+export function istFeldFehler(err: unknown): boolean {
   const status = (err as { status?: number })?.status;
   if (status !== 400 && status !== 422) return false;
   const text = String((err as { message?: string })?.message ?? '').toLowerCase();
@@ -278,6 +293,13 @@ function normalise(input: Partial<VisionResult>): VisionResult {
         menge: Number(entry.menge) > 0 ? Number(entry.menge) : 0,
         einheit: String(entry.einheit ?? '').trim(),
       })),
+    // Aeltere Antworten (und Gateways, die das Schema lockerer nehmen)
+    // liefern keine Vorbereitung – dann bleibt sie leer und die App liest sie
+    // aus den Schritten.
+    vorbereitung: (Array.isArray(idee.vorbereitung) ? idee.vorbereitung : [])
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean),
     schritte: (idee.schritte ?? [])
       .filter((entry) => entry && String(entry.text ?? '').trim())
       .map((entry) => ({

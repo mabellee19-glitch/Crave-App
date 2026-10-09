@@ -7,9 +7,11 @@
  * den Offline-Fall.
  */
 
-const VERSION = 'crave-v1';
+const VERSION = 'crave-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
+/** So lange darf das Netz fuer eine Seite brauchen, bevor die gespeicherte kommt. */
+const NAV_TIMEOUT_MS = 1500;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -40,21 +42,34 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return; // immer frisch aus dem Netz
 
-  // Seitenaufrufe: erst Netz, bei Ausfall die zuletzt gesehene Seite.
+  // Seitenaufrufe: erst Netz – aber nicht beliebig lange. Steht die Seite
+  // schon im Speicher und das Netz braucht laenger als einen Moment (Funkloch,
+  // schwaches WLAN in der Kueche), kommt die gespeicherte. Die Antwort aus dem
+  // Netz wird trotzdem abgewartet und fuer das naechste Oeffnen abgelegt.
   if (request.mode === 'navigate') {
+    const network = fetch(request).then((response) => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy)).catch(() => undefined);
+      }
+      return response;
+    });
+    event.waitUntil(network.catch(() => undefined));
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy)).catch(() => undefined);
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-          const fallback = await caches.match('/');
-          return fallback ?? Response.error();
-        }),
+      (async () => {
+        const cached = await caches.match(request);
+        if (!cached) {
+          try {
+            return await network;
+          } catch {
+            const fallback = await caches.match('/');
+            return fallback ?? Response.error();
+          }
+        }
+        const frist = new Promise((resolve) => setTimeout(() => resolve(null), NAV_TIMEOUT_MS));
+        const fresh = await Promise.race([network.catch(() => null), frist]);
+        return fresh && fresh.ok ? fresh : cached;
+      })(),
     );
     return;
   }

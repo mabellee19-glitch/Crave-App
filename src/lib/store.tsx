@@ -20,7 +20,13 @@ import {
 } from './types';
 import { mergeData, pruneTombstones, sameData } from './merge';
 import { randomId } from './id';
-import { PANTRY_CATALOGUE, PANTRY_CATEGORY_RENAMES, buildSeedData } from './seed';
+import {
+  PANTRY_CATALOGUE,
+  PANTRY_CATEGORY_RENAMES,
+  SCHRITTE_VOR_DER_VORBEREITUNG,
+  buildSeedData,
+} from './seed';
+import { schrittSignatur, vorbereitungVorschlagen } from './prep';
 import {
   addAmounts,
   canonicalUnit,
@@ -210,6 +216,58 @@ function pullNewSeedContent(data: AppData, now: number): AppData | null {
   }
 
   return changed ? { ...data, recipes, dishes } : null;
+}
+
+/**
+ * Rezepten aus der Zeit vor der Vorbereitung diese einmal nachtragen.
+ *
+ * Mitgelieferte Rezepte bekommen die von Hand geschriebene Vorbereitung. Stehen
+ * ihre Schritte noch so da wie ausgeliefert, kommen auch die neuen Schritte
+ * mit – aus denen ist das Schneiden in die Vorbereitung gewandert, sonst stuende
+ * es doppelt da. Wer die Schritte geaendert hat, behaelt sie.
+ *
+ * Eigene Rezepte bekommen eine Vorbereitung, die aus ihren Zutaten und
+ * Schritten gelesen ist. Ihre Schritte bleiben, wie sie sind.
+ *
+ * Danach traegt jedes Rezept ein `prep`-Feld, auch wenn es leer ist – damit
+ * laeuft das genau einmal, und eine geloeschte Vorbereitung kommt nicht wieder.
+ */
+function ergaenzeVorbereitung(data: AppData, now: number): AppData | null {
+  const vorlage = buildSeedData();
+  const nachName = new Map(
+    Object.values(vorlage.recipes).map((recipe) => [namensschluessel(recipe.name), recipe]),
+  );
+  let changed = false;
+  const recipes = { ...data.recipes };
+
+  for (const [id, recipe] of Object.entries(data.recipes)) {
+    if (!recipe || recipe.deleted || Array.isArray(recipe.prep)) continue;
+
+    const muster = vorlage.recipes[id] ?? nachName.get(namensschluessel(recipe.name));
+    if (muster) {
+      const unveraendert = (SCHRITTE_VOR_DER_VORBEREITUNG[muster.id] ?? []).includes(
+        schrittSignatur(recipe.steps ?? []),
+      );
+      recipes[id] = {
+        ...recipe,
+        prep: muster.prep ?? [],
+        steps: unveraendert ? muster.steps : recipe.steps,
+        updatedAt: now,
+      };
+    } else {
+      recipes[id] = {
+        ...recipe,
+        prep: vorbereitungVorschlagen({
+          ingredients: recipe.ingredients ?? [],
+          steps: recipe.steps ?? [],
+        }),
+        updatedAt: now,
+      };
+    }
+    changed = true;
+  }
+
+  return changed ? { ...data, recipes } : null;
 }
 
 function isEmpty(data: AppData): boolean {
@@ -421,8 +479,19 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     let cancelled = false;
 
     (async () => {
+      /*
+       * Liegt auf dem Geraet schon ein Stand, ist die App damit sofort
+       * benutzbar. Auf den Server zu warten hiess bisher: Funktion aufwecken,
+       * Datenbank aufwecken, dann erst zeichnen – beim Oeffnen vom
+       * Home-Bildschirm gern zwei, drei Sekunden "Daten werden geladen".
+       * Der Serverstand wird danach im Hintergrund eingearbeitet; Aenderungen,
+       * die in der Zwischenzeit passieren, landen in dataRef und gehen mit.
+       */
       const local = readLocal(spaceId);
-      if (local && !cancelled) commit(local);
+      if (local && !cancelled) {
+        commit(local);
+        setReady(true);
+      }
 
       const res = await fetch(`/api/space/${spaceId}`, { cache: 'no-store' })
         .then((r) => r.json())
@@ -465,6 +534,13 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         const nachschub = pullNewSeedContent(next, stamp());
         if (nachschub) {
           next = nachschub;
+          dirtyRef.current = true;
+        }
+        // Ebenfalls erst mit dem Serverstand: ein anderes Geraet hat die
+        // Vorbereitung vielleicht schon ergaenzt oder bearbeitet.
+        const vorbereitet = ergaenzeVorbereitung(next, stamp());
+        if (vorbereitet) {
+          next = vorbereitet;
           dirtyRef.current = true;
         }
       }
@@ -1037,6 +1113,8 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         ...recipe,
         steps: schritte,
         ingredients: zutaten,
+        // Die neuen Schritte setzen ihre Vorbereitung voraus.
+        prep: schritte !== recipe.steps && !recipe.prep?.length ? vorlage.prep : recipe.prep,
         servings: recipe.servings > 0 ? recipe.servings : vorlage.servings,
         timeMin: recipe.timeMin ?? vorlage.timeMin,
         notes: recipe.notes || vorlage.notes,
@@ -1072,6 +1150,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
           ...existing,
           steps: schritte,
           ingredients: zutaten,
+          prep: schritte !== existing.steps && !existing.prep?.length ? recipe.prep : existing.prep,
           timeMin: existing.timeMin ?? recipe.timeMin,
           notes: existing.notes || recipe.notes,
           updatedAt: stamp(),
@@ -1241,6 +1320,7 @@ export function blankRecipe(): Recipe {
     servings: 2,
     timeMin: 30,
     ingredients: [blankIngredient()],
+    prep: [],
     steps: [blankStep()],
     cookNext: false,
     notes: '',

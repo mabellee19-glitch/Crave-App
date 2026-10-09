@@ -6,7 +6,7 @@ import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
 import { playAlarm, setAlarmSession, stopAlarm } from '@/lib/audio';
 import { Portal, useBodyScrollLock } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
-import { IconChevronLeft, IconChevronRight, IconClose, IconTimer } from './Icons';
+import { IconCheck, IconChevronLeft, IconChevronRight, IconClose, IconKnife, IconTimer } from './Icons';
 import { CookAnimation, animationErwuenscht } from './CookAnimation';
 
 /**
@@ -43,9 +43,41 @@ export function CookMode({
     else onClose();
   }, [onClose]);
 
-  const [index, setIndex] = useState(0);
+  const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
+  const ingredients = useMemo(
+    () => recipe.ingredients.filter((i) => i.name.trim().length > 0),
+    [recipe.ingredients],
+  );
+  const prep = useMemo(
+    () => (recipe.prep ?? []).filter((task) => task.trim().length > 0),
+    [recipe.prep],
+  );
+
+  /*
+   * Vor dem ersten Schritt kommt die Vorbereitung: schneiden, abmessen,
+   * bereitlegen. Sie ist ein eigener Bildschirm vor Schritt 1, damit am Herd
+   * niemand mehr zum Brett muss. Abgemessen wird immer – die Zutaten stehen
+   * dort mit den Mengen fuer die gewaehlte Portionenzahl.
+   */
   const total = steps.length;
-  const step = steps[Math.min(index, Math.max(total - 1, 0))];
+  const hatVorbereitung = total > 0 && (prep.length > 0 || ingredients.length > 0);
+  const offset = hatVorbereitung ? 1 : 0;
+  const screens = total + offset;
+
+  const [index, setIndex] = useState(0);
+  const istVorbereitung = hatVorbereitung && index === 0;
+  const stepIndex = Math.min(Math.max(index - offset, 0), Math.max(total - 1, 0));
+  const step = steps[stepIndex];
+
+  // Abgehakt wird nur fuer diesen Kochgang – beim naechsten Mal ist alles frisch.
+  const [erledigt, setErledigt] = useState<Set<string>>(() => new Set());
+  const umschalten = (key: string) =>
+    setErledigt((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   /**
    * Timer aller Schritte an einem Ort.
@@ -165,19 +197,17 @@ export function CookMode({
 
   /** Timer, die laufen oder klingeln und nicht zum angezeigten Schritt gehören. */
   const backgroundTimers = useMemo(() => {
+    const angezeigt = istVorbereitung ? -1 : stepIndex;
     return steps
       .map((entry, position) => ({ entry, position, state: timers[entry.id] }))
       .filter(
         ({ entry, position, state }) =>
-          position !== index && state && (state.endsAt !== null || state.ringing) && entry.durationSec,
+          position !== angezeigt &&
+          state &&
+          (state.endsAt !== null || state.ringing) &&
+          entry.durationSec,
       );
-  }, [steps, timers, index]);
-
-  const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
-  const ingredients = useMemo(
-    () => recipe.ingredients.filter((i) => i.name.trim().length > 0),
-    [recipe.ingredients],
-  );
+  }, [steps, timers, stepIndex, istVorbereitung]);
 
   // Bildschirm wachhalten (Safari ab 16.4, Chrome, Edge). Fehler sind egal.
   useEffect(() => {
@@ -215,13 +245,13 @@ export function CookMode({
   // Pfeiltasten auf dem iPad mit Tastatur / Desktop.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowRight') setIndex((i) => Math.min(i + 1, total - 1));
+      if (event.key === 'ArrowRight') setIndex((i) => Math.min(i + 1, screens - 1));
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(i - 1, 0));
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [total, onClose]);
+  }, [screens, onClose]);
 
   if (total === 0) {
     return (
@@ -249,8 +279,8 @@ export function CookMode({
     );
   }
 
-  const isLast = index >= total - 1;
-  const progress = ((index + 1) / total) * 100;
+  const isLast = index >= screens - 1;
+  const progress = ((index + 1) / screens) * 100;
 
   return (
     <Portal>
@@ -269,7 +299,7 @@ export function CookMode({
             <div className="cook__progressbar" style={{ width: `${progress}%` }} />
           </div>
           <span className="syncdot" style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {index + 1}/{total}
+            {istVorbereitung ? <IconKnife size={16} /> : `${stepIndex + 1}/${total}`}
           </span>
         </div>
 
@@ -279,7 +309,7 @@ export function CookMode({
               <button
                 key={entry.id}
                 className={`cook__timerchip${state!.ringing ? ' cook__timerchip--ringing' : ''}`}
-                onClick={() => setIndex(position)}
+                onClick={() => setIndex(position + offset)}
                 aria-label={`Zu Schritt ${position + 1} mit laufendem Timer`}
               >
                 <IconTimer size={15} />
@@ -290,40 +320,91 @@ export function CookMode({
           </div>
         ) : null}
 
-        <div className="cook__body">
-          <div className="cook__count">
-            Schritt {index + 1} von {total}
+        {istVorbereitung ? (
+          <div className="cook__body">
+            <div className="cook__count">Vorbereitung</div>
+            <p className="cook__text cook__text--klein">
+              Erst schnibbeln und abmessen – dann geht’s am Herd ohne Hektik.
+            </p>
+
+            {prep.length > 0 ? (
+              <section>
+                <div className="cook__subhead">Schneiden &amp; bereitlegen</div>
+                <ul className="checklist">
+                  {prep.map((task, position) => {
+                    const key = `p${position}`;
+                    const fertig = erledigt.has(key);
+                    return (
+                      <li key={key}>
+                        <button
+                          className={`checklist__item${fertig ? ' checklist__item--done' : ''}`}
+                          onClick={() => umschalten(key)}
+                          aria-pressed={fertig}
+                        >
+                          <span className={`checkbox${fertig ? ' checkbox--on' : ''}`}>
+                            <IconCheck size={16} />
+                          </span>
+                          <span>{task}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
+
+            {ingredients.length > 0 ? (
+              <section>
+                <div className="cook__subhead">Abmessen</div>
+                <ul className="checklist">
+                  {ingredients.map((ingredient) => {
+                    const key = `z${ingredient.id}`;
+                    const fertig = erledigt.has(key);
+                    const quantity = formatQuantity(
+                      scaleAmount(ingredient.amount, factor, ingredient.noScale),
+                      ingredient.unit,
+                    );
+                    return (
+                      <li key={key}>
+                        <button
+                          className={`checklist__item${fertig ? ' checklist__item--done' : ''}`}
+                          onClick={() => umschalten(key)}
+                          aria-pressed={fertig}
+                        >
+                          <span className={`checkbox${fertig ? ' checkbox--on' : ''}`}>
+                            <IconCheck size={16} />
+                          </span>
+                          <span>
+                            {quantity ? <strong>{quantity} </strong> : null}
+                            {ingredient.name}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
           </div>
-          <p className="cook__text">{step.text}</p>
-
-          {step.durationSec ? (
-            <Timer
-              duration={step.durationSec}
-              state={timerFor(step.id, step.durationSec)}
-              onStart={() => startTimer(step.id, step.durationSec!)}
-              onPause={() => pauseTimer(step.id, step.durationSec!)}
-              onReset={() => resetTimer(step.id, step.durationSec!)}
-              onDismiss={() => resetTimer(step.id, step.durationSec!)}
-            />
-          ) : null}
-
-          {index === 0 && ingredients.length > 0 ? (
-            <div className="cook__ing">
-              {ingredients.map((ingredient) => {
-                const quantity = formatQuantity(
-                  scaleAmount(ingredient.amount, factor, ingredient.noScale),
-                  ingredient.unit,
-                );
-                return (
-                  <span key={ingredient.id}>
-                    {quantity ? <strong>{quantity} </strong> : null}
-                    {ingredient.name}
-                  </span>
-                );
-              })}
+        ) : (
+          <div className="cook__body">
+            <div className="cook__count">
+              Schritt {stepIndex + 1} von {total}
             </div>
-          ) : null}
-        </div>
+            <p className="cook__text">{step.text}</p>
+
+            {step.durationSec ? (
+              <Timer
+                duration={step.durationSec}
+                state={timerFor(step.id, step.durationSec)}
+                onStart={() => startTimer(step.id, step.durationSec!)}
+                onPause={() => pauseTimer(step.id, step.durationSec!)}
+                onReset={() => resetTimer(step.id, step.durationSec!)}
+                onDismiss={() => resetTimer(step.id, step.durationSec!)}
+              />
+            ) : null}
+          </div>
+        )}
 
         <div className="cook__foot">
           <button
@@ -342,9 +423,9 @@ export function CookMode({
             <button
               className="btn btn--primary btn--lg"
               style={{ flex: 1 }}
-              onClick={() => setIndex((i) => Math.min(i + 1, total - 1))}
+              onClick={() => setIndex((i) => Math.min(i + 1, screens - 1))}
             >
-              Weiter
+              {istVorbereitung ? 'Los geht’s' : 'Weiter'}
               <IconChevronRight size={18} />
             </button>
           )}

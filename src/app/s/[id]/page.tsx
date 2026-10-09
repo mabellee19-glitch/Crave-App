@@ -3,7 +3,19 @@ import { notFound } from 'next/navigation';
 import { isValidSpaceId } from '@/lib/id';
 import { SpaceApp } from '@/components/SpaceApp';
 
-export const dynamic = 'force-dynamic';
+/*
+ * Die Seite ist fuer jeden Datenraum dieselbe Huelle – die Daten holt der
+ * Browser selbst. Deshalb wird sie beim ersten Aufruf einmal gebaut und danach
+ * aus dem Cache ausgeliefert, statt bei jedem Oeffnen eine Funktion zu wecken.
+ * Ein Kaltstart dieser Funktion kostete gut eine Sekunde, bevor ueberhaupt
+ * etwas auf dem Bildschirm stand.
+ */
+export const dynamicParams = true;
+export const revalidate = false;
+
+export function generateStaticParams() {
+  return [];
+}
 
 type Props = { params: Promise<{ id: string }> };
 

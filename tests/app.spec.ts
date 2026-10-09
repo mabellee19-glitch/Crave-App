@@ -6,6 +6,7 @@ import {
   openSpace,
   pantryChip,
   shoppingRow,
+  startCooking,
   waitForSync,
 } from './helpers';
 import { buildSeedData } from '../src/lib/seed';
@@ -70,26 +71,40 @@ test.describe('Rezepte', () => {
     await expect(dialog.locator('.stepper__value')).toHaveText('3 Portionen');
     await expect(dialog.getByText('600 g').first()).toBeVisible();
 
-    // Kochmodus
+    // Kochmodus: zuerst die Vorbereitung, abgemessen fuer drei Portionen.
     await dialog.getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Knoblauch fein hacken' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '600 g Poulet' })).toBeVisible();
+
+    // Abhaken fuer diesen Kochgang.
+    const poulet = page.getByRole('button', { name: '600 g Poulet' });
+    await poulet.click();
+    await expect(poulet).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Los geht’s' }).click();
+    await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
 
     await page.getByRole('button', { name: 'Weiter' }).click();
-    await expect(page.getByText('Schritt 2 von 7')).toBeVisible();
+    await expect(page.getByText('Schritt 2 von 5')).toBeVisible();
 
     await page.getByRole('button', { name: 'Zurück', exact: true }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
+
+    // Zurueck bis vor Schritt 1 fuehrt in die Vorbereitung.
+    await page.getByRole('button', { name: 'Zurück', exact: true }).click();
+    await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Kochmodus beenden' }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeHidden();
+    await expect(page.locator('.cook')).toHaveCount(0);
   });
 
   test('der Timer im Kochmodus laeuft und laesst sich pausieren', async ({ page }) => {
     await openSpace(page, newSpace('timer'));
 
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await startCooking(page);
+    await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
 
     // Schritt 1 hat einen 15-Minuten-Timer.
     await expect(page.getByText('15:00')).toBeVisible();
@@ -117,9 +132,9 @@ test.describe('Rezepte', () => {
 
       const vorspann = page.locator('.cookanim');
       await expect(vorspann).toBeVisible();
-      // Hoechstens zwei Sekunden – danach steht der erste Schritt bereit.
+      // Hoechstens zwei Sekunden – danach steht die Vorbereitung bereit.
       await expect(vorspann).toHaveCount(0, { timeout: 2500 });
-      await expect(page.getByRole('button', { name: 'Timer starten' })).toBeEnabled();
+      await expect(page.getByRole('button', { name: 'Los geht’s' })).toBeEnabled();
     });
 
     test('ein Tippen überspringt den Vorspann sofort', async ({ page }) => {
@@ -143,11 +158,12 @@ test.describe('Rezepte', () => {
       await expect(page.locator('.cookanim--start .cookanim__deckel')).toHaveCount(0);
       await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 2500 });
 
-      // Durch bis zum letzten Schritt.
-      for (let i = 0; i < 6; i += 1) {
+      // Durch die Vorbereitung bis zum letzten Schritt.
+      await page.getByRole('button', { name: 'Los geht’s' }).click();
+      for (let i = 0; i < 4; i += 1) {
         await page.getByRole('button', { name: 'Weiter' }).click();
       }
-      await expect(page.getByText('Schritt 7 von 7')).toBeVisible();
+      await expect(page.getByText('Schritt 5 von 5')).toBeVisible();
 
       // Erst jetzt der fertige Topf mit Deckel und Dampf.
       await page.getByRole('button', { name: 'Fertig gekocht' }).click();
@@ -164,8 +180,8 @@ test.describe('Rezepte', () => {
     await openSpace(page, newSpace('timerweiter'));
 
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await startCooking(page);
+    await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
 
     // Schritt 1 kocht den Reis: 15 Minuten.
     await page.getByRole('button', { name: 'Timer starten' }).click();
@@ -173,7 +189,7 @@ test.describe('Rezepte', () => {
 
     // Weiter zum nächsten Schritt – der Timer darf nicht stehen bleiben.
     await page.getByRole('button', { name: 'Weiter' }).click();
-    await expect(page.getByText('Schritt 2 von 7')).toBeVisible();
+    await expect(page.getByText('Schritt 2 von 5')).toBeVisible();
 
     const chip = page.locator('.cook__timerchip');
     await expect(chip).toHaveCount(1);
@@ -184,7 +200,7 @@ test.describe('Rezepte', () => {
 
     // Zurück auf Schritt 1: der Timer läuft dort weiter, nicht von vorn.
     await chip.click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timer pausieren' })).toBeVisible();
     const rest = await page.locator('.timer__clock').innerText();
     expect(rest).not.toBe('15:00');
@@ -212,7 +228,8 @@ test.describe('Rezepte', () => {
 
     await page.getByRole('button', { name: 'Rezept Marry me Chicken Orzo öffnen' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    // Die Vorbereitung mit dreizehn Zutaten ist lang genug zum Scrollen.
+    await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
 
     // Im Kochmodus scrollt nur der Schritt selbst, nie die Seite dahinter.
     await page.mouse.move(180, 320);
@@ -476,7 +493,7 @@ test.describe('Rezept über Link', () => {
       .click();
     const detail = page.getByRole('dialog');
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
-    await detail.getByRole('button', { name: 'Start Cooking' }).click();
+    await startCooking(page);
     await expect(page.getByText('Schritt 1 von 2')).toBeVisible();
     await page.getByRole('button', { name: 'Weiter' }).click();
     await expect(page.getByText('02:00')).toBeVisible();
@@ -548,12 +565,14 @@ test.describe('Zubereitung nachtragen', () => {
     await detail.getByRole('button', { name: 'Aus der Vorlage nachtragen' }).click();
     await expect(page.getByText('Aus der Vorlage nachgetragen')).toBeVisible();
 
-    await expect(detail.getByText('8 Schritte')).toBeVisible();
-    // Die Zutaten fehlten ebenfalls und sind jetzt da.
+    await expect(detail.getByText('7 Schritte')).toBeVisible();
+    // Die Zutaten fehlten ebenfalls und sind jetzt da – und mit den Schritten
+    // aus der Vorlage auch deren Vorbereitung.
     await expect(detail.getByText('250 g')).toBeVisible();
+    await expect(detail.getByText('Burgerbrötchen halbieren')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
-    await detail.getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
+    await startCooking(page);
+    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
   });
 
   test('ein selbst angelegtes Rezept sagt ehrlich, dass nichts hinterlegt ist', async ({ page }) => {
@@ -601,8 +620,8 @@ test.describe('Weckerton', () => {
     await openSpace(page, newSpace('wecker'));
 
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await startCooking(page);
+    await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
 
     // Waehrend des Kochens gilt der Ton als Medienwiedergabe.
     expect(await session(page)).toBe('playback');
@@ -1275,11 +1294,11 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
 
     await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
     detail = page.getByRole('dialog');
-    await expect(detail.getByText('8 Schritte')).toBeVisible();
+    await expect(detail.getByText('7 Schritte')).toBeVisible();
     await expect(detail.getByText('250 g')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
-    await detail.getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
+    await startCooking(page);
+    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
   });
 
   test('ein geloeschtes Rezept kommt nicht von selbst zurueck', async ({ page, request }) => {

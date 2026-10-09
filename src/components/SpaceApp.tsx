@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { StoreProvider } from '@/lib/store';
+import { applyTheme, readTheme } from '@/lib/theme';
 import { AppShell } from './AppShell';
 
 const LAST_SPACE_KEY = 'crave:space';
@@ -15,6 +16,12 @@ export function SpaceApp({ spaceId }: { spaceId: string }) {
       /* privater Modus */
     }
   }, [spaceId]);
+
+  // Die Farbwelt setzt schon das Skript im Kopf; hier zieht die Farbe der
+  // Statusleiste nach, deren Meta-Tag dort noch nicht stand.
+  useEffect(() => {
+    applyTheme(readTheme());
+  }, []);
 
   // Service Worker fuer den Offline-Betrieb registrieren.
   useEffect(() => {

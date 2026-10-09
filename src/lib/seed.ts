@@ -26,6 +26,8 @@ interface RecipeSeed {
   servings: number;
   timeMin: number;
   ingredients: Ingredient[];
+  /** Was vor dem Kochen geschnitten und bereitgelegt wird (siehe lib/prep). */
+  prep: string[];
   steps: Step[];
 }
 
@@ -47,10 +49,15 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    prep: [
+      'Reis in einem Sieb kalt abspülen',
+      'Poulet in mundgerechte Streifen schneiden, salzen und pfeffern',
+      'Knoblauch fein hacken',
+      'Brokkoli in Röschen teilen, den Strunk schälen und in Scheiben schneiden',
+      'Sojasauce und Honig in einer Tasse verrühren',
+    ],
     steps: [
-      step('Reis kalt abspülen, mit der doppelten Menge Wasser und etwas Salz aufsetzen und zugedeckt köcheln lassen.', 15 * 60),
-      step('Poulet in mundgerechte Streifen schneiden, salzen und pfeffern. Knoblauch fein hacken.'),
-      step('Brokkoli in Röschen teilen und den Strunk schälen und in Scheiben schneiden.'),
+      step('Reis mit der doppelten Menge Wasser und etwas Salz aufsetzen und zugedeckt köcheln lassen.', 15 * 60),
       step('Olivenöl in einer grossen Pfanne erhitzen. Poulet bei mittlerer Hitze anbraten, bis es rundum goldbraun ist.', 5 * 60),
       step('Knoblauch dazugeben und kurz mitbraten, bis er duftet.', 60),
       step('Brokkoli zugeben, Sojasauce und Honig darüber giessen und alles zugedeckt garen, bis der Brokkoli bissfest ist.', 6 * 60),
@@ -73,11 +80,15 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    prep: [
+      'Ofen auf 200 °C Ober-/Unterhitze vorheizen',
+      'Süsskartoffeln schälen und in gleichmässige Spalten schneiden',
+      'Knoblauch fein hacken',
+      'Zitrone halbieren: eine Hälfte auspressen, die andere in Spalten schneiden',
+    ],
     steps: [
-      step('Ofen auf 200 °C Ober-/Unterhitze vorheizen.'),
-      step('Süsskartoffeln schälen und in gleichmässige Spalten schneiden. Mit Olivenöl, Salz und Pfeffer mischen.'),
-      step('Spalten auf ein Blech verteilen und im Ofen vorbacken.', 20 * 60),
-      step('Lachs salzen, pfeffern und mit Zitronensaft, gehacktem Knoblauch und Honig bestreichen.'),
+      step('Süsskartoffeln mit Olivenöl, Salz und Pfeffer mischen, auf einem Blech verteilen und im Ofen vorbacken.', 20 * 60),
+      step('Lachs salzen, pfeffern und mit Zitronensaft, Knoblauch und Honig bestreichen.'),
       step('Lachs zu den Süsskartoffeln aufs Blech legen und fertig garen, bis der Fisch glasig ist.', 12 * 60),
       step('Mit Zitronenspalten servieren.'),
     ],
@@ -98,6 +109,8 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    // Nichts zu schneiden – die Vorbereitung ist hier nur das Abmessen.
+    prep: [],
     steps: [
       step('Salzwasser aufsetzen und die Makkaroni bissfest kochen.', 9 * 60),
       step('Butter in einer zweiten Pfanne schmelzen, Mehl einrühren und unter Rühren hell anschwitzen.', 2 * 60),
@@ -123,8 +136,8 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    prep: ['Zwiebeln und Knoblauch fein hacken', 'Basilikumblätter abzupfen'],
     steps: [
-      step('Zwiebeln und Knoblauch fein hacken.'),
       step('Olivenöl erhitzen und die Zwiebeln glasig dünsten, dann den Knoblauch kurz mitdünsten.', 5 * 60),
       step('Pelati und Bouillon zugeben, aufkochen und offen einköcheln lassen.', 15 * 60),
       step('Suppe fein pürieren, Rahm einrühren und abschmecken.'),
@@ -148,8 +161,8 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Olivenöl', 1, 'EL'),
       ing('Salz', null, '', true),
     ],
+    prep: ['Linsen in einem Sieb kalt abspülen', 'Zwiebeln, Knoblauch und Ingwer fein hacken'],
     steps: [
-      step('Linsen kalt abspülen. Zwiebeln, Knoblauch und Ingwer fein hacken.'),
       step('Öl erhitzen und Zwiebeln, Knoblauch und Ingwer andünsten.', 4 * 60),
       step('Currypaste zugeben und kurz mitrösten, bis sie duftet.', 60),
       step('Linsen, Kokosmilch und Bouillon zugeben, aufkochen und bei kleiner Hitze weich köcheln lassen.', 15 * 60),
@@ -174,8 +187,8 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    prep: ['Zwiebeln und Peperoni in feine Streifen schneiden', 'Knoblauch fein würfeln'],
     steps: [
-      step('Zwiebeln, Peperoni und Knoblauch in feine Streifen bzw. Würfel schneiden.'),
       step('Olivenöl in einer weiten Pfanne erhitzen, Gemüse weich dünsten.', 7 * 60),
       step('Gewürze zugeben und kurz mitrösten, dann Pelati zugeben und einköcheln lassen.', 10 * 60),
       step('Mit einem Löffel vier Mulden formen und je ein Ei hineingleiten lassen.'),
@@ -204,9 +217,14 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Schwarzer Pfeffer', 0.5, 'TL'),
       ing('Parmesan gerieben (optional)', 30, 'g'),
     ],
+    prep: [
+      'Hähnchenbrust in Stücke schneiden und mit Salz und Pfeffer würzen',
+      'Knoblauch hacken',
+      'Getrocknete Tomaten hacken',
+    ],
     steps: [
       step(
-        'Olivenöl in einer grossen Pfanne bei mittlerer bis hoher Hitze erhitzen. Hähnchen mit Salz und Pfeffer würzen, dazugeben und anbraten, bis es leicht gebräunt ist.',
+        'Olivenöl in einer grossen Pfanne bei mittlerer bis hoher Hitze erhitzen. Hähnchen dazugeben und anbraten, bis es leicht gebräunt ist.',
         5 * 60,
       ),
       step('Knoblauch dazugeben und mitbraten, bis er duftet.', 60),
@@ -240,8 +258,14 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Speisestärke (optional, macht die Füllung saftiger)', 1, 'TL'),
       ing('Pfeffer', null, '', true),
     ],
+    prep: [
+      'Weisskohl sehr fein hacken',
+      'Karotte fein reiben',
+      'Frühlingszwiebeln in feine Ringe schneiden',
+      'Knoblauch und Ingwer fein hacken',
+    ],
     steps: [
-      step('Den fein gehackten Kohl leicht salzen und ziehen lassen.', 10 * 60),
+      step('Den Kohl leicht salzen und ziehen lassen.', 10 * 60),
       step('Kohl anschliessend gut ausdrücken, damit die Füllung nicht zu feucht wird.'),
       step('Alle Zutaten gründlich miteinander vermengen.'),
       step('Die Füllung roh in die Gyoza geben – sie gart später beim Braten und Dämpfen.'),
@@ -266,20 +290,26 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Muskat', null, '', true),
       ing('Parmesan (optional)', null, '', true),
     ],
+    prep: [
+      'Spinat auftauen und wirklich sehr gut ausdrücken – das ist wichtig!',
+      'Zwiebel und Knoblauch fein hacken',
+      'Feta zerbröseln',
+      'Ei zum Bestreichen in einer Tasse verquirlen',
+    ],
     steps: [
-      step('Spinat auftauen und wirklich sehr gut ausdrücken. Das ist wichtig!'),
-      step('Zwiebel und Knoblauch fein hacken und kurz anbraten.'),
+      step('Zwiebel und Knoblauch kurz anbraten.'),
       step(
         'Spinat dazugeben, mit Salz, Pfeffer und Muskat würzen und braten, damit möglichst viel Flüssigkeit verdampft.',
         5 * 60,
       ),
       step('Spinat etwas abkühlen lassen.'),
-      step('Feta zerbröseln und ein Ei unter die Spinatmasse mischen.'),
+      step('Feta und ein Ei unter die Spinatmasse mischen.'),
+      step('Backofen auf 200 °C Ober-/Unterhitze vorheizen.'),
       step('Beide Blätterteigrollen ausrollen und in ungefähr 8 × 8 cm grosse Quadrate schneiden.'),
       step('Jeweils einen gut gehäuften Esslöffel Füllung in die Mitte geben.'),
       step('Zu einem Dreieck zusammenklappen und die Ränder mit einer Gabel festdrücken.'),
-      step('Mit verquirltem Ei bestreichen.'),
-      step('Bei 200 °C Ober-/Unterhitze backen, bis sie schön goldbraun sind (20–25 Minuten).', 20 * 60),
+      step('Mit dem verquirlten Ei bestreichen.'),
+      step('Im Ofen backen, bis sie schön goldbraun sind (20–25 Minuten).', 20 * 60),
     ],
   },
   {
@@ -311,13 +341,19 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Sesam (zum Servieren)', null, '', true),
       ing('Reis (zum Servieren)', null, '', true),
     ],
+    prep: [
+      'Zwiebeln, Knoblauch und Ingwer fein hacken',
+      'Die roten Linsen in einem Sieb unter kaltem Wasser gut abspülen',
+      'Kurkuma, Koriander, Kreuzkümmel, Paprikapulver und Garam Masala in einer kleinen Schale bereitstellen – sie kommen zusammen in den Topf',
+      'Limette oder Zitrone auspressen',
+    ],
     steps: [
       step('Öl in einem grossen Topf erhitzen. Zwiebeln hineingeben und anbraten, bis sie glasig sind.', 150),
       step('Knoblauch und Ingwer hinzufügen und mitbraten, bis es schön duftet.', 60),
       step(
-        'Kurkuma, Koriander, Kreuzkümmel, Paprikapulver und Garam Masala dazugeben und ein paar Sekunden mitrösten. Dadurch entfalten die Gewürze ihr Aroma.',
+        'Die Gewürze dazugeben und ein paar Sekunden mitrösten. Dadurch entfalten sie ihr Aroma.',
       ),
-      step('Die roten Linsen in einem Sieb unter kaltem Wasser gut abspülen, in den Topf geben und alles vermischen.'),
+      step('Die Linsen in den Topf geben und alles vermischen.'),
       step(
         'Gemüsebouillon dazugeben und aufkochen lassen. Dann die Hitze reduzieren, Deckel drauf und köcheln lassen. Zwischendurch umrühren.',
         8 * 60,
@@ -346,10 +382,14 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    prep: [
+      'Ofen auf 180 °C Ober-/Unterhitze vorheizen (Umluft 160 °C)',
+      'Lachs auspacken und trocken tupfen',
+      'Honig, Senf und Olivenöl verrühren und mit Salz und Pfeffer würzen',
+      'Nach Belieben Zitrone in Scheiben schneiden',
+    ],
     steps: [
-      step('Ofen auf 180 °C Ober-/Unterhitze vorheizen (Umluft 160 °C).'),
-      step('Lachs auspacken und trocken tupfen.'),
-      step('Honig, Senf und Olivenöl verrühren, mit Salz und Pfeffer würzen und den Lachs damit einstreichen.'),
+      step('Den Lachs mit der Honig-Senf-Mischung einstreichen.'),
       step('Lachs mit der Hautseite nach unten auf Backpapier legen. Nach Belieben Zitronenscheiben darauflegen.'),
       step('Auf der mittleren Schiene backen, je nach Dicke 12–15 Minuten.', 12 * 60),
     ],
@@ -378,8 +418,13 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', null, '', true),
       ing('Pfeffer', null, '', true),
     ],
+    prep: [
+      'Zwiebel in Ringe schneiden',
+      'Halloumi und Zucchini in Scheiben schneiden',
+      'Burgerbrötchen halbieren',
+      'Radicchio und Minze waschen und trocken tupfen',
+    ],
     steps: [
-      step('Zwiebel in Ringe schneiden. Halloumi und Zucchini in Scheiben schneiden.'),
       step(
         'Pflanzenöl, Currypulver, Salz und Pfeffer in einen verschliessbaren Beutel geben, schütteln und die Halloumischeiben hineingeben. In den Kühlschrank legen und 30–60 Minuten marinieren.',
         30 * 60,
@@ -395,7 +440,7 @@ const RECIPE_SEEDS: RecipeSeed[] = [
         'Unter ständigem Schlagen langsam das restliche Öl zugiessen, bis eine cremige Sauce entsteht. Mit Salz und Pfeffer würzen.',
       ),
       step(
-        'Burgerbrötchen halbieren, auf ein mit Backpapier belegtes Blech legen und im vorgeheizten Ofen rösten.',
+        'Burgerbrötchen auf ein mit Backpapier belegtes Blech legen und im vorgeheizten Ofen rösten.',
         4 * 60,
       ),
       step('Halloumi pro Seite braten, bis er leicht gebräunt ist.', 2 * 60),
@@ -423,15 +468,22 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Salz', 0.5, 'TL'),
       ing('Pfeffer', 0.25, 'TL'),
     ],
+    prep: [
+      'Knoblauch in Scheiben schneiden',
+      'Cherrytomaten halbieren',
+      'Thunfisch abtropfen lassen',
+      'Von der Zitrone die Schale abreiben und den Saft auspressen',
+      'Kräuter grob hacken',
+    ],
     steps: [
       step(
         'Pasta in kräftig gesalzenem Wasser al dente kochen. Vor dem Abgiessen eine Tasse Pastawasser beiseitestellen.',
       ),
       step(
-        'Während die Pasta kocht, das Olivenöl in einer grossen Pfanne erhitzen. Knoblauch in Scheiben und die Chiliflocken bei mittlerer Hitze kurz anschwitzen, bis es duftet. Der Knoblauch soll dabei nicht braun werden.',
+        'Während die Pasta kocht, das Olivenöl in einer grossen Pfanne erhitzen. Knoblauch und Chiliflocken bei mittlerer Hitze kurz anschwitzen, bis es duftet. Der Knoblauch soll dabei nicht braun werden.',
       ),
       step(
-        'Cherrytomaten halbieren, dazugeben und bei mittlerer bis hoher Hitze schmoren, bis sie weich werden und aufplatzen. Leicht mit der Kelle andrücken, damit Saft austritt.',
+        'Cherrytomaten dazugeben und bei mittlerer bis hoher Hitze schmoren, bis sie weich werden und aufplatzen. Leicht mit der Kelle andrücken, damit Saft austritt.',
       ),
       step(
         'Thunfisch und Kapern dazugeben, den Thunfisch grob zerpflücken und kurz mitwärmen.',
@@ -464,21 +516,28 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ing('Pfeffer', 0.5, 'TL'),
       ing('Basilikum oder Dill', 2, 'EL'),
     ],
+    prep: [
+      'Zwiebel und Knoblauch fein hacken',
+      'Zucchini würfeln',
+      'Cherrytomaten halbieren',
+      'Weisse Bohnen abtropfen lassen',
+      'Bouillon erhitzen',
+      'Von der Zitrone die Schale abreiben und den Saft auspressen',
+      'Feta zerbröseln und die Kräuter hacken',
+    ],
     steps: [
       step(
-        'Olivenöl in einem grossen, weiten Topf bei mittlerer Hitze erwärmen. Zwiebel fein hacken und darin weich und glasig dünsten.',
+        'Olivenöl in einem grossen, weiten Topf bei mittlerer Hitze erwärmen. Zwiebel darin weich und glasig dünsten.',
       ),
       step(
-        'Knoblauch fein hacken und mit Oregano und Chiliflocken dazugeben. Kurz mitbraten, bis es duftet – der Knoblauch soll nicht braun werden.',
+        'Knoblauch mit Oregano und Chiliflocken dazugeben. Kurz mitbraten, bis es duftet – der Knoblauch soll nicht braun werden.',
       ),
-      step(
-        'Zucchini würfeln, dazugeben und unter Rühren braten, bis sie weich werden und etwas Farbe nehmen.',
-      ),
+      step('Zucchini dazugeben und unter Rühren braten, bis sie weich werden und etwas Farbe nehmen.'),
       step(
         'Orzo dazugeben und umrühren, bis er vom Öl überzogen ist. Kurz mitrösten, das gibt mehr Geschmack.',
       ),
       step(
-        'Cherrytomaten halbieren, mit der heissen Bouillon dazugeben und aufkochen. Dann auf kleine Hitze zurückschalten und offen köcheln lassen, dabei oft rühren, damit der Orzo nicht ansetzt – bis er weich ist und die Flüssigkeit fast aufgesogen. Wird es zu trocken, einen Schuss Wasser zugeben.',
+        'Cherrytomaten mit der heissen Bouillon dazugeben und aufkochen. Dann auf kleine Hitze zurückschalten und offen köcheln lassen, dabei oft rühren, damit der Orzo nicht ansetzt – bis er weich ist und die Flüssigkeit fast aufgesogen. Wird es zu trocken, einen Schuss Wasser zugeben.',
       ),
       step('Weisse Bohnen unterrühren und warm werden lassen.'),
       step(
@@ -490,6 +549,30 @@ const RECIPE_SEEDS: RecipeSeed[] = [
     ],
   },
 ];
+
+/**
+ * Fingerabdruecke der Schritte, wie sie vor der Vorbereitung ausgeliefert
+ * wurden – je Rezept alle Fassungen, die es je gab. Steht ein Rezept noch
+ * genau so da, bekommt es die neuen Schritte, aus denen das Schneiden in die
+ * Vorbereitung gewandert ist. Wer die Schritte selbst geaendert hat, behaelt
+ * sie; dort kommt nur die Vorbereitung dazu.
+ */
+export const SCHRITTE_VOR_DER_VORBEREITUNG: Record<string, string[]> = {
+  'seed-r-poulet-brokkoli': ['7-nvffl8'],
+  'seed-r-lachs-ofengemuese': ['6-o8uhd'],
+  'seed-r-mac-and-cheese': ['5-b1h2cu'],
+  'seed-r-tomatensuppe': ['5-13pjnlb'],
+  'seed-r-linsencurry': ['5-547blr'],
+  'seed-r-shakshuka': ['6-1vp5a90'],
+  'seed-r-marry-me-chicken-orzo': ['7-1nb3npd'],
+  'seed-r-gyoza': ['4-zscxgj'],
+  'seed-r-spinat-feta-taschen': ['10-1m0gx76'],
+  'seed-r-rotes-linsen-dal': ['7-jgv1ay'],
+  'seed-r-lachs-honig-senf': ['5-k5j88f'],
+  'seed-r-halloumiburger': ['8-13hlq0u'],
+  'seed-r-thunfisch-pasta': ['5-1a7ma3p'],
+  'seed-r-one-pot-orzo': ['8-1wz65w0'],
+};
 
 /** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
 const RECIPE_NOTES: Record<string, string> = {
@@ -732,6 +815,7 @@ export function buildSeedData(now = Date.now()): AppData {
       servings: seed.servings,
       timeMin: seed.timeMin,
       ingredients: seed.ingredients,
+      prep: seed.prep,
       steps: seed.steps,
       cookNext: false,
       notes: note,

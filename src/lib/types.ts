@@ -52,6 +52,17 @@ export interface Recipe extends Syncable {
   /** Zubereitungszeit in Minuten. */
   timeMin: number | null;
   ingredients: Ingredient[];
+  /**
+   * Vorbereitung: was vor dem eigentlichen Kochen geschnitten, gewaschen oder
+   * bereitgelegt wird, eine Aufgabe pro Eintrag. Das Abmessen ergibt sich aus
+   * den Zutaten und steht nicht hier.
+   *
+   * `undefined` heisst: der Eintrag stammt aus der Zeit vor der Vorbereitung
+   * und bekommt sie beim naechsten Start einmal ergaenzt. Eine leere Liste ist
+   * dagegen ein fertiger Stand – wer alle Aufgaben loescht, bekommt sie nicht
+   * zurueck.
+   */
+  prep?: string[];
   steps: Step[];
   /**
    * "Cook Next": geplant fuer die naechsten Tage. Solange das gesetzt ist,

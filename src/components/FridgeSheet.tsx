@@ -6,8 +6,9 @@ import { VisionIdea, VisionResult } from '@/lib/vision';
 import { blankRecipe } from '@/lib/store';
 import { formatQuantity, sameIngredient } from '@/lib/units';
 import { randomId } from '@/lib/id';
+import { vorbereitungVorschlagen } from '@/lib/prep';
 import { Sheet } from './ui';
-import { IconCamera, IconCart, IconClock, IconPlus, IconServings, IconSpark } from './Icons';
+import { IconCamera, IconCart, IconClock, IconKnife, IconPlus, IconServings, IconSpark } from './Icons';
 
 type Status =
   | { kind: 'start' }
@@ -307,6 +308,21 @@ function IdeaCard({
               </li>
             ))}
           </ul>
+          {idee.vorbereitung?.length ? (
+            <div className="step step--prep" style={{ marginTop: 10 }}>
+              <span className="step__num step__num--prep" aria-hidden="true">
+                <IconKnife size={15} />
+              </span>
+              <div>
+                <div className="step__title">Vorbereitung</div>
+                <ul className="preplist">
+                  {idee.vorbereitung.map((aufgabe, index) => (
+                    <li key={`${index}-${aufgabe}`}>{aufgabe}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ) : null}
           <ol className="steps" style={{ marginTop: 10 }}>
             {idee.schritte.map((schritt, index) => (
               <li className="step" key={index}>
@@ -343,7 +359,7 @@ function IdeaCard({
 /** Vorschlag in ein normales Rezept übersetzen, das gespeichert werden kann. */
 export function ideeZuRezept(idee: VisionIdea): Recipe {
   const base = blankRecipe();
-  return {
+  const rezept: Recipe = {
     ...base,
     name: idee.name,
     category: idee.kategorie,
@@ -361,6 +377,11 @@ export function ideeZuRezept(idee: VisionIdea): Recipe {
       durationSec: schritt.minuten > 0 ? Math.round(schritt.minuten * 60) : null,
     })),
     notes: 'Vorschlag aus einem Kühlschrankfoto.',
+  };
+  // Wie jedes neue Rezept bekommt auch die Idee eine Vorbereitung.
+  return {
+    ...rezept,
+    prep: idee.vorbereitung?.length ? idee.vorbereitung : vorbereitungVorschlagen(rezept),
   };
 }
 

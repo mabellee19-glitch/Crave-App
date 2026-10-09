@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Recipe, matchDishCategory } from '@/lib/types';
 import { formatQuantity, scaleAmount } from '@/lib/units';
 import { ABMESSEN } from '@/lib/prep';
+import { zutatenProSchritt } from '@/lib/stepIngredients';
 import { Sheet, ConfirmDialog } from './ui';
 import { TimerHint } from './Timer';
 import {
@@ -51,6 +52,7 @@ export function RecipeDetail({
   const ingredients = recipe.ingredients.filter((i) => i.name.trim().length > 0);
   const steps = recipe.steps.filter((s) => s.text.trim().length > 0);
   const prep = (recipe.prep ?? []).filter((task) => task.trim().length > 0);
+  const schrittZutaten = zutatenProSchritt(steps, ingredients);
   // Abmessen gehoert immer dazu, sobald es Zutaten gibt.
   const hatVorbereitung = prep.length > 0 || ingredients.length > 0;
 
@@ -221,6 +223,19 @@ export function RecipeDetail({
                   <span className="step__num">{index + 1}</span>
                   <div>
                     <div className="step__text">{step.text}</div>
+                    {schrittZutaten[index].length ? (
+                      <div className="step__zutaten">
+                        {schrittZutaten[index]
+                          .map((ingredient) => {
+                            const quantity = formatQuantity(
+                              scaleAmount(ingredient.amount, factor, ingredient.noScale),
+                              ingredient.unit,
+                            );
+                            return quantity ? `${quantity} ${ingredient.name}` : ingredient.name;
+                          })
+                          .join(' · ')}
+                      </div>
+                    ) : null}
                     {step.durationSec ? <TimerHint seconds={step.durationSec} /> : null}
                   </div>
                 </li>

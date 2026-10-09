@@ -3,6 +3,7 @@ import { newSpace, openSpace, startCooking, waitForSync } from './helpers';
 import { buildSeedData, SCHRITTE_VOR_DER_VORBEREITUNG } from '../src/lib/seed';
 import { kategorieErkennen } from '../src/lib/category';
 import { schrittSignatur, vorbereitungAusText, vorbereitungVorschlagen } from '../src/lib/prep';
+import { zutatenFuerSchritt, zutatenProSchritt } from '../src/lib/stepIngredients';
 
 /**
  * Die Schritte von "Poulet mit Brokkoli und Reis", wie sie vor der
@@ -122,6 +123,50 @@ test.describe('Vorbereitung aus Zutaten und Schritten', () => {
   });
 });
 
+test.describe('Zutaten pro Schritt', () => {
+  const rezepte = buildSeedData().recipes;
+  const namen = (liste: Array<{ name: string }>) => liste.map((zutat) => zutat.name);
+
+  test('nur was im Schritt vorkommt, in der Reihenfolge der Zutatenliste', () => {
+    const poulet = rezepte['seed-r-poulet-brokkoli'];
+    const proSchritt = zutatenProSchritt(poulet.steps, poulet.ingredients).map(namen);
+    expect(proSchritt[1]).toEqual(['Poulet', 'Olivenöl']);
+    expect(proSchritt[3]).toEqual(['Brokkoli', 'Sojasauce', 'Honig']);
+  });
+
+  test('Wortformen und Zusammensetzungen werden erkannt', () => {
+    const z = (name: string) => ({ id: name, name, amount: null, unit: '' });
+    const zutaten = [z('Hähnchenbrust'), z('Gemüsebouillon'), z('Zwiebeln'), z('Salz'), z('Eier'), z('Reis')];
+    expect(
+      namen(zutatenFuerSchritt('Hähnchen anbraten, Zwiebel dazu, mit Bouillon ablöschen und salzen.', zutaten)),
+    ).toEqual(['Hähnchenbrust', 'Gemüsebouillon', 'Zwiebeln', 'Salz']);
+    // "ein" ist kein Ei.
+    expect(namen(zutatenFuerSchritt('Ein Ei hineingeben.', zutaten))).toEqual(['Eier']);
+  });
+
+  test('gleichnamige Zutaten werden nach ihrem Zweck getrennt', () => {
+    const burger = rezepte['seed-r-halloumiburger'];
+    const proSchritt = zutatenProSchritt(burger.steps, burger.ingredients).map(namen);
+    const oele = (liste: string[]) => liste.filter((name) => name.startsWith('Pflanzenöl'));
+    expect(oele(proSchritt[0])).toEqual(['Pflanzenöl (für die Marinade)']);
+    expect(oele(proSchritt[1])).toEqual(['Pflanzenöl (zum Braten)']);
+    expect(oele(proSchritt[3])).toEqual(['Pflanzenöl (für die Sauce)']);
+  });
+
+  test('Sammelwörter holen ihre Gruppe, die Garnitur kommt zum Schluss', () => {
+    const dal = rezepte['seed-r-rotes-linsen-dal'];
+    const proSchritt = zutatenProSchritt(dal.steps, dal.ingredients).map(namen);
+    expect(proSchritt[2]).toEqual([
+      'Kurkuma',
+      'Korianderpulver',
+      'Kreuzkümmel',
+      'Paprikapulver',
+      'Garam Masala oder Currypulver',
+    ]);
+    expect(proSchritt[proSchritt.length - 1]).toContain('Reis (zum Servieren)');
+  });
+});
+
 /* -------------------------------------------------------------------------- */
 /* In der App                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -147,6 +192,27 @@ test.describe('Schneller Start', () => {
       timeout: 2500,
     });
     expect(Date.now() - start).toBeLessThan(3500);
+  });
+});
+
+test.describe('Zutaten im Kochmodus', () => {
+  test('jeder Schritt zeigt unten nur seine Zutaten, mit Mengen für die Portionen', async ({
+    page,
+  }) => {
+    await openSpace(page, newSpace('schrittzutaten'));
+    await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+
+    // Auch in der Rezeptansicht steht es unter dem Schritt.
+    await expect(page.getByRole('dialog').locator('.step__zutaten').first()).toHaveText('200 g Reis · Salz');
+
+    await startCooking(page);
+    const zutaten = page.getByRole('region', { name: 'Zutaten für diesen Schritt' });
+    await expect(zutaten.locator('li')).toHaveText(['200 gReis', 'Salz']);
+
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await expect(page.getByText('Schritt 2 von 5')).toBeVisible();
+    await expect(zutaten.locator('li')).toHaveText(['400 gPoulet', '2 ELOlivenöl']);
+    await expect(zutaten).not.toContainText('Brokkoli');
   });
 });
 

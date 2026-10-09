@@ -283,7 +283,7 @@ test.describe('Rezepte', () => {
 
     await page.getByRole('button', { name: 'Rezept Testrezept Ofenkarotten öffnen' }).click();
     const detail = page.getByRole('dialog');
-    await expect(detail.getByText('500 g')).toBeVisible();
+    await expect(detail.getByText('500 g', { exact: true })).toBeVisible();
     await expect(detail.getByText('25:00')).toBeVisible();
 
     // Bearbeiten
@@ -568,7 +568,7 @@ test.describe('Zubereitung nachtragen', () => {
     await expect(detail.getByText('7 Schritte')).toBeVisible();
     // Die Zutaten fehlten ebenfalls und sind jetzt da – und mit den Schritten
     // aus der Vorlage auch deren Vorbereitung.
-    await expect(detail.getByText('250 g')).toBeVisible();
+    await expect(detail.getByText('250 g', { exact: true })).toBeVisible();
     await expect(detail.getByText('Burgerbrötchen halbieren')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await startCooking(page);
@@ -1083,7 +1083,7 @@ test.describe('Kühlschrankfoto', () => {
     // Die gespeicherte Idee ist ein vollwertiges Rezept samt Timer.
     await page.getByRole('button', { name: 'Rezept Zitronen-Poulet aus der Pfanne öffnen' }).click();
     const detail = page.getByRole('dialog');
-    await expect(detail.getByText('400 g')).toBeVisible();
+    await expect(detail.getByText('400 g', { exact: true })).toBeVisible();
     await expect(detail.getByText('06:00')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
   });
@@ -1295,7 +1295,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
     detail = page.getByRole('dialog');
     await expect(detail.getByText('7 Schritte')).toBeVisible();
-    await expect(detail.getByText('250 g')).toBeVisible();
+    await expect(detail.getByText('250 g', { exact: true })).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await startCooking(page);
     await expect(page.getByText('Schritt 1 von 7')).toBeVisible();

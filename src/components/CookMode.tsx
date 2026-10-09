@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Recipe } from '@/lib/types';
 import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
+import { zutatenProSchritt } from '@/lib/stepIngredients';
 import { playAlarm, setAlarmSession, stopAlarm } from '@/lib/audio';
 import { Portal, useBodyScrollLock } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
@@ -52,6 +53,8 @@ export function CookMode({
     () => (recipe.prep ?? []).filter((task) => task.trim().length > 0),
     [recipe.prep],
   );
+  // Unter jedem Schritt nur das, was er braucht – aus dem Text gelesen.
+  const schrittZutaten = useMemo(() => zutatenProSchritt(steps, ingredients), [steps, ingredients]);
 
   /*
    * Vor dem ersten Schritt kommt die Vorbereitung: schneiden, abmessen,
@@ -402,6 +405,26 @@ export function CookMode({
                 onReset={() => resetTimer(step.id, step.durationSec!)}
                 onDismiss={() => resetTimer(step.id, step.durationSec!)}
               />
+            ) : null}
+
+            {schrittZutaten[stepIndex]?.length ? (
+              <section className="cook__zutaten" aria-label="Zutaten für diesen Schritt">
+                <div className="cook__subhead">Dafür brauchst du</div>
+                <ul className="zutatenliste">
+                  {schrittZutaten[stepIndex].map((ingredient) => {
+                    const quantity = formatQuantity(
+                      scaleAmount(ingredient.amount, factor, ingredient.noScale),
+                      ingredient.unit,
+                    );
+                    return (
+                      <li key={ingredient.id}>
+                        {quantity ? <strong>{quantity}</strong> : null}
+                        <span>{ingredient.name}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             ) : null}
           </div>
         )}

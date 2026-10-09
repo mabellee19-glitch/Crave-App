@@ -23,6 +23,7 @@ Drei Bereiche:
 | Rezepte | Jedes Rezept hat eine **Vorbereitung**: was vorher geschnitten und bereitgelegt wird |
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
 | Rezepte | `Start Cooking`: zuerst die Vorbereitung zum Abhaken, dann ein Schritt pro Bildschirm |
+| Rezepte | Unter jedem Schritt stehen nur die Zutaten, die er braucht – mit Mengen für die gewählten Portionen |
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
@@ -94,6 +95,23 @@ Das Abmessen wird nicht extra notiert, es ergibt sich aus der Zutatenliste.
 
 Ergänzt wird jedes Rezept genau einmal. Wer die Vorbereitung leert, bekommt
 sie nicht zurück.
+
+## Zutaten pro Schritt
+
+Im Kochmodus stehen unter jedem Schritt die Zutaten, die er braucht, mit den
+Mengen für die gewählte Portionenzahl; in der Rezeptansicht klein unter dem
+Schritttext. Gespeichert ist diese Zuordnung nirgends – sie wird beim Anzeigen
+aus dem Text gelesen (`src/lib/stepIngredients.ts`). Deshalb gilt sie für jedes
+Rezept, auch für alte und übernommene, ohne dass sich an den Daten etwas
+ändert.
+
+Verglichen wird grosszügig: «Hähnchen» findet «Hähnchenbrust», «Bouillon»
+findet «Gemüsebouillon», «salzen» findet «Salz». Sammelwörter holen ihre
+Gruppe – «die Gewürze dazugeben» zeigt Kurkuma, Kreuzkümmel und Co.,
+«Gemüse» und «Kräuter» ebenso, «alle Zutaten» alles. Gleichnamige Zutaten
+werden über ihren Zweck getrennt: dreimal Pflanzenöl – zum Braten, für die
+Marinade, für die Sauce – erscheinen je beim passenden Schritt. Was «zum
+Servieren» ist, steht beim letzten Schritt.
 
 ## Kategorie aus den Zutaten
 
@@ -362,6 +380,7 @@ src/
     recipeAi.ts               Vereinfachen übernommener Rezepte mit KI
     prep.ts                   Vorbereitung: aus Text lesen, Fingerabdruck
     category.ts               Kategorie aus den Zutaten
+    stepIngredients.ts        Welche Zutaten zu welchem Schritt gehören
     theme.ts                  Farbwelten
     store.tsx                 lokaler Zustand und Abgleich
     merge.ts                  Zusammenführen zweier Stände

@@ -75,6 +75,8 @@ interface StoreValue {
   saveDish: (dish: Dish) => void;
   deleteDish: (id: string) => void;
   toggleDishCookNext: (id: string) => void;
+  /** Aus einer Idee wird ein Rezept – derselbe Eintrag, kein zweiter. */
+  ideeAlsRezept: (dishId: string, recipe: Recipe) => void;
 
   addShoppingItem: (input: { name: string; amount?: number | null; unit?: string }) => void;
   updateShoppingItem: (item: ShoppingItem) => void;
@@ -635,10 +637,15 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         const existing = draft.recipes[id];
         if (!existing) return;
         draft.recipes[id] = { ...existing, deleted: true, updatedAt: stamp() };
-        // Verknuepfungen aus Gerichten loesen, damit keine toten Links bleiben.
+        if (existing.cookNext) nimmGeplantZurueck(draft, id);
+        /*
+         * Ein Gericht mit diesem Rezept ist in der Liste "Essen" dasselbe wie
+         * das Rezept. Es geht mit – sonst tauchte es nach dem Loeschen
+         * ploetzlich als Idee wieder auf.
+         */
         for (const [dishId, dish] of Object.entries(draft.dishes)) {
           if (dish.recipeId === id && !dish.deleted) {
-            draft.dishes[dishId] = { ...dish, recipeId: null, updatedAt: stamp() };
+            draft.dishes[dishId] = { ...dish, deleted: true, updatedAt: stamp() };
           }
         }
       });
@@ -754,6 +761,30 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         }
       });
     },
+    [mutate],
+  );
+
+  /**
+   * Eine Idee zum Rezept machen. Das neue Rezept wird mit dem Gericht
+   * verknuepft; in der Liste steht danach nur noch das Rezept. War die Idee
+   * geplant, uebernimmt das Rezept die Planung – mit seinen Zutaten statt
+   * denen der Idee, sonst stuende alles doppelt auf der Einkaufsliste.
+   */
+  const ideeAlsRezept = useCallback(
+    (dishId: string, recipe: Recipe) => {
+      mutate((draft) => {
+        draft.recipes[recipe.id] = { ...recipe, updatedAt: stamp(), deleted: false };
+        const dish = draft.dishes[dishId];
+        if (!dish || dish.deleted) return;
+        draft.dishes[dishId] = { ...dish, recipeId: recipe.id, updatedAt: stamp() };
+        if (!dish.cookNext) return;
+        nimmGeplantZurueck(draft, dishId);
+        const neu = { ...draft.recipes[recipe.id], cookNext: true, updatedAt: stamp() };
+        draft.recipes[recipe.id] = neu;
+        legeGeplantAn(draft, neu, neu.servings);
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [mutate],
   );
 
@@ -1285,6 +1316,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     saveDish,
     deleteDish,
     toggleDishCookNext,
+    ideeAlsRezept,
     addShoppingItem,
     updateShoppingItem,
     checkOffShoppingItem,

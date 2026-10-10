@@ -17,7 +17,7 @@ export function SettingsSheet({
 }: {
   spaceId: string;
   sync: SyncInfo;
-  counts: { recipes: number; dishes: number; shopping: number; pantry: number };
+  counts: { recipes: number; ideen: number; shopping: number; pantry: number };
   onSyncNow: () => void;
   onAddMissingRecipes: () => void;
   onClose: () => void;
@@ -170,14 +170,14 @@ export function SettingsSheet({
 
       <div className="detail__h">Startinhalte</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Neue mitgelieferte Rezepte und Gerichte erscheinen von selbst, sobald du die App
+        Neue mitgelieferte Rezepte und Ideen erscheinen von selbst, sobald du die App
         öffnest – Gelöschtes kommt dabei nicht zurück. Dieser Knopf ist für den Rest: wo einem
         vorhandenen Rezept die Zubereitung oder die Zutaten ganz fehlen, werden sie ergänzt.
         Eigenes bleibt unverändert.
       </p>
       <button className="btn btn--ghost" onClick={onAddMissingRecipes}>
         <IconPlus size={18} />
-        Fehlende Rezepte und Gerichte nachtragen
+        Fehlende Rezepte und Ideen nachtragen
       </button>
 
       <hr className="divider" />
@@ -198,7 +198,7 @@ export function SettingsSheet({
       <div className="detail__h">Gespeichert</div>
       <div className="rowline" style={{ marginTop: 10, gap: 8 }}>
         <span className="tag">{counts.recipes} Rezepte</span>
-        <span className="tag">{counts.dishes} Gerichte</span>
+        <span className="tag">{counts.ideen} Ideen</span>
         <span className="tag">{counts.shopping} auf der Liste</span>
         <span className="tag">{counts.pantry} Standard-Zutaten</span>
       </div>

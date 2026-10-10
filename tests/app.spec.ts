@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import {
   goToTab,
+  neueIdee,
+  neuesRezept,
   newSpace,
   openPantryGroup,
   openSpace,
@@ -20,23 +22,24 @@ import { buildSeedData } from '../src/lib/seed';
 const START_REZEPTE = Object.keys(buildSeedData().recipes).length;
 
 test.describe('Navigation und Grundgeruest', () => {
-  test('wechselt zwischen den drei Bereichen', async ({ page }) => {
+  test('wechselt zwischen den zwei Bereichen', async ({ page }) => {
     await openSpace(page, newSpace('nav'));
 
-    await goToTab(page, 'Gerichte');
-    await expect(page.getByRole('heading', { name: 'Gerichte', level: 1 })).toBeVisible();
+    // Rezepte und Gerichte sind eins geworden: es gibt nur noch "Essen".
+    await expect(page.locator('.tabbar__item')).toHaveCount(2);
+    await expect(page.locator('.desknav__item')).toHaveCount(2);
 
     await goToTab(page, 'Einkaufsliste');
     await expect(page.getByRole('heading', { name: 'Einkaufsliste', level: 1 })).toBeVisible();
 
-    await goToTab(page, 'Rezepte');
-    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+    await goToTab(page, 'Essen');
+    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
   });
 
   test('die Startseite legt einen Datenraum an und leitet dorthin weiter', async ({ page }) => {
     await page.goto('/');
     await page.waitForURL(/\/s\/[a-z0-9-]+$/, { timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
   });
 
   test('liefert ein Manifest fuer den Home-Bildschirm', async ({ request }) => {
@@ -223,10 +226,14 @@ test.describe('Rezepte', () => {
     await page.mouse.move(180, 400);
     for (let i = 0; i < 4; i++) await page.mouse.wheel(0, 200);
     await page.waitForTimeout(200);
-    // Auf breiten Fenstern passt die Liste ohne Scrollen aufs Bild.
+    // Die Karte erst ins Bild holen – sonst scrollt der Klick selbst noch
+    // weiter, und die gemerkte Position stimmt nicht mehr. Auf breiten
+    // Fenstern passt die Liste ohne Scrollen aufs Bild.
+    const karte = page.getByRole('button', { name: 'Rezept Marry me Chicken Orzo öffnen' });
+    await karte.scrollIntoViewIfNeeded();
     const listenposition = await page.evaluate(() => window.scrollY);
 
-    await page.getByRole('button', { name: 'Rezept Marry me Chicken Orzo öffnen' }).click();
+    await karte.click();
     await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
     // Die Vorbereitung mit dreizehn Zutaten ist lang genug zum Scrollen.
     await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
@@ -257,7 +264,7 @@ test.describe('Rezepte', () => {
   test('legt ein Rezept an, bearbeitet und loescht es', async ({ page }) => {
     await openSpace(page, newSpace('crud'));
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Testrezept Ofenkarotten');
     await form.getByLabel('Kategorie').fill('Vegi');
@@ -304,19 +311,19 @@ test.describe('Rezepte', () => {
   test('Suche und Cook-Next-Filter greifen', async ({ page }) => {
     await openSpace(page, newSpace('search'));
 
-    await page.getByPlaceholder('Rezept oder Zutat suchen').fill('shakshuka');
+    await page.getByPlaceholder('Gericht oder Zutat suchen').fill('shakshuka');
     await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Rezept Tomatensuppe mit Basilikum öffnen' })).toHaveCount(0);
 
     // Auch Zutaten sind durchsuchbar.
-    await page.getByPlaceholder('Rezept oder Zutat suchen').fill('kokosmilch');
+    await page.getByPlaceholder('Gericht oder Zutat suchen').fill('kokosmilch');
     await expect(page.getByRole('button', { name: 'Rezept Rotes Linsencurry öffnen' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Suche löschen' }).click();
 
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
     await page
-      .getByRole('group', { name: 'Rezepte filtern' })
+      .getByRole('group', { name: 'Essen filtern' })
       .getByRole('button', { name: 'Cook Next' })
       .click();
     await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toBeVisible();
@@ -360,48 +367,37 @@ test.describe('Einheiten', () => {
 });
 
 test.describe('Sparte Dessert', () => {
-  test('steht bei Rezepten und Gerichten zur Verfuegung', async ({ page }) => {
+  test('steht für Rezepte und Ideen zur Verfügung', async ({ page }) => {
     await openSpace(page, newSpace('dessert'));
 
-    // Bei den Rezepten steht die Sparte da, auch wenn noch keines drin liegt.
-    const filter = page.getByRole('group', { name: 'Rezepte filtern' });
+    // Die Sparte steht da, auch wenn noch nichts drin liegt.
+    const filter = page.getByRole('group', { name: 'Essen filtern' });
     await expect(filter.getByRole('button', { name: /^Dessert/ })).toBeVisible();
     await filter.getByRole('button', { name: /^Dessert/ }).click();
     await expect(page.getByText('Nichts gefunden')).toBeVisible();
 
     // Ein Rezept in dieser Sparte anlegen.
     await filter.getByRole('button', { name: 'Alle' }).click();
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     let form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Schoggimousse');
     await form.getByLabel('Kategorie').fill('Dessert');
     await form.getByRole('button', { name: 'Speichern' }).click();
     await expect(page.getByText('Rezept angelegt')).toBeVisible();
 
-    await filter.getByRole('button', { name: /^Dessert/ }).click();
-    await expect(page.getByRole('button', { name: 'Rezept Schoggimousse öffnen' })).toBeVisible();
-    // Das Etikett traegt die Farbe der Sparte, wie bei den anderen auch.
-    await expect(page.locator('.tag--dessert').first()).toBeVisible();
-
-    // Und bei den Gerichten steht sie in der Auswahl.
-    await goToTab(page, 'Gerichte');
-    await expect(
-      page.getByRole('group', { name: 'Gerichte filtern' }).getByRole('button', { name: /^Dessert/ }),
-    ).toBeVisible();
-
-    await page.getByRole('button', { name: 'Neues Gericht' }).click();
+    // Und eine Idee.
+    await neueIdee(page);
     form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Tiramisu');
     await form.getByLabel('Kategorie').selectOption('dessert');
     await form.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByText('Gericht angelegt')).toBeVisible();
+    await expect(page.getByText('Idee angelegt')).toBeVisible();
 
-    await page
-      .getByRole('group', { name: 'Gerichte filtern' })
-      .getByRole('button', { name: /^Dessert/ })
-      .click();
-    await expect(page.getByRole('button', { name: /^Tiramisu bearbeiten/ }).first()).toBeVisible();
-    await expect(page.locator('.tag--dessert').first()).toBeVisible();
+    // Beide stehen unter Dessert, mit der Farbe der Sparte.
+    await filter.getByRole('button', { name: /^Dessert/ }).click();
+    await expect(page.getByRole('button', { name: 'Rezept Schoggimousse öffnen' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Idee Tiramisu öffnen' })).toBeVisible();
+    await expect(page.locator('.tag--dessert')).toHaveCount(2);
   });
 });
 
@@ -467,7 +463,7 @@ test.describe('Rezept über Link', () => {
       },
     });
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
 
     await form.getByLabel('Rezept über Link hinzufügen').fill('kitchenstories.com/rezepte/halloumi-burger');
@@ -503,7 +499,7 @@ test.describe('Rezept über Link', () => {
     await openSpace(page, newSpace('importleer'));
     await importStub(page, { ok: false, error: 'no_recipe' }, 422);
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Rezept über Link hinzufügen').fill('https://beispiel.test/blog');
     await form.getByRole('button', { name: 'Holen' }).click();
@@ -578,7 +574,7 @@ test.describe('Zubereitung nachtragen', () => {
   test('ein selbst angelegtes Rezept sagt ehrlich, dass nichts hinterlegt ist', async ({ page }) => {
     await openSpace(page, newSpace('schrittekeine'));
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Eigenes ohne Schritte');
     await form.getByRole('button', { name: 'Speichern' }).click();
@@ -666,51 +662,87 @@ test.describe('Weckerton', () => {
   });
 });
 
-test.describe('Gerichte', () => {
-  test('filtert nach Kategorie und oeffnet das verknuepfte Rezept', async ({ page }) => {
-    await openSpace(page, newSpace('dishes'));
-    await goToTab(page, 'Gerichte');
+test.describe('Ideen', () => {
+  test('ein Rezept mit Gericht steht nur einmal da, Ideen haben ihr eigenes Symbol', async ({
+    page,
+  }) => {
+    await openSpace(page, newSpace('ideen'));
 
-    await page.getByRole('group', { name: 'Gerichte filtern' }).getByRole('button', { name: /^Vegi/ }).click();
-    await expect(page.getByRole('button', { name: 'Rezept zu Shakshuka öffnen' })).toBeVisible();
+    await page.getByRole('group', { name: 'Essen filtern' }).getByRole('button', { name: /^Vegi/ }).click();
+    // Shakshuka gibt es als Rezept und als Gericht – angezeigt wird es einmal.
+    await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Idee Shakshuka öffnen' })).toHaveCount(0);
+    // Ein Gericht ohne Rezept ist eine Idee.
+    await expect(page.getByRole('button', { name: 'Idee Blumenkohl Wraps öffnen' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Mac and Cheese/ })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Rezept zu Shakshuka öffnen' }).click();
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Shakshuka', level: 1 })).toBeVisible();
-    await expect(page.getByRole('dialog').getByText('Zubereitung')).toBeVisible();
+    await page.getByRole('button', { name: 'Idee Blumenkohl Wraps öffnen' }).click();
+    const idee = page.getByRole('dialog');
+    await expect(idee.getByRole('heading', { name: 'Blumenkohl Wraps', level: 1 })).toBeVisible();
+    await expect(idee.getByText('Kichererbsen')).toBeVisible();
+    await expect(idee.getByRole('button', { name: 'Rezept daraus machen' })).toBeVisible();
   });
 
-  test('legt ein Gericht an und verknuepft es mit einem Rezept', async ({ page }) => {
-    await openSpace(page, newSpace('dishnew'));
-    await goToTab(page, 'Gerichte');
+  test('aus einer Idee wird ein Rezept – derselbe Eintrag, kein zweiter', async ({ page }) => {
+    await openSpace(page, newSpace('ideerezept'));
 
-    await page.getByRole('button', { name: 'Neues Gericht' }).click();
-    const form = page.getByRole('dialog');
+    await neueIdee(page);
+    let form = page.getByRole('dialog');
+    await expect(form.getByRole('heading', { name: 'Neue Idee' })).toBeVisible();
     await form.getByLabel('Name', { exact: true }).fill('Testgericht Bowl');
-    await form.getByLabel('Kategorie').selectOption('high-protein');
-    await form.getByLabel('Verknüpftes Rezept').selectOption({ label: 'Shakshuka' });
+    await form.getByLabel('Menge für Zutat 1').fill('300');
+    await form.getByLabel('Einheit für Zutat 1').fill('g');
+    await form.getByLabel('Name für Zutat 1').fill('Tofu');
+    // Die Kategorie kommt aus den Zutaten.
+    await expect(form.getByLabel('Kategorie')).toHaveValue('high-protein');
     await form.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByText('Gericht angelegt')).toBeVisible();
+    await expect(page.getByText('Idee angelegt')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Rezept zu Testgericht Bowl öffnen' }).click();
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Shakshuka', level: 1 })).toBeVisible();
+    await page.getByRole('button', { name: 'Idee Testgericht Bowl öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Rezept daraus machen' }).click();
+
+    // Name, Kategorie und Zutaten sind schon da, es fehlen nur die Schritte.
+    form = page.getByRole('dialog');
+    await expect(form.getByLabel('Name', { exact: true })).toHaveValue('Testgericht Bowl');
+    await expect(form.getByLabel('Name für Zutat 1')).toHaveValue('Tofu');
+    await expect(form.getByLabel('Kategorie')).toHaveValue('High-Protein');
+    await form.getByLabel('Text für Schritt 1').fill('Tofu würfeln und knusprig braten.');
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Aus der Idee ist ein Rezept geworden')).toBeVisible();
+
+    // Dieselbe Ansicht zeigt jetzt das Rezept.
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
+    await detail.getByRole('button', { name: 'Schliessen' }).click();
+
+    await expect(page.getByRole('button', { name: 'Rezept Testgericht Bowl öffnen' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Idee Testgericht Bowl öffnen' })).toHaveCount(0);
+  });
+
+  test('eine geplante Idee übergibt ihre Planung an das Rezept, ohne Doppel auf der Liste', async ({
+    page,
+  }) => {
+    await openSpace(page, newSpace('ideeplan'));
+
+    await page.getByRole('button', { name: 'Idee Blumenkohl Wraps öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Auf Cook Next' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Rezept daraus machen' }).click();
+    const form = page.getByRole('dialog');
+    await form.getByLabel('Text für Schritt 1').fill('Blumenkohl rösten und alles in die Wraps füllen.');
+    await form.getByRole('button', { name: 'Speichern' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    // Der Link fuehrt bewusst in den Bereich "Rezepte" – zurueck zu den Gerichten.
-    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
-    await goToTab(page, 'Gerichte');
-
-    await page.getByRole('button', { name: 'Testgericht Bowl bearbeiten' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Gericht löschen' }).click();
-    await page.getByRole('button', { name: 'Löschen', exact: true }).click();
-    await expect(page.getByText('Gericht gelöscht')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Blumenkohl Wraps aus Cook Next entfernen' })).toHaveCount(1);
+    await goToTab(page, 'Einkaufsliste');
+    await expect(page.locator('.plannedstrip')).toContainText('Blumenkohl Wraps');
+    await expect(shoppingRow(page, 'Kichererbsen')).toHaveCount(1);
+    await expect(shoppingRow(page, 'Kichererbsen')).toContainText('1 Dose');
   });
 
-  test('ein Gericht ohne Rezept fuehrt eine eigene Zutatenliste', async ({ page }) => {
-    await openSpace(page, newSpace('dishzutaten'));
-    await goToTab(page, 'Gerichte');
+  test('eine Idee führt eine eigene Zutatenliste', async ({ page }) => {
+    await openSpace(page, newSpace('ideezutaten'));
 
-    await page.getByRole('button', { name: 'Neues Gericht' }).click();
+    await neueIdee(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Skyr-Bowl');
     await form.getByLabel('Menge für Zutat 1').fill('200');
@@ -721,10 +753,10 @@ test.describe('Gerichte', () => {
     await form.getByLabel('Einheit für Zutat 2').fill('g');
     await form.getByLabel('Name für Zutat 2').fill('Heidelbeeren');
     await form.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByText('Gericht angelegt')).toBeVisible();
+    await expect(page.getByText('Idee angelegt')).toBeVisible();
 
     // Die Karte sagt, dass es Zutaten gibt, obwohl kein Rezept dahaengt.
-    await expect(page.getByText('2 Zutaten')).toBeVisible();
+    await expect(page.getByText('Idee · 2 Zutaten')).toBeVisible();
 
     // Cook Next legt genau diese Zutaten auf die Einkaufsliste.
     await page.getByRole('button', { name: 'Skyr-Bowl zu Cook Next hinzufügen' }).click();
@@ -733,15 +765,18 @@ test.describe('Gerichte', () => {
     await expect(shoppingRow(page, 'Skyr')).toContainText('200');
     await expect(shoppingRow(page, 'Heidelbeeren')).toContainText('150');
 
-    // Und wieder herunter.
-    await goToTab(page, 'Gerichte');
-    await page.getByRole('button', { name: 'Skyr-Bowl aus Cook Next entfernen' }).click();
+    // Die Vorschau fuehrt zur Idee zurueck.
+    await page.locator('.plannedstrip').getByRole('button', { name: /Skyr-Bowl/ }).click();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Skyr-Bowl', level: 1 })).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Von Cook Next nehmen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Skyr')).toHaveCount(0);
     await expect(shoppingRow(page, 'Heidelbeeren')).toHaveCount(0);
   });
 
-  test('ein Gericht aus einem aelteren Stand ohne Zutatenfeld laesst sich oeffnen', async ({
+  test('eine Idee aus einem aelteren Stand ohne Zutatenfeld laesst sich oeffnen', async ({
     page,
     request,
   }) => {
@@ -771,25 +806,26 @@ test.describe('Gerichte', () => {
     });
 
     await page.goto(`/s/${space}`);
-    await goToTab(page, 'Gerichte');
     const karteAlt = page
       .locator('.card')
       .filter({ has: page.locator('.card__title', { hasText: /^Altes Gericht$/ }) });
-    await expect(karteAlt).toContainText('Kein Rezept');
+    await expect(karteAlt).toContainText('Idee · noch ohne Zutaten');
 
-    // Bearbeiten darf nicht scheitern, und eine Zutat laesst sich nachtragen.
-    await page.getByRole('button', { name: 'Altes Gericht bearbeiten' }).first().click();
+    // Oeffnen und bearbeiten darf nicht scheitern, eine Zutat laesst sich nachtragen.
+    await page.getByRole('button', { name: 'Idee Altes Gericht öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Idee bearbeiten' }).click();
     const form = page.getByRole('dialog');
     await form.getByLabel('Name für Zutat 1').fill('Zwiebeln');
     await form.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByText('1 Zutat', { exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog').getByText('Zwiebeln')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+    await expect(karteAlt).toContainText('Idee · 1 Zutat');
   });
 
-  test('geaenderte Zutaten eines geplanten Gerichts ziehen die Liste nach', async ({ page }) => {
-    await openSpace(page, newSpace('dishnachziehen'));
-    await goToTab(page, 'Gerichte');
+  test('geänderte Zutaten einer geplanten Idee ziehen die Liste nach', async ({ page }) => {
+    await openSpace(page, newSpace('ideenachziehen'));
 
-    await page.getByRole('button', { name: 'Neues Gericht' }).click();
+    await neueIdee(page);
     let form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Toast Hawaii');
     await form.getByLabel('Menge für Zutat 1').fill('2');
@@ -800,16 +836,46 @@ test.describe('Gerichte', () => {
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Ananasscheiben')).toBeVisible();
 
-    // Zutat austauschen, waehrend das Gericht geplant ist.
-    await goToTab(page, 'Gerichte');
-    await page.getByRole('button', { name: 'Toast Hawaii bearbeiten' }).first().click();
+    // Zutat austauschen, waehrend die Idee geplant ist.
+    await goToTab(page, 'Essen');
+    await page.getByRole('button', { name: 'Idee Toast Hawaii öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Idee bearbeiten' }).click();
     form = page.getByRole('dialog');
     await form.getByLabel('Name für Zutat 1').fill('Kochschinken');
     await form.getByRole('button', { name: 'Speichern' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Kochschinken')).toBeVisible();
     await expect(shoppingRow(page, 'Ananasscheiben')).toHaveCount(0);
+  });
+
+  test('eine Idee löschen schliesst auch ihre Ansicht', async ({ page }) => {
+    await openSpace(page, newSpace('ideeloeschen'));
+
+    await page.getByRole('button', { name: 'Idee Flammkuchen öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Idee bearbeiten' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Idee löschen' }).click();
+    await page.getByRole('button', { name: 'Löschen', exact: true }).click();
+    await expect(page.getByText('Idee gelöscht')).toBeVisible();
+
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Idee Flammkuchen öffnen' })).toHaveCount(0);
+    // Die Liste ist bedienbar, nichts haengt im Verlauf.
+    await page.getByRole('button', { name: 'Rezept Shakshuka öffnen' }).click();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Shakshuka', level: 1 })).toBeVisible();
+  });
+
+  test('ein gelöschtes Rezept nimmt sein Gericht mit', async ({ page }) => {
+    await openSpace(page, newSpace('rezeptmitgericht'));
+
+    await page.getByRole('button', { name: 'Rezept Shakshuka öffnen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Rezept löschen' }).click();
+    await page.getByRole('button', { name: 'Löschen', exact: true }).click();
+    await expect(page.getByText('Rezept gelöscht')).toBeVisible();
+
+    // Das Gericht "Shakshuka" taucht nicht als Idee wieder auf.
+    await expect(page.getByRole('button', { name: /Shakshuka öffnen/ })).toHaveCount(0);
   });
 });
 
@@ -828,7 +894,7 @@ test.describe('Cook Next', () => {
     await expect(shoppingRow(page, 'Pelati')).toBeVisible();
 
     // Abwaehlen raeumt genau diese Zutaten wieder weg.
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
 
     await goToTab(page, 'Einkaufsliste');
@@ -846,13 +912,13 @@ test.describe('Cook Next', () => {
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await expect(shoppingRow(page, 'Eier')).toContainText('4');
 
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Eier')).toContainText('8');
 
     // Nach dem Abwaehlen bleiben die eigenen vier stehen.
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Eier')).toContainText('4');
@@ -871,14 +937,14 @@ test.describe('Cook Next', () => {
     const zusammen = await shoppingRow(page, 'Pelati').innerText();
 
     // Eines abwaehlen: die Zutat bleibt, nur der Anteil geht weg.
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Pelati')).toBeVisible();
     expect(await shoppingRow(page, 'Pelati').innerText()).not.toBe(zusammen);
 
     // Auch das zweite abwaehlen: jetzt ist die Zeile weg.
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page
       .getByRole('button', { name: 'Tomatensuppe mit Basilikum aus Cook Next entfernen' })
       .click();
@@ -886,28 +952,20 @@ test.describe('Cook Next', () => {
     await expect(shoppingRow(page, 'Pelati')).toHaveCount(0);
   });
 
-  test('Gericht und Rezept bleiben im Gleichschritt', async ({ page }) => {
+  test('ein Rezept mit Gericht wird einmal geplant, nicht doppelt', async ({ page }) => {
     await openSpace(page, newSpace('plangericht'));
 
-    await goToTab(page, 'Gerichte');
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
-
-    // Das verknuepfte Rezept ist damit ebenfalls geplant.
-    await goToTab(page, 'Rezepte');
     await expect(
-      page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }),
-    ).toBeVisible();
+      page.getByRole('group', { name: 'Essen filtern' }).getByRole('button', { name: /^Cook Next/ }),
+    ).toContainText('1');
 
     await goToTab(page, 'Einkaufsliste');
+    await expect(page.locator('.plannedstrip').getByRole('button')).toHaveCount(1);
     await expect(shoppingRow(page, 'Eier')).toBeVisible();
 
-    // Und zurueck: ueber das Rezept abwaehlen raeumt auch das Gericht ab.
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
-    await goToTab(page, 'Gerichte');
-    await expect(
-      page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }),
-    ).toBeVisible();
     await goToTab(page, 'Einkaufsliste');
     await expect(shoppingRow(page, 'Eier')).toHaveCount(0);
   });
@@ -977,7 +1035,7 @@ test.describe('Einkaufsliste und Grundliste', () => {
     await expect(pantryChip(page, 'Sojasauce')).toHaveCount(0);
 
     // Zweites Hinzufuegen fasst die Mengen zusammen statt zu doppeln.
-    await goToTab(page, 'Rezepte');
+    await goToTab(page, 'Essen');
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Eine Portion mehr' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Eine Portion mehr' }).click();
@@ -1078,7 +1136,7 @@ test.describe('Kühlschrankfoto', () => {
     await expect(page.getByText('„Zitronen-Poulet aus der Pfanne“ gespeichert')).toBeVisible();
 
     await blatt.getByRole('button', { name: 'Schliessen' }).click();
-    await expect(page.getByText(`${START_REZEPTE + 1} Rezepte gespeichert`)).toBeVisible();
+    await expect(page.getByText(new RegExp(`^${START_REZEPTE + 1} Rezepte ·`))).toBeVisible();
 
     // Die gespeicherte Idee ist ein vollwertiges Rezept samt Timer.
     await page.getByRole('button', { name: 'Rezept Zitronen-Poulet aus der Pfanne öffnen' }).click();
@@ -1268,10 +1326,10 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await alterStand(request, space);
 
     await page.goto(`/s/${space}`);
-    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
 
     // Der Datenraum hatte ein einziges Rezept; der Rest kommt von selbst dazu.
-    await expect(page.getByText(`${START_REZEPTE} Rezepte gespeichert`)).toBeVisible();
+    await expect(page.getByText(new RegExp(`^${START_REZEPTE} Rezepte ·`))).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Rezept Pasta mit Thunfisch, Cherrytomaten & Zitrone öffnen' }),
     ).toBeVisible();
@@ -1287,7 +1345,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
     await page
       .getByRole('dialog')
-      .getByRole('button', { name: 'Fehlende Rezepte und Gerichte nachtragen' })
+      .getByRole('button', { name: 'Fehlende Rezepte und Ideen nachtragen' })
       .click();
     await expect(page.locator('.toast__text')).toContainText('ergänzt');
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
@@ -1332,7 +1390,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     });
 
     await page.goto(`/s/${space}`);
-    await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
     // Die uebrigen Rezepte kommen, das geloeschte bleibt weg.
     await expect(
       page.getByRole('button', { name: 'Rezept Rotes Linsencurry öffnen' }),
@@ -1374,12 +1432,11 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
     await page
       .getByRole('dialog')
-      .getByRole('button', { name: 'Fehlende Rezepte und Gerichte nachtragen' })
+      .getByRole('button', { name: 'Fehlende Rezepte und Ideen nachtragen' })
       .click();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    await goToTab(page, 'Gerichte');
-    // Kein zweites Gericht in der Vorlagen-Schreibweise ...
+    // Keine zweite Idee in der Vorlagen-Schreibweise ...
     await expect(
       page.getByRole('button', { name: /^Blumenkohl Wraps zu Cook Next/ }),
     ).toHaveCount(0);
@@ -1392,8 +1449,8 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
       .filter({ has: page.locator('.card__title', { hasText: /^blumenkohl-wraps$/ }) });
     await expect(karte).toContainText('5 Zutaten');
 
-    // Und die neuen Gerichte sind ebenfalls da.
-    await expect(page.getByRole('button', { name: /^Flammkuchen bearbeiten/ }).first()).toBeVisible();
+    // Und die neuen Ideen sind ebenfalls da.
+    await expect(page.getByRole('button', { name: 'Idee Flammkuchen öffnen' })).toBeVisible();
   });
 });
 
@@ -1456,7 +1513,8 @@ test.describe('Speichern und Synchronisieren', () => {
     const second = await page.context().browser()!.newContext();
     const other = await second.newPage();
     await other.goto(`/s/${space}`);
-    await expect(other.getByText('Noch keine Rezepte')).toBeVisible();
+    // Die Ideen ohne Rezept sind noch da; Rezepte kommen keine zurueck.
+    await expect(other.getByText(/^0 Rezepte ·/)).toBeVisible();
     await expect(other.getByRole('button', { name: /^Rezept .* öffnen$/ })).toHaveCount(0);
     await second.close();
   });

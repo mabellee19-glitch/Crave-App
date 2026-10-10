@@ -4,11 +4,11 @@ Persönliche Koch- und Einkaufs-App. Mobile-first, läuft im Browser (Safari auf
 iPhone und iPad, Chrome, Edge, Firefox) und lässt sich zum Home-Bildschirm
 hinzufügen. Kein App Store nötig.
 
-Drei Bereiche:
+Zwei Bereiche:
 
-- **Rezepte** – Sammlung mit Zutaten, Zubereitungsschritten und Kochmodus.
-- **Gerichte** – Essensideen in den Kategorien High-Protein, Comfort und Vegi,
-  optional mit einem Rezept verknüpft.
+- **Essen** – alles, was man kochen kann, in einer Liste: Rezepte mit
+  Zutaten, Vorbereitung, Schritten und Kochmodus, und Ideen – Gerichte ohne
+  Anleitung, nur mit Name und Zutaten.
 - **Einkaufsliste** – aktive Liste plus dauerhafte Grundliste mit
   Standard-Zutaten.
 
@@ -27,8 +27,10 @@ Drei Bereiche:
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Gerichte | Filter nach Kategorie (High-Protein, Comfort, Vegi, Dessert) und Cook Next, Suche |
-| Gerichte | Verknüpfte Gerichte öffnen direkt das hinterlegte Rezept |
+| Essen | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
+| Essen | Das Plus fragt: Rezept über Link, Rezept selbst schreiben oder nur eine Idee |
+| Ideen | Auf Cook Next setzen – ihre Zutaten kommen auf die Einkaufsliste |
+| Ideen | `Rezept daraus machen`: Name und Zutaten sind schon eingetragen, es bleibt ein Eintrag |
 | Einkaufsliste | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
 | Einkaufsliste | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
 | Grundliste | Antippen legt eine Zutat in die aktive Liste |
@@ -41,9 +43,26 @@ Drei Bereiche:
 | Überall | Sechs Farbwelten zur Auswahl unter `Einstellungen & Sync → Design` |
 | Überall | Startet sofort mit dem Stand auf dem Gerät, der Abgleich läuft im Hintergrund |
 
+## Rezepte und Ideen
+
+Früher gab es zwei Bereiche, Rezepte und Gerichte, und fast jedes Gericht
+stand doppelt da. Jetzt steht alles in `Essen`: ein Buch-Symbol für ein Rezept,
+eine Glühbirne für eine Idee. Gespeichert wird weiter wie bisher – ein
+Gericht mit hinterlegtem Rezept ist in der Liste einfach das Rezept, ein
+Gericht ohne Rezept ist eine Idee (`src/lib/essen.ts`). Ältere Stände und
+Geräte mit einer älteren Fassung der App bleiben damit gültig.
+
+- `Rezept daraus machen` öffnet das Rezeptformular mit Name, Kategorie und
+  Zutaten der Idee. Nach dem Speichern hängt das Rezept an der Idee, und in
+  der Liste steht nur noch das Rezept. War die Idee auf Cook Next, übernimmt
+  das Rezept die Planung – mit seinen Zutaten, ohne Doppel auf der Liste.
+- Wird ein Rezept gelöscht, geht das Gericht, an dem es hängt, mit – sonst
+  käme es als Idee wieder zum Vorschein.
+- Auch neue Ideen bekommen ihre Kategorie aus den Zutaten.
+
 ## Startinhalte nachtragen
 
-Neue mitgelieferte Rezepte und Gerichte erscheinen beim Öffnen der App von
+Neue mitgelieferte Rezepte und Ideen erscheinen beim Öffnen der App von
 selbst. Nachgezogen wird dabei nur, was es in diesem Datenraum noch nie gab –
 keine Spur unter der Id, kein Grabstein. Gelöschtes bleibt gelöscht, und an
 vorhandenen Einträgen wird nichts verändert. Das läuft erst, wenn der
@@ -51,10 +70,10 @@ Serverstand da ist: vorher wären die Grabsteine unbekannt.
 
 Für den Rest gibt es zwei Knöpfe in der App selbst:
 
-- `Einstellungen & Sync → Fehlende Rezepte und Gerichte nachtragen` legt an,
+- `Einstellungen & Sync → Fehlende Rezepte und Ideen nachtragen` legt an,
   was es noch nie gab. Vorhandenes bleibt unverändert, Gelöschtes kommt nicht
   zurück. Ergänzt wird nur, wo etwas komplett fehlt: Zubereitungsschritte oder
-  Zutaten. Gerichte werden dabei über den Namen abgeglichen, Rezepte über ihre
+  Zutaten. Ideen werden dabei über den Namen abgeglichen, Rezepte über ihre
   Id und ersatzweise über den Namen.
 - Dasselbe geht direkt im Rezept: hat es keine Zubereitungsschritte, steht der
   Knopf `Aus der Vorlage nachtragen` dort, wo man das Problem sieht – nämlich
@@ -381,6 +400,7 @@ src/
     prep.ts                   Vorbereitung: aus Text lesen, Fingerabdruck
     category.ts               Kategorie aus den Zutaten
     stepIngredients.ts        Welche Zutaten zu welchem Schritt gehören
+    essen.ts                  Rezepte und Ideen in einer Liste
     theme.ts                  Farbwelten
     store.tsx                 lokaler Zustand und Abgleich
     merge.ts                  Zusammenführen zweier Stände
@@ -418,7 +438,7 @@ Die Grundpalette, aus der Creme und Dunkel gebaut sind:
 | --- | --- | --- |
 | Master Key | `#dccd8b` | High-Protein, Hintergründe und Linien |
 | Prickly Pear | `#a7993c` | Vegi, erledigte Zutaten, Sync-Anzeige |
-| Mozart | `#475480` | Verknüpfungen zwischen Gericht und Rezept |
+| Mozart | `#475480` | Ideen |
 | Sunburn | `#b57056` | Favoriten, Comfort, Akzent im dunklen Modus |
 | Roycroft Copper Red | `#7f3b25` | Knöpfe, Timer, App-Symbol |
 

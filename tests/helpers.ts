@@ -7,17 +7,17 @@ export function newSpace(prefix: string): string {
 
 export async function openSpace(page: Page, space: string) {
   await page.goto(`/s/${space}`);
-  await expect(page.getByRole('heading', { name: 'Rezepte', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
   // Warten, bis die Startinhalte geladen sind.
   await expect(page.getByRole('button', { name: /Rezept .* öffnen/ }).first()).toBeVisible();
 }
 
-export function tab(page: Page, name: 'Rezepte' | 'Gerichte' | 'Einkaufsliste') {
+export function tab(page: Page, name: 'Essen' | 'Einkaufsliste') {
   return page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name });
 }
 
 /** Auf dem iPhone unten, auf dem Desktop oben – beide Leisten fuehren zum Ziel. */
-export async function goToTab(page: Page, name: 'Rezepte' | 'Gerichte' | 'Einkaufsliste') {
+export async function goToTab(page: Page, name: 'Essen' | 'Einkaufsliste') {
   const mobile = tab(page, name);
   if (await mobile.isVisible()) {
     await mobile.click();
@@ -62,4 +62,16 @@ export async function startCooking(page: Page) {
   await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
   await expect(page.getByText('Erst schnibbeln und abmessen', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Los geht’s' }).click();
+}
+
+/** Über das Plus: "Rezept selbst schreiben". */
+export async function neuesRezept(page: Page) {
+  await page.getByRole('button', { name: 'Neu anlegen' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Rezept selbst schreiben/ }).click();
+}
+
+/** Über das Plus: "Nur eine Idee". */
+export async function neueIdee(page: Page) {
+  await page.getByRole('button', { name: 'Neu anlegen' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Nur eine Idee/ }).click();
 }

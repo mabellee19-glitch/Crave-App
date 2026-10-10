@@ -664,6 +664,13 @@ ol {
   transform: scale(0.94);
 }
 
+/* Das Plus in "Essen": der eine Weg, etwas anzulegen – deshalb gefuellt. */
+.iconbtn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
 .iconbtn--plain {
   background: transparent;
   border-color: transparent;
@@ -783,6 +790,19 @@ ol {
   color: var(--cat-dessert);
 }
 
+.chip__zahl {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--plan);
+  color: var(--accent-ink);
+}
+
 /* Karten ------------------------------------------------------------------ */
 
 .grid {
@@ -829,9 +849,57 @@ ol {
   text-align: left;
 }
 
-/* Gerichte haben zusätzlich einen Stift, also mehr Platz rechts. */
-.card__open--wide {
-  padding-right: 104px;
+/* Liste "Essen": links ein Symbol – Buch fuer ein Rezept, Gluehbirne fuer
+   eine Idee –, in der Farbe der Kategorie getoent. */
+.card__open--zeile {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+}
+
+.card__art {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+}
+
+.card__art--high-protein {
+  background: var(--cat-high-protein-soft);
+  color: var(--cat-high-protein);
+}
+
+.card__art--comfort {
+  background: var(--cat-comfort-soft);
+  color: var(--cat-comfort);
+}
+
+.card__art--vegi {
+  background: var(--cat-vegi-soft);
+  color: var(--cat-vegi);
+}
+
+.card__art--dessert {
+  background: var(--cat-dessert-soft);
+  color: var(--cat-dessert);
+}
+
+.card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card__idee {
+  color: var(--link);
+  font-weight: 600;
 }
 
 .card__title {
@@ -915,7 +983,8 @@ ol {
   color: var(--cat-vegi);
 }
 
-.tag--link {
+.tag--link,
+.tag--idee {
   background: var(--link-soft);
   color: var(--link);
 }
@@ -2167,6 +2236,75 @@ ol {
 .notice--error {
   border-color: color-mix(in srgb, var(--berry) 55%, var(--line));
   background: color-mix(in srgb, var(--berry) 9%, var(--surface));
+}
+
+/* "Was kommt dazu?" – drei grosse Wege hinter dem Plus -------------------- */
+
+.wahl {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 14px 16px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  color: var(--ink);
+  transition: border-color 0.16s ease, transform 0.12s ease;
+}
+
+.wahl:hover {
+  border-color: var(--line-strong);
+}
+
+.wahl:active {
+  transform: scale(0.99);
+}
+
+.wahl > svg {
+  flex: none;
+  color: var(--ink-muted);
+}
+
+.wahl__icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.wahl--rezept .wahl__icon {
+  background: var(--cat-high-protein-soft);
+  color: var(--cat-high-protein);
+}
+
+.wahl--idee .wahl__icon {
+  background: var(--link-soft);
+  color: var(--link);
+}
+
+.wahl__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.wahl__titel {
+  font-size: 16.5px;
+  font-weight: 700;
+}
+
+.wahl__info {
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-muted);
 }
 
 /* Auswahl der Farbwelt ---------------------------------------------------- */

@@ -124,15 +124,15 @@ async function durchlauf(browser, geraet, theme) {
   await p.goto(`${B}/s/${raum()}`);
   await p.getByRole('heading', { level: 1 }).first().waitFor();
   await p.waitForTimeout(600);
-  await pruefeSeite(p, `${wo0}/Rezepte`);
+  await pruefeSeite(p, `${wo0}/Essen`);
 
   // Alle Filter durchklicken
   for (const name of ['Cook Next', 'Comfort', 'High-Protein', 'Vegi', 'Dessert', 'Alle']) {
-    const knopf = p.getByRole('group', { name: 'Rezepte filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
+    const knopf = p.getByRole('group', { name: 'Essen filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
     if (await knopf.count()) { await knopf.first().click(); await p.waitForTimeout(150); }
-    else melde(wo0, `Filter "${name}" fehlt bei Rezepten`);
+    else melde(wo0, `Filter "${name}" fehlt bei Essen`);
   }
-  await pruefeSeite(p, `${wo0}/Rezepte-gefiltert`);
+  await pruefeSeite(p, `${wo0}/Essen-gefiltert`);
 
   // Rezeptdetail + Kochmodus
   await p.getByRole('button', { name: /^Rezept .* öffnen$/ }).first().click();
@@ -149,22 +149,28 @@ async function durchlauf(browser, geraet, theme) {
   }
   await p.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-  // Neues Rezept: Kategorie-Automatik, Vorbereitung, KI-Knopf
-  await p.getByRole('button', { name: 'Neues Rezept' }).click();
+  // Eine Idee
+  await p.getByRole('button', { name: /^Idee .* öffnen$/ }).first().click();
+  await p.waitForTimeout(400);
+  await pruefeSeite(p, `${wo0}/Idee`);
+  await p.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+  await p.waitForTimeout(300);
+
+  // Das Plus: Was kommt dazu? – dann ein neues Rezept und eine neue Idee
+  await p.getByRole('button', { name: 'Neu anlegen' }).click();
+  await p.waitForTimeout(400);
+  await pruefeSeite(p, `${wo0}/Neu-anlegen`);
+  await p.getByRole('dialog').getByRole('button', { name: /^Rezept selbst schreiben/ }).click();
   await p.waitForTimeout(400);
   await pruefeSeite(p, `${wo0}/Neues-Rezept`);
   await p.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click();
   await p.waitForTimeout(300);
-
-  // Gerichte
-  await p.getByRole('button', { name: 'Gerichte' }).first().click();
+  await p.getByRole('button', { name: 'Neu anlegen' }).click();
+  await p.getByRole('dialog').getByRole('button', { name: /^Nur eine Idee/ }).click();
   await p.waitForTimeout(400);
-  await pruefeSeite(p, `${wo0}/Gerichte`);
-  for (const name of ['Dessert', 'Vegi', 'Alle']) {
-    const knopf = p.getByRole('group', { name: 'Gerichte filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
-    if (await knopf.count()) { await knopf.first().click(); await p.waitForTimeout(150); }
-    else melde(wo0, `Filter "${name}" fehlt bei Gerichten`);
-  }
+  await pruefeSeite(p, `${wo0}/Neue-Idee`);
+  await p.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click();
+  await p.waitForTimeout(300);
 
   // Einkaufsliste inkl. Grundliste aufklappen
   await p.getByRole('button', { name: 'Einkaufsliste' }).first().click();

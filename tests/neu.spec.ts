@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { newSpace, openSpace, startCooking, waitForSync } from './helpers';
+import { neuesRezept, newSpace, openSpace, startCooking, waitForSync } from './helpers';
 import { buildSeedData, SCHRITTE_VOR_DER_VORBEREITUNG } from '../src/lib/seed';
 import { kategorieErkennen } from '../src/lib/category';
 import { schrittSignatur, vorbereitungAusText, vorbereitungVorschlagen } from '../src/lib/prep';
@@ -297,7 +297,7 @@ test.describe('Neues Rezept', () => {
   test('erkennt die Kategorie aus den Zutaten und legt die Vorbereitung an', async ({ page }) => {
     await openSpace(page, newSpace('neukat'));
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Name', { exact: true }).fill('Zucchini-Pouletpfanne');
     await form.getByLabel('Portionen', { exact: true }).fill('2');
@@ -321,7 +321,7 @@ test.describe('Neues Rezept', () => {
   test('eine selbst gewählte Kategorie bleibt stehen', async ({ page }) => {
     await openSpace(page, newSpace('neueigen'));
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Kategorie').fill('Frühstück');
     await form.getByLabel('Name für Zutat 1').fill('Spaghetti');
@@ -372,7 +372,7 @@ test.describe('Rezept über Link mit KI', () => {
       }),
     );
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Rezept über Link hinzufügen').fill('beispiel.test/pasta');
     await form.getByRole('button', { name: 'Holen' }).click();
@@ -414,7 +414,7 @@ test.describe('Rezept über Link mit KI', () => {
       }),
     );
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Rezept über Link hinzufügen').fill('beispiel.test/pasta');
     await form.getByRole('button', { name: 'Holen' }).click();
@@ -428,7 +428,7 @@ test.describe('Rezept über Link mit KI', () => {
       route.fulfill({ status: 503, json: { ok: false, error: 'no_key' } }),
     );
 
-    await page.getByRole('button', { name: 'Neues Rezept' }).click();
+    await neuesRezept(page);
     const form = page.getByRole('dialog');
     await form.getByLabel('Rezept über Link hinzufügen').fill('beispiel.test/pasta');
     await form.getByRole('button', { name: 'Holen' }).click();

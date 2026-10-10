@@ -67,11 +67,14 @@ type KiStand =
 export function RecipeForm({
   initial,
   isNew,
+  mitLink = false,
   onSave,
   onClose,
 }: {
   initial: Recipe;
   isNew: boolean;
+  /** Gewaehlt ueber "Rezept über Link": der Cursor steht gleich im Link-Feld. */
+  mitLink?: boolean;
   onSave: (recipe: Recipe) => void;
   onClose: () => void;
 }) {
@@ -412,6 +415,7 @@ export function RecipeForm({
                 autoComplete="off"
                 autoCapitalize="none"
                 spellCheck={false}
+                autoFocus={mitLink}
               />
               <button
                 className="btn btn--primary"

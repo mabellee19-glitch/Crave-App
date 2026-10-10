@@ -4,9 +4,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
-import { RecipesView } from './RecipesView';
-import { DishesView } from './DishesView';
+import { EssenView } from './EssenView';
 import { ShoppingView } from './ShoppingView';
+import { IdeaDetail } from './IdeaDetail';
+import { NeuArt, NewSheet } from './NewSheet';
+import { ideenAus } from '@/lib/essen';
+import { DISH_CATEGORY_LABEL } from '@/lib/types';
+import { randomId } from '@/lib/id';
 import { RecipeDetail } from './RecipeDetail';
 import { RecipeForm } from './RecipeForm';
 import { DishForm } from './DishForm';
@@ -15,27 +19,40 @@ import { SettingsSheet, SyncBadge } from './SettingsSheet';
 import { FridgeSheet } from './FridgeSheet';
 import { CloudNotice } from './CloudNotice';
 import { Toast, ToastMessage } from './ui';
-import { IconBook, IconCamera, IconCart, IconPlate, IconPlus, IconSettings } from './Icons';
+import { IconBook, IconCamera, IconCart, IconPlus, IconSettings } from './Icons';
 
-type Tab = 'recipes' | 'dishes' | 'shopping';
+/*
+ * Zwei Bereiche: alles, was man kochen kann, und der Einkauf. Rezepte und
+ * Gerichte waren frueher getrennt – und fast jedes Gericht stand doppelt da.
+ */
+type Tab = 'essen' | 'shopping';
 
 type Overlay =
+  | { kind: 'new' }
   | { kind: 'recipe'; id: string }
-  | { kind: 'recipeForm'; recipe: Recipe; isNew: boolean }
+  | { kind: 'idea'; id: string }
+  | {
+      kind: 'recipeForm';
+      recipe: Recipe;
+      isNew: boolean;
+      /** Fokus gleich ins Link-Feld – "Rezept über Link" im Plus-Blatt. */
+      mitLink?: boolean;
+      /** Das Rezept entsteht aus dieser Idee. */
+      ausIdee?: string;
+    }
   | { kind: 'dishForm'; dish: Dish; isNew: boolean }
   | { kind: 'cook'; recipeId: string; servings: number }
   | { kind: 'fridge' }
   | { kind: 'settings' };
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
-  { id: 'recipes', label: 'Rezepte', icon: <IconBook size={23} /> },
-  { id: 'dishes', label: 'Gerichte', icon: <IconPlate size={23} /> },
+  { id: 'essen', label: 'Essen', icon: <IconBook size={23} /> },
   { id: 'shopping', label: 'Einkaufsliste', icon: <IconCart size={23} /> },
 ];
 
 export function AppShell() {
   const store = useStore();
-  const [tab, setTab] = useState<Tab>('recipes');
+  const [tab, setTab] = useState<Tab>('essen');
   const [stack, setStack] = useState<Overlay[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -63,8 +80,16 @@ export function AppShell() {
     };
   }, []);
 
+  /*
+   * Jeder Verlaufseintrag kennt die Zahl der Overlays, die zu ihm gehoeren.
+   * So kommt der Stapel auch dann richtig an, wenn mehrere auf einmal gehen –
+   * etwa beim Loeschen einer Idee aus ihrem Formular heraus.
+   */
   useEffect(() => {
-    const onPop = () => setStack((current) => (current.length ? current.slice(0, -1) : current));
+    const onPop = (event: PopStateEvent) => {
+      const tiefe = typeof event.state?.crave === 'number' ? event.state.crave : 0;
+      setStack((current) => (current.length > tiefe ? current.slice(0, tiefe) : current));
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -78,14 +103,19 @@ export function AppShell() {
     setStack((current) => [...current, overlay]);
   }, []);
 
-  const closeTop = useCallback(() => {
-    if (stackRef.current.length === 0) return;
+  /** Die obersten `anzahl` Overlays schliessen – ueber den Verlauf. */
+  const closeOverlays = useCallback((anzahl: number) => {
+    const schritte = Math.min(anzahl, stackRef.current.length);
+    if (schritte <= 0) return;
     try {
-      window.history.back();
+      window.history.go(-schritte);
     } catch {
-      setStack((current) => current.slice(0, -1));
+      setStack((current) => current.slice(0, -schritte));
     }
   }, []);
+
+  // Ohne Parameter: wird oft direkt als Klick-Handler weitergegeben.
+  const closeTop = useCallback(() => closeOverlays(1), [closeOverlays]);
 
   /* Audio beim ersten Tap entsperren, damit der Kochtimer spaeter klingeln darf. */
   useEffect(() => {
@@ -121,11 +151,22 @@ export function AppShell() {
 
   const openRecipe = useCallback(
     (id: string) => {
-      setTab('recipes');
+      setTab('essen');
       openOverlay({ kind: 'recipe', id });
     },
     [openOverlay],
   );
+
+  const openIdea = useCallback(
+    (id: string) => {
+      setTab('essen');
+      openOverlay({ kind: 'idea', id });
+    },
+    [openOverlay],
+  );
+
+  /** Die Gerichte, die als eigene Idee in der Liste stehen. */
+  const ideen = useMemo(() => ideenAus(store.recipes, store.dishes), [store.recipes, store.dishes]);
 
   /**
    * Die Vorschau ueber der Einkaufsliste: was fuer die naechsten Tage geplant
@@ -151,22 +192,29 @@ export function AppShell() {
 
   const addAction = () => {
     if (tab === 'shopping') {
-      setTab('shopping');
       document.querySelector<HTMLInputElement>('input[aria-label="Zutat zur Einkaufsliste hinzufügen"]')?.focus();
       return;
     }
-    if (tab === 'recipes') openOverlay({ kind: 'recipeForm', recipe: blankRecipe(), isNew: true });
-    else openOverlay({ kind: 'dishForm', dish: blankDish(), isNew: true });
+    openOverlay({ kind: 'new' });
+  };
+
+  /** Aus dem Plus-Blatt: das Blatt wird durch das gewaehlte Formular ersetzt. */
+  const neuAnlegen = (art: NeuArt) => {
+    const formular: Overlay =
+      art === 'idee'
+        ? { kind: 'dishForm', dish: blankDish(), isNew: true }
+        : { kind: 'recipeForm', recipe: blankRecipe(), isNew: true, mitLink: art === 'link' };
+    setStack((current) => [...current.slice(0, -1), formular]);
   };
 
   const counts = useMemo(
     () => ({
       recipes: store.recipes.length,
-      dishes: store.dishes.length,
+      ideen: ideen.length,
       shopping: store.shopping.length,
       pantry: Object.values(store.data.pantry).filter((item) => !item.deleted).length,
     }),
-    [store.recipes.length, store.dishes.length, store.shopping.length, store.data.pantry],
+    [store.recipes.length, ideen.length, store.shopping.length, store.data.pantry],
   );
 
   const allPantry = useMemo(
@@ -208,15 +256,9 @@ export function AppShell() {
             <IconCamera />
           </button>
           <button
-            className="iconbtn"
+            className={`iconbtn${tab === 'essen' ? ' iconbtn--primary' : ''}`}
             onClick={addAction}
-            aria-label={
-              tab === 'recipes'
-                ? 'Neues Rezept'
-                : tab === 'dishes'
-                  ? 'Neues Gericht'
-                  : 'Zutat hinzufügen'
-            }
+            aria-label={tab === 'essen' ? 'Neu anlegen' : 'Zutat hinzufügen'}
           >
             <IconPlus />
           </button>
@@ -251,21 +293,15 @@ export function AppShell() {
               <div className="skeleton__card" key={index} />
             ))}
           </div>
-        ) : tab === 'recipes' ? (
-          <RecipesView
+        ) : tab === 'essen' ? (
+          <EssenView
             recipes={store.recipes}
-            onOpen={openRecipe}
-            onNew={() => openOverlay({ kind: 'recipeForm', recipe: blankRecipe(), isNew: true })}
-            onToggleCookNext={store.toggleRecipeCookNext}
-          />
-        ) : tab === 'dishes' ? (
-          <DishesView
-            dishes={store.dishes}
-            recipes={store.recipes}
+            ideen={ideen}
             onOpenRecipe={openRecipe}
-            onEditDish={(dish) => openOverlay({ kind: 'dishForm', dish, isNew: false })}
-            onNew={() => openOverlay({ kind: 'dishForm', dish: blankDish(), isNew: true })}
-            onToggleCookNext={store.toggleDishCookNext}
+            onOpenIdea={openIdea}
+            onNew={() => openOverlay({ kind: 'new' })}
+            onToggleRecipeCookNext={store.toggleRecipeCookNext}
+            onToggleIdeaCookNext={store.toggleDishCookNext}
           />
         ) : (
           <ShoppingView
@@ -291,17 +327,9 @@ export function AppShell() {
             onSavePantryItem={store.savePantryItem}
             onDeletePantryItem={store.deletePantryItem}
             cookNext={geplant}
-            onOpenPlanned={(eintrag) => {
-              if (eintrag.kind === 'recipe') {
-                openRecipe(eintrag.id);
-                return;
-              }
-              const dish = store.dishes.find((entry) => entry.id === eintrag.id);
-              if (dish) {
-                setTab('dishes');
-                openOverlay({ kind: 'dishForm', dish, isNew: false });
-              }
-            }}
+            onOpenPlanned={(eintrag) =>
+              eintrag.kind === 'recipe' ? openRecipe(eintrag.id) : openIdea(eintrag.id)
+            }
             onAddSuggestions={() => {
               const { added, categorised } = store.addPantrySuggestions();
               showToast(
@@ -354,7 +382,86 @@ export function AppShell() {
    * Komponente bekaeme bei jedem Render eine neue Identitaet und React wuerde
    * das Formular samt Eingaben neu aufbauen.
    */
+  function renderRecipe(recipe: Recipe): React.ReactNode {
+    return (
+      <RecipeDetail
+        recipe={recipe}
+        onClose={closeTop}
+        onEdit={() => openOverlay({ kind: 'recipeForm', recipe, isNew: false })}
+        onToggleCookNext={(servings) => store.toggleRecipeCookNext(recipe.id, servings)}
+        onFillSteps={() => {
+          const geklappt = store.fillRecipeSteps(recipe.id);
+          showToast(
+            geklappt
+              ? 'Aus der Vorlage nachgetragen'
+              : 'Für dieses Rezept ist keine Vorlage hinterlegt',
+          );
+        }}
+        onDelete={() => {
+          store.deleteRecipe(recipe.id);
+          closeTop();
+          showToast('Rezept gelöscht');
+        }}
+        onStartCooking={(servings) => openOverlay({ kind: 'cook', recipeId: recipe.id, servings })}
+        onAddToShopping={(servings) => {
+          const count = store.addRecipeToShopping(recipe, servings);
+          showToast(
+            `${count} ${count === 1 ? 'Zutat' : 'Zutaten'} zur Einkaufsliste`,
+            'Rückgängig',
+            () => storeRef.current.undo?.(),
+          );
+        }}
+      />
+    );
+  }
+
   function renderOverlay(overlay: Overlay): React.ReactNode {
+    if (overlay.kind === 'new') {
+      return <NewSheet onPick={neuAnlegen} onClose={closeTop} />;
+    }
+
+    if (overlay.kind === 'idea') {
+      const dish = store.dishes.find((entry) => entry.id === overlay.id);
+      if (!dish) return null;
+      // Ist aus der Idee inzwischen ein Rezept geworden, zeigt dieselbe
+      // Ansicht jetzt das Rezept.
+      const recipe = store.getRecipe(dish.recipeId);
+      if (recipe) return renderRecipe(recipe);
+      return (
+        <IdeaDetail
+          dish={dish}
+          onClose={closeTop}
+          onEdit={() => openOverlay({ kind: 'dishForm', dish, isNew: false })}
+          onToggleCookNext={() => {
+            store.toggleDishCookNext(dish.id);
+            showToast(
+              dish.cookNext
+                ? `${kurz(dish.name)} von Cook Next genommen`
+                : `${kurz(dish.name)} auf Cook Next – Zutaten stehen auf der Liste`,
+            );
+          }}
+          onMakeRecipe={() => {
+            const base = blankRecipe();
+            const zutaten = (dish.ingredients ?? []).filter((zutat) => zutat.name.trim());
+            openOverlay({
+              kind: 'recipeForm',
+              isNew: true,
+              ausIdee: dish.id,
+              recipe: {
+                ...base,
+                name: dish.name,
+                category: DISH_CATEGORY_LABEL[dish.category],
+                ingredients: zutaten.length
+                  ? zutaten.map((zutat) => ({ ...zutat, id: randomId() }))
+                  : base.ingredients,
+                notes: dish.notes,
+              },
+            });
+          }}
+        />
+      );
+    }
+
     if (overlay.kind === 'settings') {
       return (
         <SettingsSheet
@@ -404,38 +511,7 @@ export function AppShell() {
       if (!recipe) {
         return null;
       }
-      return (
-        <RecipeDetail
-          recipe={recipe}
-          onClose={closeTop}
-          onEdit={() => openOverlay({ kind: 'recipeForm', recipe, isNew: false })}
-          onToggleCookNext={(servings) => store.toggleRecipeCookNext(recipe.id, servings)}
-          onFillSteps={() => {
-            const geklappt = store.fillRecipeSteps(recipe.id);
-            showToast(
-              geklappt
-                ? 'Aus der Vorlage nachgetragen'
-                : 'Für dieses Rezept ist keine Vorlage hinterlegt',
-            );
-          }}
-          onDelete={() => {
-            store.deleteRecipe(recipe.id);
-            closeTop();
-            showToast('Rezept gelöscht');
-          }}
-          onStartCooking={(servings) =>
-            openOverlay({ kind: 'cook', recipeId: recipe.id, servings })
-          }
-          onAddToShopping={(servings) => {
-            const count = store.addRecipeToShopping(recipe, servings);
-            showToast(
-              `${count} ${count === 1 ? 'Zutat' : 'Zutaten'} zur Einkaufsliste`,
-              'Rückgängig',
-              () => storeRef.current.undo?.(),
-            );
-          }}
-        />
-      );
+      return renderRecipe(recipe);
     }
 
     if (overlay.kind === 'recipeForm') {
@@ -443,11 +519,19 @@ export function AppShell() {
         <RecipeForm
           initial={overlay.recipe}
           isNew={overlay.isNew}
+          mitLink={overlay.mitLink}
           onClose={closeTop}
           onSave={(recipe) => {
-            store.saveRecipe(recipe);
+            if (overlay.ausIdee) store.ideeAlsRezept(overlay.ausIdee, recipe);
+            else store.saveRecipe(recipe);
             closeTop();
-            showToast(overlay.isNew ? 'Rezept angelegt' : 'Rezept gespeichert');
+            showToast(
+              overlay.ausIdee
+                ? 'Aus der Idee ist ein Rezept geworden'
+                : overlay.isNew
+                  ? 'Rezept angelegt'
+                  : 'Rezept gespeichert',
+            );
           }}
         />
       );
@@ -458,17 +542,18 @@ export function AppShell() {
         <DishForm
           initial={overlay.dish}
           isNew={overlay.isNew}
-          recipes={store.recipes}
           onClose={closeTop}
           onSave={(dish) => {
             store.saveDish(dish);
             closeTop();
-            showToast(overlay.isNew ? 'Gericht angelegt' : 'Gericht gespeichert');
+            showToast(overlay.isNew ? 'Idee angelegt' : 'Idee gespeichert');
           }}
           onDelete={() => {
             store.deleteDish(overlay.dish.id);
-            closeTop();
-            showToast('Gericht gelöscht');
+            // Liegt die Ansicht der Idee darunter, geht sie mit.
+            const darunter = stack[stack.length - 2];
+            closeOverlays(darunter?.kind === 'idea' && darunter.id === overlay.dish.id ? 2 : 1);
+            showToast('Idee gelöscht');
           }}
         />
       );

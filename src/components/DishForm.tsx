@@ -1,23 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
-import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, Recipe } from '@/lib/types';
+import React, { useMemo, useState } from 'react';
+import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, matchDishCategory } from '@/lib/types';
 import { blankIngredient } from '@/lib/store';
+import { kategorieErkennen } from '@/lib/category';
 import { ConfirmDialog, Field, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconTrash } from './Icons';
 
+/**
+ * Formular fuer eine Idee – ein Gericht ohne Anleitung. Zum Rezept wird sie
+ * ueber "Rezept daraus machen" in ihrer Ansicht, nicht hier.
+ */
 export function DishForm({
   initial,
   isNew,
-  recipes,
   onSave,
   onDelete,
   onClose,
 }: {
   initial: Dish;
   isNew: boolean;
-  recipes: Recipe[];
   onSave: (dish: Dish) => void;
   onDelete?: () => void;
   onClose: () => void;
@@ -34,10 +37,20 @@ export function DishForm({
 
   const nameValid = draft.name.trim().length > 0;
 
+  // Wie beim Rezept: eine neue Idee bekommt ihre Kategorie aus den Zutaten,
+  // bis jemand selbst eine waehlt.
+  const [kategorieAuto, setKategorieAuto] = useState(isNew);
+  const erkennung = useMemo(
+    () => kategorieErkennen({ name: draft.name, servings: 2, ingredients: draft.ingredients }),
+    [draft.name, draft.ingredients],
+  );
+  const erkannt = matchDishCategory(erkennung?.kategorie);
+  const kategorie: DishCategory = kategorieAuto && erkannt ? erkannt : draft.category;
+
   return (
     <>
       <Sheet
-        title={isNew ? 'Neues Gericht' : 'Gericht bearbeiten'}
+        title={isNew ? 'Neue Idee' : 'Idee bearbeiten'}
         onClose={onClose}
         footer={
           <>
@@ -53,6 +66,7 @@ export function DishForm({
                 onSave({
                   ...draft,
                   name: draft.name.trim(),
+                  category: kategorie,
                   ingredients: aufgeraeumteZutaten(draft.ingredients),
                 })
               }
@@ -75,36 +89,23 @@ export function DishForm({
           />
         </Field>
 
-        <Field label="Kategorie" htmlFor="dish-category">
+        <Field
+          label="Kategorie"
+          htmlFor="dish-category"
+          hint={kategorieAuto && erkennung && erkannt ? `Automatisch erkannt: ${erkennung.grund}` : undefined}
+        >
           <select
             id="dish-category"
             className="select"
-            value={draft.category}
-            onChange={(event) => set('category', event.target.value as DishCategory)}
+            value={kategorie}
+            onChange={(event) => {
+              setKategorieAuto(false);
+              set('category', event.target.value as DishCategory);
+            }}
           >
             {DISH_CATEGORIES.map((category) => (
               <option key={category} value={category}>
                 {DISH_CATEGORY_LABEL[category]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field
-          label="Verknüpftes Rezept"
-          htmlFor="dish-recipe"
-          hint="Ist ein Rezept hinterlegt, öffnet ein Tipp auf das Gericht direkt das Rezept."
-        >
-          <select
-            id="dish-recipe"
-            className="select"
-            value={draft.recipeId ?? ''}
-            onChange={(event) => set('recipeId', event.target.value || null)}
-          >
-            <option value="">Kein Rezept</option>
-            {recipes.map((recipe) => (
-              <option key={recipe.id} value={recipe.id}>
-                {recipe.name}
               </option>
             ))}
           </select>
@@ -116,18 +117,9 @@ export function DishForm({
           <span className="detail__h">Zutaten</span>
           <span className="row__note">Menge · Einheit · Zutat</span>
         </div>
-
-        {draft.recipeId ? (
-          <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
-            Für Cook Next und die Einkaufsliste zählen die Zutaten des verknüpften Rezepts. Was du
-            hier einträgst, bleibt als Notiz am Gericht stehen.
-          </p>
-        ) : (
-          <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
-            Ohne hinterlegtes Rezept kommen diese Zutaten auf die Einkaufsliste, sobald du das
-            Gericht auf Cook Next setzt.
-          </p>
-        )}
+        <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+          Kommt die Idee auf Cook Next, wandern diese Zutaten auf die Einkaufsliste.
+        </p>
 
         <IngredientEditor
           ingredients={draft.ingredients}
@@ -151,7 +143,7 @@ export function DishForm({
             <hr className="divider" />
             <button className="btn btn--danger btn--block" onClick={() => setConfirming(true)}>
               <IconTrash size={18} />
-              Gericht löschen
+              Idee löschen
             </button>
             <div style={{ height: 8 }} />
           </>
@@ -160,7 +152,7 @@ export function DishForm({
 
       {confirming && onDelete ? (
         <ConfirmDialog
-          title="Gericht löschen?"
+          title="Idee löschen?"
           text={`„${draft.name}“ wird auf allen Geräten entfernt.`}
           confirmLabel="Löschen"
           onCancel={() => setConfirming(false)}

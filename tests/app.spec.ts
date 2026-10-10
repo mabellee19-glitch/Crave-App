@@ -561,14 +561,14 @@ test.describe('Zubereitung nachtragen', () => {
     await detail.getByRole('button', { name: 'Aus der Vorlage nachtragen' }).click();
     await expect(page.getByText('Aus der Vorlage nachgetragen')).toBeVisible();
 
-    await expect(detail.getByText('7 Schritte')).toBeVisible();
+    await expect(detail.getByText('8 Schritte')).toBeVisible();
     // Die Zutaten fehlten ebenfalls und sind jetzt da – und mit den Schritten
     // aus der Vorlage auch deren Vorbereitung.
     await expect(detail.getByText('250 g', { exact: true })).toBeVisible();
     await expect(detail.getByText('Burgerbrötchen halbieren')).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await startCooking(page);
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
   });
 
   test('ein selbst angelegtes Rezept sagt ehrlich, dass nichts hinterlegt ist', async ({ page }) => {
@@ -1352,11 +1352,11 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
 
     await page.getByRole('button', { name: 'Rezept Halloumiburger mit Honig-Senf-Sauce öffnen' }).click();
     detail = page.getByRole('dialog');
-    await expect(detail.getByText('7 Schritte')).toBeVisible();
+    await expect(detail.getByText('8 Schritte')).toBeVisible();
     await expect(detail.getByText('250 g', { exact: true })).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Start Cooking' })).toBeEnabled();
     await startCooking(page);
-    await expect(page.getByText('Schritt 1 von 7')).toBeVisible();
+    await expect(page.getByText('Schritt 1 von 8')).toBeVisible();
   });
 
   test('ein geloeschtes Rezept kommt nicht von selbst zurueck', async ({ page, request }) => {

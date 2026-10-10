@@ -65,6 +65,20 @@ export interface Recipe extends Syncable {
   prep?: string[];
   steps: Step[];
   /**
+   * Wie die Schritte gekuerzt sind. Fehlt das Feld, stammt das Rezept aus der
+   * Zeit davor und wird beim naechsten Start einmal durchgesehen.
+   * - `regeln`: lange Schritte an Satzgrenzen geteilt, Verweise auf die
+   *   Webseite gestrichen. Die KI darf noch nachbessern.
+   * - `ki`: von der KI umgeschrieben.
+   * - `eigen`: selbst geschrieben – wird nicht von allein angefasst.
+   * - `original`: auf die urspruenglichen Schritte zurueckgesetzt – ebenso.
+   */
+  kuerzung?: 'regeln' | 'ki' | 'eigen' | 'original';
+  /** Schritte und Vorbereitung, wie sie vor dem Kuerzen dastanden. */
+  vorKuerzen?: { steps: Step[]; prep: string[] };
+  /** Wann die KI ein Ergebnis lieferte, das nicht uebernommen wurde – dann nicht nochmal. */
+  kiVersuch?: number;
+  /**
    * "Cook Next": geplant fuer die naechsten Tage. Solange das gesetzt ist,
    * stehen die Zutaten des Rezepts auf der Einkaufsliste; beim Abwaehlen
    * verschwinden genau die wieder.

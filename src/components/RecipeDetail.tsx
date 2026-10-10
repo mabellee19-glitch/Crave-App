@@ -29,6 +29,7 @@ export function RecipeDetail({
   onStartCooking,
   onAddToShopping,
   onFillSteps,
+  onRestoreOriginal,
 }: {
   recipe: Recipe;
   onClose: () => void;
@@ -39,6 +40,8 @@ export function RecipeDetail({
   onAddToShopping: (servings: number) => void;
   /** Hinterlegte Zubereitungsschritte nachtragen, wenn das Rezept keine hat. */
   onFillSteps: () => void;
+  /** Gekuerzte Schritte auf den Stand davor zuruecksetzen. */
+  onRestoreOriginal: () => void;
 }) {
   const base = recipe.servings > 0 ? recipe.servings : 1;
   const [servings, setServings] = useState(base);
@@ -242,6 +245,18 @@ export function RecipeDetail({
               ))}
             </ol>
           )}
+          {steps.length > 0 &&
+          recipe.vorKuerzen &&
+          (recipe.kuerzung === 'regeln' || recipe.kuerzung === 'ki') ? (
+            <p className="kuerzung">
+              {recipe.kuerzung === 'ki'
+                ? 'Die Schritte wurden mit KI gekürzt.'
+                : 'Lange Schritte wurden in kurze aufgeteilt.'}{' '}
+              <button className="btn btn--quiet kuerzung__zurueck" onClick={onRestoreOriginal}>
+                Original wiederherstellen
+              </button>
+            </p>
+          ) : null}
         </div>
 
         <hr className="divider" />

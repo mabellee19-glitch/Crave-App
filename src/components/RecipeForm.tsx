@@ -5,6 +5,8 @@ import { Recipe, Step } from '@/lib/types';
 import { blankIngredient, blankStep } from '@/lib/store';
 import { kategorieErkennen } from '@/lib/category';
 import { vorbereitungAusText, vorbereitungVorschlagen } from '@/lib/prep';
+import { schritteKuerzen } from '@/lib/kuerzen';
+import { randomId } from '@/lib/id';
 import { Field, NumberInput, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconArrowUp, IconPlus, IconSpark, IconTrash } from './Icons';
@@ -39,18 +41,26 @@ function importMeldung(code: string): string {
 function kiMeldung(code: string): string {
   switch (code) {
     case 'no_key':
-      return 'Auf dem Server ist kein Zugang zum Modell eingerichtet – die Schritte bleiben, wie sie übernommen wurden.';
+      return 'Auf dem Server ist kein Zugang zum Modell eingerichtet.';
     case 'billing':
-      return 'Beim Anbieter fehlt die Zahlungsangabe (Vercel → AI Gateway). Die Schritte bleiben, wie sie sind.';
+      return 'Beim Anbieter fehlt die Zahlungsangabe (Vercel → AI Gateway).';
     case 'auth':
-      return 'Der hinterlegte Schlüssel wird nicht akzeptiert. Die Schritte bleiben, wie sie sind.';
+      return 'Der hinterlegte Schlüssel wird nicht akzeptiert.';
     case 'rate_limit':
       return 'Gerade zu viele Anfragen. Kurz warten und nochmal versuchen.';
     case 'too_large':
       return 'Das Rezept ist zu lang zum Vereinfachen.';
     default:
-      return 'Vereinfachen hat nicht geklappt. Die Schritte bleiben, wie sie sind.';
+      return 'Vereinfachen hat nicht geklappt.';
   }
+}
+
+/** Die Schritte als ein Text, zum Vergleichen. */
+function schritteAlsText(steps: Step[]): string {
+  return steps
+    .map((step) => step.text.trim())
+    .filter(Boolean)
+    .join('\n');
 }
 
 type KiStand =
@@ -59,10 +69,22 @@ type KiStand =
   | {
       phase: 'fertig';
       ort: 'oben' | 'schritte';
-      vorher: { steps: Step[]; prepText: string };
+      vorher: {
+        steps: Step[];
+        prepText: string;
+        kuerzung: Recipe['kuerzung'];
+        vorKuerzen: Recipe['vorKuerzen'];
+      };
       fehlend: string[];
     }
-  | { phase: 'fehler'; ort: 'oben' | 'schritte'; meldung: string; nochmal: boolean };
+  | {
+      phase: 'fehler';
+      ort: 'oben' | 'schritte';
+      meldung: string;
+      nochmal: boolean;
+      /** Die Meldung sagt selbst, was mit den Schritten ist. */
+      vollstaendig?: boolean;
+    };
 
 export function RecipeForm({
   initial,
@@ -85,6 +107,13 @@ export function RecipeForm({
   }));
   const draftRef = useRef(draft);
   draftRef.current = draft;
+
+  /*
+   * Die Schritte, wie sie zuletzt von aussen kamen: aus dem Rezept, vom Import
+   * oder von der KI. Weicht das Gespeicherte davon ab, hat jemand von Hand
+   * daran gearbeitet – dann schreibt die KI im Hintergrund nicht mehr darueber.
+   */
+  const ausgang = useRef(schritteAlsText(initial.steps));
 
   const set = <K extends keyof Recipe>(key: K, value: Recipe[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
@@ -143,9 +172,13 @@ export function RecipeForm({
     ort: 'oben' | 'schritte',
     quelle: Pick<Recipe, 'name' | 'servings' | 'ingredients' | 'steps'> = draftRef.current,
     prepVorher: string = prepText,
+    // Was die KI zu lesen bekommt. Beim Import der ungeteilte Originaltext –
+    // im Formular stehen dann schon die nach Regeln geteilten Schritte.
+    vorlage: Step[] = quelle.steps,
   ) => {
     const steps = quelle.steps.filter((step) => step.text.trim());
-    if (steps.length === 0) return;
+    const eingabe = vorlage.filter((step) => step.text.trim());
+    if (eingabe.length === 0) return;
     setKi({ phase: 'laeuft', ort });
     try {
       const antwort = await fetch('/api/simplify', {
@@ -158,7 +191,7 @@ export function RecipeForm({
             ingredients: quelle.ingredients
               .filter((zutat) => zutat.name.trim())
               .map(({ name, amount, unit }) => ({ name, amount, unit })),
-            steps: steps.map(({ text, durationSec }) => ({ text, durationSec })),
+            steps: eingabe.map(({ text, durationSec }) => ({ text, durationSec })),
           },
         }),
       });
@@ -184,28 +217,45 @@ export function RecipeForm({
           ort,
           meldung: 'Die Schritte wurden in der Zwischenzeit geändert – deshalb bleibt deine Fassung stehen.',
           nochmal: true,
+          vollstaendig: true,
         });
         return;
       }
 
-      const vorherSchritte = draftRef.current.steps;
+      const vorher = draftRef.current;
       const neueSchritte = (daten.steps as Array<{ text: string; durationSec: number | null }>).map(
         (schritt) => ({ ...blankStep(), text: schritt.text, durationSec: schritt.durationSec }),
       );
-      setDraft((current) => ({ ...current, steps: neueSchritte }));
+      ausgang.current = schritteAlsText(neueSchritte);
+      setDraft((current) => ({
+        ...current,
+        steps: neueSchritte,
+        kuerzung: 'ki',
+        // Das Original fuer "Original wiederherstellen" im Rezept: beim Import
+        // der ungeteilte Text, sonst die Schritte von eben.
+        vorKuerzen: current.vorKuerzen ?? {
+          steps: vorher.steps,
+          prep: vorbereitungAusText(prepVorher),
+        },
+      }));
       setPrepText((daten.prep as string[]).join('\n'));
       setPrepHinweis(null);
       setKi({
         phase: 'fertig',
         ort,
-        vorher: { steps: vorherSchritte, prepText: prepVorher },
+        vorher: {
+          steps: vorher.steps,
+          prepText: prepVorher,
+          kuerzung: vorher.kuerzung,
+          vorKuerzen: vorher.vorKuerzen,
+        },
         fehlend: Array.isArray(daten.missingNumbers) ? daten.missingNumbers : [],
       });
     } catch {
       setKi({
         phase: 'fehler',
         ort,
-        meldung: 'Keine Verbindung zum Server. Die Schritte bleiben, wie sie sind.',
+        meldung: 'Keine Verbindung zum Server.',
         nochmal: true,
       });
     }
@@ -213,10 +263,18 @@ export function RecipeForm({
 
   const zuruecknehmen = () => {
     if (ki.phase !== 'fertig') return;
-    setDraft((current) => ({ ...current, steps: ki.vorher.steps }));
-    setPrepText(ki.vorher.prepText);
+    const { steps, prepText: text, kuerzung, vorKuerzen } = ki.vorher;
+    ausgang.current = schritteAlsText(steps);
+    setDraft((current) => ({ ...current, steps, kuerzung, vorKuerzen }));
+    setPrepText(text);
     setKi({ phase: 'aus' });
   };
+
+  /** Was mit den Schritten passiert, wenn die KI nicht helfen konnte. */
+  const ohneKi =
+    draft.kuerzung === 'regeln' && draft.vorKuerzen
+      ? 'Lange Schritte sind schon in kurze aufgeteilt. Umformuliert wird, sobald die KI erreichbar ist.'
+      : 'Die Schritte bleiben, wie sie sind.';
 
   const kiHinweis = (ort: 'oben' | 'schritte') => {
     if (ki.phase === 'aus' || ki.ort !== ort) return null;
@@ -231,7 +289,7 @@ export function RecipeForm({
     if (ki.phase === 'fehler') {
       return (
         <div className="notice" role="status">
-          {ki.meldung}
+          {ki.meldung} {ki.vollstaendig ? null : ohneKi}
           {ki.nochmal ? (
             <>
               {' '}
@@ -319,12 +377,26 @@ export function RecipeForm({
       };
       // Sofort eine Vorbereitung aus dem Text – die KI ersetzt sie gleich
       // durch eine bessere, falls sie eingerichtet ist.
-      const vorbereitung = vorbereitungVorschlagen(uebernommen).join('\n');
-      draftRef.current = uebernommen;
-      setDraft(uebernommen);
-      setPrepText(vorbereitung);
+      const vorbereitung = vorbereitungVorschlagen(uebernommen);
+      // Und sofort kurze Schritte: lange an den Satzgrenzen geteilt,
+      // Verweise auf die Webseite gestrichen. Die KI liest trotzdem das
+      // Original – daraus macht sie mehr als aus den Stuecken.
+      const original = uebernommen.steps;
+      const gekuerzt = rezept.steps.length ? schritteKuerzen(original, () => randomId()) : null;
+      const mitKurzenSchritten: Recipe = {
+        ...uebernommen,
+        steps: gekuerzt ?? original,
+        kuerzung: 'regeln',
+        vorKuerzen: gekuerzt ? { steps: original, prep: vorbereitung } : undefined,
+      };
+      draftRef.current = mitKurzenSchritten;
+      ausgang.current = schritteAlsText(mitKurzenSchritten.steps);
+      setDraft(mitKurzenSchritten);
+      setPrepText(vorbereitung.join('\n'));
       setUrl('');
-      if (rezept.steps.length) void vereinfachen('oben', uebernommen, vorbereitung);
+      if (rezept.steps.length) {
+        void vereinfachen('oben', mitKurzenSchritten, vorbereitung.join('\n'), original);
+      }
     } catch {
       setImportFehler('Die Seite liess sich nicht laden. Prüfe die Verbindung.');
     } finally {
@@ -362,6 +434,8 @@ export function RecipeForm({
     if (prep.length === 0 && isNew) prep = vorbereitungVorschlagen({ ingredients, steps });
     if (prep.length === 0 && initial.prep === undefined && !isNew) prep = undefined;
 
+    const vonHand = draft.kuerzung === 'regeln' && schritteAlsText(steps) !== ausgang.current;
+
     onSave({
       ...draft,
       name: draft.name.trim(),
@@ -370,6 +444,7 @@ export function RecipeForm({
       ingredients,
       prep,
       steps,
+      kuerzung: vonHand ? 'eigen' : draft.kuerzung,
     });
   };
 

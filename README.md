@@ -178,9 +178,31 @@ sich nichts:
 - `Original wiederherstellen` holt die übernommenen Schritte zurück.
 
 Der Knopf `Mit KI vereinfachen` über der Zubereitung macht dasselbe für jedes
-andere Rezept, auch beim Bearbeiten. Ohne eingerichteten Zugang bleibt alles
-wie übernommen; die App sagt das in einem Satz. Ein Aufruf kostet grob ein
-bis zwei Rappen.
+andere Rezept, auch beim Bearbeiten. Ein Aufruf kostet grob ein bis zwei
+Rappen.
+
+### Lange Schritte, auch ohne KI
+
+Ohne Zugang zum Modell – oder bevor es geantwortet hat – kürzt die App nach
+Regeln (`src/lib/kuerzen.ts`): ein langer Schritt wird an seinen Satzgrenzen
+in kurze geteilt, und Sätze, die nur auf die Webseite verweisen («Tipps finden
+sich im Artikel oben», «Viel Spass beim Nachkochen»), fallen weg. Umformuliert
+wird dabei nichts, jeder übrige Satz steht wortgleich da; der Timer wandert zu
+dem Teil, in dem die Zeit steht.
+
+- **Neu übernommene Rezepte** sind so sofort kurz, die KI liest trotzdem das
+  ungeteilte Original.
+- **Bestehende Rezepte** werden beim nächsten Start einmal durchgesehen. Die
+  mitgelieferten bekommen von Hand gekürzte Schritte, sofern sie noch so
+  dastehen wie ausgeliefert.
+- **Im Hintergrund** schreibt die KI danach alle Rezepte um, die ursprünglich
+  lange Schritte hatten, sobald sie erreichbar ist – mit dem Original als
+  Vorlage. Übernommen wird nur, was die Zahlen-Gegenprobe besteht und solange
+  niemand das Rezept inzwischen geändert hat. Fehlt der Zugang, bleibt es bei
+  einer einzigen Anfrage pro Start.
+- Unter den Schritten steht dann `Original wiederherstellen`. Danach wird das
+  Rezept nicht mehr von allein gekürzt, ebenso wenig selbst geschriebene oder
+  von Hand nachbearbeitete Schritte.
 
 Gefragt wird Claude Opus 5.5 mit wenig Nachdenkzeit, damit die Wartezeit im
 Formular kurz bleibt. Über Vercels Gateway versucht die App zuerst
@@ -397,6 +419,8 @@ src/
   lib/
     vision.ts                 Auswertung des Kühlschrankfotos
     recipeAi.ts               Vereinfachen übernommener Rezepte mit KI
+    kuerzen.ts                Lange Schritte ohne KI teilen
+    useKiKuerzung.ts          KI-Kürzung bestehender Rezepte im Hintergrund
     prep.ts                   Vorbereitung: aus Text lesen, Fingerabdruck
     category.ts               Kategorie aus den Zutaten
     stepIngredients.ts        Welche Zutaten zu welchem Schritt gehören

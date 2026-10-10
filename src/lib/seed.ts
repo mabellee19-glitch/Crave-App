@@ -224,13 +224,14 @@ const RECIPE_SEEDS: RecipeSeed[] = [
     ],
     steps: [
       step(
-        'Olivenöl in einer grossen Pfanne bei mittlerer bis hoher Hitze erhitzen. Hähnchen dazugeben und anbraten, bis es leicht gebräunt ist.',
+        'Olivenöl in einer grossen Pfanne bei mittlerer bis hoher Hitze erhitzen. Hähnchen darin leicht bräunen.',
         5 * 60,
       ),
       step('Knoblauch dazugeben und mitbraten, bis er duftet.', 60),
       step('Getrocknete Tomaten, Chiliflocken und Oregano unterrühren.'),
+      step('Orzo dazugeben, mit der Brühe aufgiessen und aufkochen.'),
       step(
-        'Orzo dazugeben und mit der Brühe aufgiessen. Aufkochen lassen, dann Hitze reduzieren und köcheln lassen, bis der Orzo weich ist und die Flüssigkeit grösstenteils aufgesogen ist. Gelegentlich umrühren, damit nichts ansetzt.',
+        'Hitze reduzieren und köcheln, bis der Orzo weich und die Brühe fast aufgesogen ist. Ab und zu umrühren.',
         10 * 60,
       ),
       step('Kokoscreme einrühren, bis alles schön cremig ist.'),
@@ -355,15 +356,16 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ),
       step('Die Linsen in den Topf geben und alles vermischen.'),
       step(
-        'Gemüsebouillon dazugeben und aufkochen lassen. Dann die Hitze reduzieren, Deckel drauf und köcheln lassen. Zwischendurch umrühren.',
+        'Gemüsebouillon dazugeben und aufkochen. Hitze reduzieren und zugedeckt köcheln, ab und zu umrühren.',
         8 * 60,
       ),
       step(
-        'Kokosmilch und nach Wunsch die Tomaten unterrühren und weiter köcheln lassen, bis die Linsen weich und cremig sind. Wird das Dal zu dick, einfach noch etwas Bouillon oder Kokosmilch dazugeben.',
+        'Kokosmilch und nach Wunsch die Tomaten unterrühren. Köcheln, bis die Linsen weich und cremig sind.',
         5 * 60,
       ),
+      step('Zu dick? Etwas Bouillon oder Kokosmilch einrühren.'),
       step(
-        'Mit Salz und Pfeffer würzen, dann Kokosblütenzucker und Zitronen- oder Limettensaft dazugeben. Gerade der Saft ist wichtig, weil er dem cremigen Dal Frische gibt.',
+        'Mit Salz, Pfeffer, Kokosblütenzucker und Zitronen- oder Limettensaft abschmecken. Der Saft macht das Dal frisch.',
       ),
     ],
   },
@@ -426,9 +428,9 @@ const RECIPE_SEEDS: RecipeSeed[] = [
     ],
     steps: [
       step(
-        'Pflanzenöl, Currypulver, Salz und Pfeffer in einen verschliessbaren Beutel geben, schütteln und die Halloumischeiben hineingeben. In den Kühlschrank legen und 30–60 Minuten marinieren.',
-        30 * 60,
+        'Für die Marinade Pflanzenöl, Currypulver, Salz und Pfeffer in einem verschliessbaren Beutel mischen. Halloumi dazugeben.',
       ),
+      step('Im Kühlschrank 30–60 Minuten marinieren.', 30 * 60),
       step(
         'Zucchinischeiben in Öl braten, bis sie auf jeder Seite goldbraun und weich sind. Mit Salz und Pfeffer würzen.',
         2 * 60,
@@ -437,7 +439,7 @@ const RECIPE_SEEDS: RecipeSeed[] = [
         'Backofen auf 200 °C vorheizen. Senf, Zucker und Honig in einer grossen Schüssel vermischen.',
       ),
       step(
-        'Unter ständigem Schlagen langsam das restliche Öl zugiessen, bis eine cremige Sauce entsteht. Mit Salz und Pfeffer würzen.',
+        'Unter ständigem Schlagen langsam das restliche Öl zugiessen, bis die Sauce cremig ist. Salzen und pfeffern.',
       ),
       step(
         'Burgerbrötchen auf ein mit Backpapier belegtes Blech legen und im vorgeheizten Ofen rösten.',
@@ -445,7 +447,7 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       ),
       step('Halloumi pro Seite braten, bis er leicht gebräunt ist.', 2 * 60),
       step(
-        'Brötchen mit Sauce bestreichen, dann Radicchio, Halloumi, Gemüse und Minze schichten und mit weiterer Sauce abschliessen.',
+        'Brötchen mit Sauce bestreichen. Radicchio, Halloumi, Gemüse und Minze darauf schichten, mit Sauce abschliessen.',
       ),
     ],
   },
@@ -479,17 +481,21 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       step(
         'Pasta in kräftig gesalzenem Wasser al dente kochen. Vor dem Abgiessen eine Tasse Pastawasser beiseitestellen.',
       ),
+      step('Während die Pasta kocht, das Olivenöl in einer grossen Pfanne erhitzen.'),
       step(
-        'Während die Pasta kocht, das Olivenöl in einer grossen Pfanne erhitzen. Knoblauch und Chiliflocken bei mittlerer Hitze kurz anschwitzen, bis es duftet. Der Knoblauch soll dabei nicht braun werden.',
+        'Knoblauch und Chiliflocken bei mittlerer Hitze anschwitzen, bis es duftet. Der Knoblauch soll nicht braun werden.',
       ),
       step(
-        'Cherrytomaten dazugeben und bei mittlerer bis hoher Hitze schmoren, bis sie weich werden und aufplatzen. Leicht mit der Kelle andrücken, damit Saft austritt.',
+        'Cherrytomaten dazugeben und bei mittlerer bis hoher Hitze schmoren, bis sie aufplatzen. Leicht andrücken, damit Saft austritt.',
       ),
       step(
         'Thunfisch und Kapern dazugeben, den Thunfisch grob zerpflücken und kurz mitwärmen.',
       ),
       step(
-        'Die Pasta mit einem Schuss Pastawasser in die Pfanne geben und gut schwenken, bis eine leicht sämige Sauce entsteht. Mit Zitronenabrieb und -saft, Kräutern, Salz und Pfeffer abschmecken und sofort servieren.',
+        'Pasta mit einem Schuss Pastawasser in die Pfanne geben und schwenken, bis die Sauce leicht sämig ist.',
+      ),
+      step(
+        'Mit Zitronenabrieb, Zitronensaft, Kräutern, Salz und Pfeffer abschmecken. Sofort servieren.',
       ),
     ],
   },
@@ -530,22 +536,24 @@ const RECIPE_SEEDS: RecipeSeed[] = [
         'Olivenöl in einem grossen, weiten Topf bei mittlerer Hitze erwärmen. Zwiebel darin weich und glasig dünsten.',
       ),
       step(
-        'Knoblauch mit Oregano und Chiliflocken dazugeben. Kurz mitbraten, bis es duftet – der Knoblauch soll nicht braun werden.',
+        'Knoblauch, Oregano und Chiliflocken kurz mitbraten, bis es duftet. Der Knoblauch soll nicht braun werden.',
       ),
       step('Zucchini dazugeben und unter Rühren braten, bis sie weich werden und etwas Farbe nehmen.'),
       step(
         'Orzo dazugeben und umrühren, bis er vom Öl überzogen ist. Kurz mitrösten, das gibt mehr Geschmack.',
       ),
+      step('Cherrytomaten und die heisse Bouillon dazugeben und aufkochen.'),
       step(
-        'Cherrytomaten mit der heissen Bouillon dazugeben und aufkochen. Dann auf kleine Hitze zurückschalten und offen köcheln lassen, dabei oft rühren, damit der Orzo nicht ansetzt – bis er weich ist und die Flüssigkeit fast aufgesogen. Wird es zu trocken, einen Schuss Wasser zugeben.',
+        'Offen auf kleiner Hitze köcheln, bis der Orzo weich und fast alles aufgesogen ist. Oft rühren, bei Bedarf etwas Wasser zugeben.',
       ),
       step('Weisse Bohnen unterrühren und warm werden lassen.'),
       step(
-        'Topf von der Platte nehmen. Babyspinat unterrühren, bis er zusammenfällt, dann Zitronenabrieb, Zitronensaft und Pfeffer dazugeben.',
+        'Topf vom Herd nehmen. Babyspinat unterrühren, bis er zusammenfällt, dann Zitronenabrieb, -saft und Pfeffer dazugeben.',
       ),
       step(
-        'Die Hälfte des Fetas unterrühren, bis er schmilzt und alles cremig wird. Abschmecken und nur salzen, falls nötig. Den restlichen Feta und die Kräuter darüberstreuen und vor dem Servieren zwei Minuten ruhen lassen.',
+        'Die Hälfte des Fetas unterrühren, bis alles cremig ist. Abschmecken und nur salzen, falls nötig.',
       ),
+      step('Restlichen Feta und die Kräuter darüberstreuen und 2 Minuten ruhen lassen.', 2 * 60),
     ],
   },
 ];
@@ -572,6 +580,20 @@ export const SCHRITTE_VOR_DER_VORBEREITUNG: Record<string, string[]> = {
   'seed-r-halloumiburger': ['8-13hlq0u'],
   'seed-r-thunfisch-pasta': ['5-1a7ma3p'],
   'seed-r-one-pot-orzo': ['8-1wz65w0'],
+};
+
+/**
+ * Fingerabdruecke der Schritte, wie sie vor dem Kuerzen ausgeliefert wurden.
+ * Steht ein mitgeliefertes Rezept noch genau so da, bekommt es die neuen, von
+ * Hand gekuerzten Schritte. Wer die Schritte selbst geaendert hat, behaelt
+ * sie – dort teilt die Kuerzung nach Regeln nur, was zu lang ist.
+ */
+export const SCHRITTE_VOR_DEM_KUERZEN: Record<string, string[]> = {
+  'seed-r-marry-me-chicken-orzo': ['7-m723gq'],
+  'seed-r-rotes-linsen-dal': ['7-uj1ud1'],
+  'seed-r-halloumiburger': ['7-1bj4nm3'],
+  'seed-r-thunfisch-pasta': ['5-1s3t2bt'],
+  'seed-r-one-pot-orzo': ['8-w5zhx6'],
 };
 
 /** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
@@ -817,6 +839,8 @@ export function buildSeedData(now = Date.now()): AppData {
       ingredients: seed.ingredients,
       prep: seed.prep,
       steps: seed.steps,
+      // Von Hand kurz geschrieben – die Kuerzung beim Start hat hier nichts zu tun.
+      kuerzung: 'regeln',
       cookNext: false,
       notes: note,
       createdAt: now + index,

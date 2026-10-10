@@ -149,8 +149,10 @@ test.describe('Zutaten pro Schritt', () => {
     const proSchritt = zutatenProSchritt(burger.steps, burger.ingredients).map(namen);
     const oele = (liste: string[]) => liste.filter((name) => name.startsWith('Pflanzenöl'));
     expect(oele(proSchritt[0])).toEqual(['Pflanzenöl (für die Marinade)']);
-    expect(oele(proSchritt[1])).toEqual(['Pflanzenöl (zum Braten)']);
-    expect(oele(proSchritt[3])).toEqual(['Pflanzenöl (für die Sauce)']);
+    // Schritt 2 laesst nur marinieren.
+    expect(oele(proSchritt[1])).toEqual([]);
+    expect(oele(proSchritt[2])).toEqual(['Pflanzenöl (zum Braten)']);
+    expect(oele(proSchritt[4])).toEqual(['Pflanzenöl (für die Sauce)']);
   });
 
   test('Sammelwörter holen ihre Gruppe, die Garnitur kommt zum Schluss', () => {

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
+import { useKiKuerzung } from '@/lib/useKiKuerzung';
 import { EssenView } from './EssenView';
 import { ShoppingView } from './ShoppingView';
 import { IdeaDetail } from './IdeaDetail';
@@ -52,6 +53,7 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
 
 export function AppShell() {
   const store = useStore();
+  useKiKuerzung();
   const [tab, setTab] = useState<Tab>('essen');
   const [stack, setStack] = useState<Overlay[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -85,9 +87,18 @@ export function AppShell() {
    * So kommt der Stapel auch dann richtig an, wenn mehrere auf einmal gehen –
    * etwa beim Loeschen einer Idee aus ihrem Formular heraus.
    */
+  // Nach dem Neuladen traegt der aktuelle Eintrag noch die Tiefe von vorher,
+  // obwohl kein Overlay mehr offen ist. Gezaehlt wird deshalb ab dort – sonst
+  // haelt das Zurueck aus dem naechsten Overlay bei dieser alten Tiefe an, und
+  // "Schliessen" tut beim ersten Tippen nichts.
+  const grundtiefe = useRef(0);
+
   useEffect(() => {
+    const vorher = window.history.state?.crave;
+    grundtiefe.current = typeof vorher === 'number' ? vorher : 0;
     const onPop = (event: PopStateEvent) => {
-      const tiefe = typeof event.state?.crave === 'number' ? event.state.crave : 0;
+      const roh = typeof event.state?.crave === 'number' ? event.state.crave : 0;
+      const tiefe = Math.max(0, roh - grundtiefe.current);
       setStack((current) => (current.length > tiefe ? current.slice(0, tiefe) : current));
     };
     window.addEventListener('popstate', onPop);
@@ -96,7 +107,7 @@ export function AppShell() {
 
   const openOverlay = useCallback((overlay: Overlay) => {
     try {
-      window.history.pushState({ crave: stackRef.current.length + 1 }, '');
+      window.history.pushState({ crave: grundtiefe.current + stackRef.current.length + 1 }, '');
     } catch {
       /* z. B. in einem Sandbox-Frame */
     }
@@ -396,6 +407,10 @@ export function AppShell() {
               ? 'Aus der Vorlage nachgetragen'
               : 'Für dieses Rezept ist keine Vorlage hinterlegt',
           );
+        }}
+        onRestoreOriginal={() => {
+          store.originalWiederherstellen(recipe.id);
+          showToast('Ursprüngliche Schritte wiederhergestellt');
         }}
         onDelete={() => {
           store.deleteRecipe(recipe.id);

@@ -23,10 +23,12 @@ import { randomId } from './id';
 import {
   PANTRY_CATALOGUE,
   PANTRY_CATEGORY_RENAMES,
+  SCHRITTE_VOR_DEM_KUERZEN,
   SCHRITTE_VOR_DER_VORBEREITUNG,
   buildSeedData,
 } from './seed';
 import { schrittSignatur, vorbereitungVorschlagen } from './prep';
+import { schritteKuerzen } from './kuerzen';
 import {
   addAmounts,
   canonicalUnit,
@@ -98,6 +100,10 @@ interface StoreValue {
    * Gibt zurueck, ob es etwas nachzutragen gab.
    */
   fillRecipeSteps: (id: string) => boolean;
+  /** Ergebnis der KI-Kuerzung uebernehmen, wenn das Rezept seit `stand` unveraendert ist. */
+  kiKuerzungUebernehmen: (id: string, stand: number, ergebnis: KiErgebnis | null) => void;
+  /** Gekuerzte Schritte und Vorbereitung auf den Stand davor zuruecksetzen. */
+  originalWiederherstellen: (id: string) => void;
   /** Fehlende Startrezepte nachtragen; vorhandene bleiben unangetastet. */
   addMissingRecipes: () => { added: number; completed: number };
   deletePantryItem: (id: string) => void;
@@ -105,6 +111,12 @@ interface StoreValue {
 
   undo: (() => void) | null;
   setUndo: (fn: (() => void) | null) => void;
+}
+
+/** Was die KI fuer ein Rezept liefert (siehe /api/simplify). */
+export interface KiErgebnis {
+  prep: string[];
+  steps: Array<{ text: string; durationSec: number | null }>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -265,6 +277,52 @@ function ergaenzeVorbereitung(data: AppData, now: number): AppData | null {
         }),
         updatedAt: now,
       };
+    }
+    changed = true;
+  }
+
+  return changed ? { ...data, recipes } : null;
+}
+
+/**
+ * Lange Schritte einmal kuerzen, in jedem Rezept, das es schon gibt.
+ *
+ * Mitgelieferte Rezepte, die noch so dastehen wie ausgeliefert, bekommen die
+ * von Hand gekuerzten Schritte. Alle anderen werden nach Regeln gekuerzt
+ * (lib/kuerzen): lange Schritte an Satzgrenzen geteilt, Verweise auf die
+ * Webseite gestrichen. Was vorher dastand, bleibt am Rezept – es laesst sich
+ * dort wiederherstellen, und die KI nimmt es als Vorlage, sobald sie
+ * erreichbar ist.
+ *
+ * Danach traegt jedes Rezept `kuerzung`; so laeuft das genau einmal, und ein
+ * spaeter von Hand geschriebener langer Schritt wird nicht ungefragt geteilt.
+ */
+function kuerzeLangeSchritte(data: AppData, now: number): AppData | null {
+  const vorlage = buildSeedData();
+  const nachName = new Map(
+    Object.values(vorlage.recipes).map((recipe) => [namensschluessel(recipe.name), recipe]),
+  );
+  let changed = false;
+  const recipes = { ...data.recipes };
+
+  for (const [id, recipe] of Object.entries(data.recipes)) {
+    if (!recipe || recipe.deleted || recipe.kuerzung) continue;
+    const steps = recipe.steps ?? [];
+
+    const muster = vorlage.recipes[id] ?? nachName.get(namensschluessel(recipe.name));
+    if (muster && (SCHRITTE_VOR_DEM_KUERZEN[muster.id] ?? []).includes(schrittSignatur(steps))) {
+      recipes[id] = { ...recipe, steps: muster.steps, kuerzung: 'regeln', updatedAt: now };
+    } else {
+      const gekuerzt = schritteKuerzen(steps, () => randomId());
+      recipes[id] = gekuerzt
+        ? {
+            ...recipe,
+            steps: gekuerzt,
+            kuerzung: 'regeln',
+            vorKuerzen: { steps, prep: recipe.prep ?? [] },
+            updatedAt: now,
+          }
+        : { ...recipe, kuerzung: 'regeln', updatedAt: now };
     }
     changed = true;
   }
@@ -543,6 +601,13 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         const vorbereitet = ergaenzeVorbereitung(next, stamp());
         if (vorbereitet) {
           next = vorbereitet;
+          dirtyRef.current = true;
+        }
+        // Nach der Vorbereitung: die liest das Schneiden noch aus den
+        // ungeteilten Schritten.
+        const gekuerzt = kuerzeLangeSchritte(next, stamp());
+        if (gekuerzt) {
+          next = gekuerzt;
           dirtyRef.current = true;
         }
       }
@@ -1156,6 +1221,52 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     return geklappt;
   }, [mutate]);
 
+  /**
+   * Was die KI aus einem Rezept gemacht hat, uebernehmen – aber nur, wenn das
+   * Rezept seit der Anfrage niemand angefasst hat. `null` heisst: die KI hat
+   * geantwortet, das Ergebnis taugt aber nicht; dann nicht nochmal fragen.
+   */
+  const kiKuerzungUebernehmen = useCallback(
+    (id: string, stand: number, ergebnis: KiErgebnis | null) => {
+      mutate((draft) => {
+        const recipe = draft.recipes[id];
+        if (!recipe || recipe.deleted || recipe.updatedAt !== stand) return;
+        if (!ergebnis) {
+          draft.recipes[id] = { ...recipe, kiVersuch: Date.now(), updatedAt: stamp() };
+          return;
+        }
+        draft.recipes[id] = {
+          ...recipe,
+          prep: ergebnis.prep,
+          steps: ergebnis.steps.map((schritt) => ({ id: randomId(), ...schritt })),
+          kuerzung: 'ki',
+          vorKuerzen: recipe.vorKuerzen ?? { steps: recipe.steps, prep: recipe.prep ?? [] },
+          updatedAt: stamp(),
+        };
+      });
+    },
+    [mutate],
+  );
+
+  /** Gekuerzte Schritte zuruecknehmen. Danach wird das Rezept nicht mehr von allein gekuerzt. */
+  const originalWiederherstellen = useCallback(
+    (id: string) => {
+      mutate((draft) => {
+        const recipe = draft.recipes[id];
+        if (!recipe?.vorKuerzen) return;
+        const { vorKuerzen, ...rest } = recipe;
+        draft.recipes[id] = {
+          ...rest,
+          steps: vorKuerzen.steps,
+          prep: vorKuerzen.prep,
+          kuerzung: 'original',
+          updatedAt: stamp(),
+        };
+      });
+    },
+    [mutate],
+  );
+
   const addMissingRecipes = useCallback(() => {
     const result = { added: 0, completed: 0 };
     const startInhalte = buildSeedData();
@@ -1326,6 +1437,8 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     addPantryItem,
     addPantrySuggestions,
     fillRecipeSteps,
+    kiKuerzungUebernehmen,
+    originalWiederherstellen,
     addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,
@@ -1354,6 +1467,8 @@ export function blankRecipe(): Recipe {
     ingredients: [blankIngredient()],
     prep: [],
     steps: [blankStep()],
+    // Selbst geschrieben: wird nicht von allein gekuerzt.
+    kuerzung: 'eigen',
     cookNext: false,
     notes: '',
     createdAt: now,

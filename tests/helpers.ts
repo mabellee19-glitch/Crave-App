@@ -7,17 +7,17 @@ export function newSpace(prefix: string): string {
 
 export async function openSpace(page: Page, space: string) {
   await page.goto(`/s/${space}`);
-  await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Cravings', level: 1 })).toBeVisible();
   // Warten, bis die Startinhalte geladen sind.
   await expect(page.getByRole('button', { name: /Rezept .* öffnen/ }).first()).toBeVisible();
 }
 
-export function tab(page: Page, name: 'Essen' | 'Einkaufsliste') {
+export function tab(page: Page, name: 'Cravings' | 'Groceries') {
   return page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name });
 }
 
 /** Auf dem iPhone unten, auf dem Desktop oben – beide Leisten fuehren zum Ziel. */
-export async function goToTab(page: Page, name: 'Essen' | 'Einkaufsliste') {
+export async function goToTab(page: Page, name: 'Cravings' | 'Groceries') {
   const mobile = tab(page, name);
   if (await mobile.isVisible()) {
     await mobile.click();
@@ -45,7 +45,7 @@ export function shoppingRow(page: Page, name: string) {
 
 /** Ein Chip der Grundliste, exakt ueber den Zutatennamen. */
 export function pantryChip(page: Page, name: string) {
-  return page.getByRole('button', { name: `${name} in die Einkaufsliste` });
+  return page.getByRole('button', { name: `${name} in Groceries` });
 }
 
 /** Die Rubriken der Grundliste sind zugeklappt – hier eine davon aufklappen. */

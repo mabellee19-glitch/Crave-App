@@ -128,15 +128,15 @@ async function durchlauf(browser, geraet, theme) {
   await p.goto(`${B}/s/${raum()}`);
   await p.getByRole('heading', { level: 1 }).first().waitFor();
   await p.waitForTimeout(600);
-  await pruefeSeite(p, `${wo0}/Essen`);
+  await pruefeSeite(p, `${wo0}/Cravings`);
 
   // Alle Filter durchklicken
   for (const name of ['Cook Next', 'Comfort', 'High-Protein', 'Vegi', 'Dessert', 'Alle']) {
-    const knopf = p.getByRole('group', { name: 'Essen filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
+    const knopf = p.getByRole('group', { name: 'Cravings filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
     if (await knopf.count()) { await knopf.first().click(); await p.waitForTimeout(150); }
-    else melde(wo0, `Filter "${name}" fehlt bei Essen`);
+    else melde(wo0, `Filter "${name}" fehlt bei Cravings`);
   }
-  await pruefeSeite(p, `${wo0}/Essen-gefiltert`);
+  await pruefeSeite(p, `${wo0}/Cravings-gefiltert`);
 
   // Rezeptdetail + Kochmodus
   await p.getByRole('button', { name: /^Rezept .* öffnen$/ }).first().click();
@@ -177,9 +177,9 @@ async function durchlauf(browser, geraet, theme) {
   await p.waitForTimeout(300);
 
   // Einkaufsliste inkl. Grundliste aufklappen
-  await p.getByRole('button', { name: 'Einkaufsliste' }).first().click();
+  await p.getByRole('button', { name: 'Groceries' }).first().click();
   await p.waitForTimeout(400);
-  await pruefeSeite(p, `${wo0}/Einkaufsliste`);
+  await pruefeSeite(p, `${wo0}/Groceries`);
   const gruppe = p.locator('.pantrygroup__title').first();
   console.log('   Grundlisten-Rubriken:', await p.locator('.pantrygroup__title').count());
   if (await gruppe.count()) { await gruppe.click(); await p.waitForTimeout(300); }

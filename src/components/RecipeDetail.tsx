@@ -177,7 +177,7 @@ export function RecipeDetail({
           {recipe.cookNext ? (
             <p className="detail__planhint">
               <IconCookNext size={15} filled />
-              Für die nächsten Tage geplant – die Zutaten stehen auf der Einkaufsliste.
+              Für die nächsten Tage geplant – die Zutaten stehen in Groceries.
             </p>
           ) : null}
 
@@ -188,7 +188,7 @@ export function RecipeDetail({
             disabled={ingredients.length === 0}
           >
             <IconCart size={18} />
-            Zur Einkaufsliste hinzufügen
+            Zu Groceries hinzufügen
           </button>
         </div>
 

@@ -48,8 +48,8 @@ type Overlay =
   | { kind: 'settings' };
 
 const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
-  { id: 'essen', label: 'Essen', icon: <IconBook size={23} /> },
-  { id: 'shopping', label: 'Einkaufsliste', icon: <IconCart size={23} /> },
+  { id: 'essen', label: 'Cravings', icon: <IconBook size={23} /> },
+  { id: 'shopping', label: 'Groceries', icon: <IconCart size={23} /> },
 ];
 
 export function AppShell() {
@@ -220,7 +220,7 @@ export function AppShell() {
 
   const addAction = () => {
     if (tab === 'shopping') {
-      document.querySelector<HTMLInputElement>('input[aria-label="Zutat zur Einkaufsliste hinzufügen"]')?.focus();
+      document.querySelector<HTMLInputElement>('input[aria-label="Zutat zu Groceries hinzufügen"]')?.focus();
       return;
     }
     openOverlay({ kind: 'new' });
@@ -453,7 +453,7 @@ export function AppShell() {
         onAddToShopping={(servings) => {
           const count = store.addRecipeToShopping(recipe, servings);
           showToast(
-            `${count} ${count === 1 ? 'Zutat' : 'Zutaten'} zur Einkaufsliste`,
+            `${count} ${count === 1 ? 'Zutat' : 'Zutaten'} in Groceries`,
             'Rückgängig',
             () => storeRef.current.undo?.(),
           );
@@ -484,7 +484,7 @@ export function AppShell() {
             showToast(
               dish.cookNext
                 ? `${kurz(dish.name)} von Cook Next genommen`
-                : `${kurz(dish.name)} auf Cook Next – Zutaten stehen auf der Liste`,
+                : `${kurz(dish.name)} auf Cook Next – Zutaten stehen in Groceries`,
             );
           }}
           onMakeRecipe={() => {
@@ -547,7 +547,7 @@ export function AppShell() {
           onAddMissing={(names) => {
             for (const name of names) store.addShoppingItem({ name });
             showToast(
-              `${names.length} ${names.length === 1 ? 'Zutat' : 'Zutaten'} zur Einkaufsliste`,
+              `${names.length} ${names.length === 1 ? 'Zutat' : 'Zutaten'} in Groceries`,
             );
           }}
         />

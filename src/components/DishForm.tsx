@@ -118,7 +118,7 @@ export function DishForm({
           <span className="row__note">Menge · Einheit · Zutat</span>
         </div>
         <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
-          Kommt die Idee auf Cook Next, wandern diese Zutaten auf die Einkaufsliste.
+          Kommt die Idee auf Cook Next, wandern diese Zutaten in Groceries.
         </p>
 
         <IngredientEditor

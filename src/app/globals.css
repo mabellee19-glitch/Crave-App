@@ -746,7 +746,7 @@ ol {
   transform: scale(0.94);
 }
 
-/* Das Plus in "Essen": der eine Weg, etwas anzulegen – deshalb gefuellt. */
+/* Das Plus in "Cravings": der eine Weg, etwas anzulegen – deshalb gefuellt. */
 .iconbtn--primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -936,7 +936,7 @@ ol {
   text-align: left;
 }
 
-/* Liste "Essen": links ein Symbol – Buch fuer ein Rezept, Gluehbirne fuer
+/* Liste "Cravings": links ein Symbol – Buch fuer ein Rezept, Gluehbirne fuer
    eine Idee –, in der Farbe der Kategorie getoent. */
 .card__open--zeile {
   flex-direction: row;
@@ -2111,7 +2111,7 @@ ol {
   }
 }
 
-/* Vorschau ueber der Einkaufsliste: was in den naechsten Tagen gekocht wird. */
+/* Vorschau ueber Groceries: was in den naechsten Tagen gekocht wird. */
 .plannedstrip {
   display: flex;
   align-items: baseline;

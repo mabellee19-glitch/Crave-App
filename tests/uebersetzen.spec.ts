@@ -219,7 +219,7 @@ test.describe('Rezepte auf Englisch in der App', () => {
 
     // Geplant: die Einkaufsliste steht jetzt auch auf Deutsch da.
     await detail.getByRole('button', { name: 'Schliessen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(page.locator('.row__name', { hasText: /^Mehl$/ })).toBeVisible();
     await expect(page.locator('.row__name', { hasText: 'cups all-purpose flour' })).toHaveCount(0);
   });

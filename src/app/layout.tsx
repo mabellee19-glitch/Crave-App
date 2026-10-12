@@ -5,7 +5,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Crave – Kochen & Einkaufen',
   description:
-    'Persönliche Koch- und Einkaufs-App: Rezepte, Gerichte, Kochmodus mit Timer und eine Einkaufsliste, die auf allen Geräten gleich ist.',
+    'Persönliche Koch- und Einkaufs-App: Cravings mit Rezepten und Ideen, Kochmodus mit Timer und Groceries, auf allen Geräten gleich.',
   applicationName: 'Crave',
   appleWebApp: {
     capable: true,

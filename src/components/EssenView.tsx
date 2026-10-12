@@ -77,7 +77,7 @@ export const EssenView = React.memo(function EssenView({
   return (
     <section aria-labelledby="essen-heading">
       <h1 className="section-title" id="essen-heading">
-        Essen
+        Cravings
       </h1>
       <p className="section-sub">
         {recipes.length} {recipes.length === 1 ? 'Rezept' : 'Rezepte'} · {ideen.length}{' '}
@@ -91,7 +91,7 @@ export const EssenView = React.memo(function EssenView({
         label="Rezepte und Ideen durchsuchen"
       />
 
-      <div className="chiprow" role="group" aria-label="Essen filtern">
+      <div className="chiprow" role="group" aria-label="Cravings filtern">
         <button
           className={`chip${filter === 'all' ? ' chip--active' : ''}`}
           onClick={() => setFilter('all')}

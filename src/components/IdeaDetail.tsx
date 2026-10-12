@@ -81,7 +81,7 @@ export function IdeaDetail({
         {dish.cookNext ? (
           <p className="detail__planhint">
             <IconCookNext size={15} filled />
-            Für die nächsten Tage geplant – die Zutaten stehen auf der Einkaufsliste.
+            Für die nächsten Tage geplant – die Zutaten stehen in Groceries.
           </p>
         ) : null}
       </div>

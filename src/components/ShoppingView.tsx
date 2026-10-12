@@ -65,7 +65,7 @@ export function ShoppingView({
   return (
     <section aria-labelledby="shopping-heading">
       <h1 className="section-title" id="shopping-heading">
-        Einkaufsliste
+        Groceries
       </h1>
       <p className="section-sub">
         {shopping.length === 0
@@ -106,7 +106,7 @@ export function ShoppingView({
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder="z. B. 400 g Poulet"
-          aria-label="Zutat zur Einkaufsliste hinzufügen"
+          aria-label="Zutat zu Groceries hinzufügen"
           autoComplete="off"
           enterKeyHint="done"
         />
@@ -174,14 +174,14 @@ export function ShoppingView({
         {allPantry.length === 0 ? (
           <div style={{ padding: '4px 16px 20px' }}>
             <p className="muted" style={{ fontSize: 14.5 }}>
-              Lege Zutaten an, die du immer wieder kaufst. Ein Tipp darauf legt sie in die
-              Einkaufsliste – nach dem Abhaken sind sie wieder hier.
+              Lege Zutaten an, die du immer wieder kaufst. Ein Tipp darauf legt sie in
+              Groceries – nach dem Abhaken sind sie wieder hier.
             </p>
           </div>
         ) : pantry.length === 0 ? (
           <div style={{ padding: '4px 16px 20px' }}>
             <p className="muted" style={{ fontSize: 14.5 }}>
-              Alle Standard-Zutaten liegen gerade in der Einkaufsliste.
+              Alle Standard-Zutaten liegen gerade in Groceries.
             </p>
           </div>
         ) : (
@@ -307,7 +307,7 @@ function PantryGroups({
                     key={item.id}
                     className="pantrychip"
                     onClick={() => onPick(item.id)}
-                    aria-label={`${item.name} in die Einkaufsliste`}
+                    aria-label={`${item.name} in Groceries`}
                   >
                     {item.name}
                     <span className="pantrychip__plus" aria-hidden="true">
@@ -349,8 +349,8 @@ function PantrySheet({
     <Sheet title="Grundliste verwalten" onClose={onClose}>
       <div style={{ height: 16 }} />
       <p className="muted" style={{ fontSize: 14.5, marginBottom: 14 }}>
-        Diese Zutaten bleiben dauerhaft gespeichert – unabhängig davon, was gerade auf der
-        Einkaufsliste steht.
+        Diese Zutaten bleiben dauerhaft gespeichert – unabhängig davon, was gerade in
+        Groceries steht.
       </p>
 
       <form

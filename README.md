@@ -6,10 +6,10 @@ hinzufügen. Kein App Store nötig.
 
 Zwei Bereiche:
 
-- **Essen** – alles, was man kochen kann, in einer Liste: Rezepte mit
+- **Cravings** – alles, was man kochen kann, in einer Liste: Rezepte mit
   Zutaten, Vorbereitung, Schritten und Kochmodus, und Ideen – Gerichte ohne
   Anleitung, nur mit Name und Zutaten.
-- **Einkaufsliste** – aktive Liste plus dauerhafte Grundliste mit
+- **Groceries** – die Einkaufsliste plus dauerhafte Grundliste mit
   Standard-Zutaten.
 
 ## Was die App kann
@@ -29,17 +29,17 @@ Zwei Bereiche:
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Essen | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
-| Essen | Das Plus fragt: Rezept über Link, Rezept selbst schreiben oder nur eine Idee |
-| Ideen | Auf Cook Next setzen – ihre Zutaten kommen auf die Einkaufsliste |
+| Cravings | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
+| Cravings | Das Plus fragt: Rezept über Link, Rezept selbst schreiben oder nur eine Idee |
+| Ideen | Auf Cook Next setzen – ihre Zutaten kommen in Groceries |
 | Ideen | `Rezept daraus machen`: Name und Zutaten sind schon eingetragen, es bleibt ein Eintrag |
-| Einkaufsliste | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
-| Einkaufsliste | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
+| Groceries | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
+| Groceries | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
 | Grundliste | Antippen legt eine Zutat in die aktive Liste |
 | Grundliste | Rubriken zum Aufklappen, dazu eine Vorschlagsliste zum Nachtragen |
 | Rezept → Liste | Zutaten werden mit Mengen übernommen und zusammengefasst |
 | Kühlschrankfoto | Foto erkennt Lebensmittel, findet passende eigene Rezepte und schlägt neue vor |
-| Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann auf der Einkaufsliste |
+| Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann in Groceries |
 | Cook Next | Abwählen nimmt genau diese Zutaten wieder von der Liste |
 | Überall | Suche, automatisches Speichern, Geräte-Abgleich |
 | Überall | Sechs Farbwelten zur Auswahl unter `Einstellungen & Sync → Design` |
@@ -48,7 +48,7 @@ Zwei Bereiche:
 ## Rezepte und Ideen
 
 Früher gab es zwei Bereiche, Rezepte und Gerichte, und fast jedes Gericht
-stand doppelt da. Jetzt steht alles in `Essen`: ein Buch-Symbol für ein Rezept,
+stand doppelt da. Jetzt steht alles in `Cravings`: ein Buch-Symbol für ein Rezept,
 eine Glühbirne für eine Idee. Gespeichert wird weiter wie bisher – ein
 Gericht mit hinterlegtem Rezept ist in der Liste einfach das Rezept, ein
 Gericht ohne Rezept ist eine Idee (`src/lib/essen.ts`). Ältere Stände und
@@ -80,7 +80,7 @@ Für den Rest gibt es zwei Knöpfe in der App selbst:
 - Dasselbe geht direkt im Rezept: hat es keine Zubereitungsschritte, steht der
   Knopf `Aus der Vorlage nachtragen` dort, wo man das Problem sieht – nämlich
   neben dem ausgegrauten `Start Cooking`.
-- `Einkaufsliste → Verwalten → Vorschlagsliste ergänzen` trägt fehlende
+- `Groceries → Verwalten → Vorschlagsliste ergänzen` trägt fehlende
   Standard-Zutaten nach und ordnet vorhandene ohne Rubrik ein.
 
 Beide sind rein ergänzend und lassen sich gefahrlos mehrfach auslösen. Die
@@ -204,7 +204,7 @@ Ist die KI gerade nicht erreichbar, kommt das Rezept auf Englisch, mit dem
 Hinweis, dass es übersetzt wird. Das geschieht dann von selbst beim nächsten
 Start, auch für Rezepte, die schon gespeichert sind. Am Rezept steht danach
 «Aus dem Englischen übersetzt». Ist es für Cook Next geplant, stehen die
-Zutaten auf der Einkaufsliste danach ebenfalls auf Deutsch.
+Zutaten in Groceries danach ebenfalls auf Deutsch.
 
 ### Schweizer Schreibweise
 
@@ -308,7 +308,7 @@ Schlüssel.
 
 Zum Ablauf: das Foto wird im Browser auf 1024 Pixel Kantenlänge verkleinert
 und dann zur Auswertung weitergeschickt. Es wird nirgends gespeichert, weder in
-der Datenbank noch in der Einkaufsliste. Ein Aufruf kostet je nach Foto grob
+der Datenbank noch in Groceries. Ein Aufruf kostet je nach Foto grob
 ein bis zwei Rappen.
 
 Welche eigenen Rezepte passen, rechnet die App selbst aus – aus den erkannten

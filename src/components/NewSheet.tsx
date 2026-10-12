@@ -27,7 +27,7 @@ export function NewSheet({ onPick, onClose }: { onPick: (art: NeuArt) => void; o
     {
       art: 'idee',
       titel: 'Nur eine Idee',
-      text: 'Name und ein paar Zutaten. Kommt auf Cook Next und die Einkaufsliste.',
+      text: 'Name und ein paar Zutaten. Kommt auf Cook Next und in Groceries.',
       icon: <IconIdee size={22} />,
     },
   ];

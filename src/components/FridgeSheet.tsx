@@ -168,7 +168,7 @@ export function FridgeSheet({
           </button>
           <p className="row__note" style={{ marginTop: 12, lineHeight: 1.5 }}>
             Das Foto wird zur Auswertung an Anthropic geschickt und dort nicht gespeichert. Es
-            landet weder in deinen Daten noch in der Einkaufsliste.
+            landet weder in deinen Daten noch in Groceries.
           </p>
         </>
       ) : null}

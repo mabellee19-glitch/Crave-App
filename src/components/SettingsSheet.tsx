@@ -198,7 +198,7 @@ export function SettingsSheet({
       <div className="rowline" style={{ marginTop: 10, gap: 8 }}>
         <span className="tag">{counts.recipes} Rezepte</span>
         <span className="tag">{counts.ideen} Ideen</span>
-        <span className="tag">{counts.shopping} auf der Liste</span>
+        <span className="tag">{counts.shopping} in Groceries</span>
         <span className="tag">{counts.pantry} Standard-Zutaten</span>
       </div>
       <div style={{ height: 16 }} />

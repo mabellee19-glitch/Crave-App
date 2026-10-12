@@ -29,17 +29,17 @@ test.describe('Navigation und Grundgeruest', () => {
     await expect(page.locator('.tabbar__item')).toHaveCount(2);
     await expect(page.locator('.desknav__item')).toHaveCount(2);
 
-    await goToTab(page, 'Einkaufsliste');
-    await expect(page.getByRole('heading', { name: 'Einkaufsliste', level: 1 })).toBeVisible();
+    await goToTab(page, 'Groceries');
+    await expect(page.getByRole('heading', { name: 'Groceries', level: 1 })).toBeVisible();
 
-    await goToTab(page, 'Essen');
-    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
+    await goToTab(page, 'Cravings');
+    await expect(page.getByRole('heading', { name: 'Cravings', level: 1 })).toBeVisible();
   });
 
   test('die Startseite legt einen Datenraum an und leitet dorthin weiter', async ({ page }) => {
     await page.goto('/');
     await page.waitForURL(/\/s\/[a-z0-9-]+$/, { timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Cravings', level: 1 })).toBeVisible();
   });
 
   test('liefert ein Manifest fuer den Home-Bildschirm', async ({ request }) => {
@@ -342,7 +342,7 @@ test.describe('Rezepte', () => {
 
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
     await page
-      .getByRole('group', { name: 'Essen filtern' })
+      .getByRole('group', { name: 'Cravings filtern' })
       .getByRole('button', { name: 'Cook Next' })
       .click();
     await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toBeVisible();
@@ -353,7 +353,7 @@ test.describe('Rezepte', () => {
 test.describe('Einheiten', () => {
   test('bekannte Einheiten werden einheitlich geschrieben', async ({ page }) => {
     await openSpace(page, newSpace('einheiten'));
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
 
     // So kommen sie aus uebernommenen Rezepten: ausgeschrieben.
     for (const [eingabe, erwartet] of [
@@ -362,7 +362,7 @@ test.describe('Einheiten', () => {
       ['2 Esslöffel Olivenöl', '2 EL'],
       ['1 Kilo Kartoffeln', '1 kg'],
     ] as const) {
-      await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill(eingabe);
+      await page.getByLabel('Zutat zu Groceries hinzufügen').fill(eingabe);
       await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
       await page.waitForTimeout(150);
     }
@@ -373,12 +373,12 @@ test.describe('Einheiten', () => {
     await expect(shoppingRow(page, 'Kartoffeln')).toContainText('1 kg');
 
     // Unbekanntes bleibt, wie es eingetippt wurde.
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('2 Zweige Rosmarin');
+    await page.getByLabel('Zutat zu Groceries hinzufügen').fill('2 Zweige Rosmarin');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await expect(shoppingRow(page, 'Rosmarin')).toContainText('2 Zweige');
 
     // Und dieselbe Zutat in anderer Schreibweise landet in einer Zeile.
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('250 g Weizenmehl');
+    await page.getByLabel('Zutat zu Groceries hinzufügen').fill('250 g Weizenmehl');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await expect(shoppingRow(page, 'Weizenmehl')).toHaveCount(1);
     await expect(shoppingRow(page, 'Weizenmehl')).toContainText('750 g');
@@ -390,7 +390,7 @@ test.describe('Sparte Dessert', () => {
     await openSpace(page, newSpace('dessert'));
 
     // Die Sparte steht da, auch wenn noch nichts drin liegt.
-    const filter = page.getByRole('group', { name: 'Essen filtern' });
+    const filter = page.getByRole('group', { name: 'Cravings filtern' });
     await expect(filter.getByRole('button', { name: /^Dessert/ })).toBeVisible();
     await filter.getByRole('button', { name: /^Dessert/ }).click();
     await expect(page.getByText('Nichts gefunden')).toBeVisible();
@@ -423,10 +423,10 @@ test.describe('Sparte Dessert', () => {
 test.describe('Meldungen', () => {
   test('ein langer Zutatenname sprengt die Meldung nicht', async ({ page }) => {
     await openSpace(page, newSpace('toastlang'));
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
 
     const lang = 'Tomaten, stückige (mit Kräutern, z. B. aus dem Tetrapack)';
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill(lang);
+    await page.getByLabel('Zutat zu Groceries hinzufügen').fill(lang);
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
 
     await shoppingRow(page, lang).click();
@@ -689,7 +689,7 @@ test.describe('Ideen', () => {
   }) => {
     await openSpace(page, newSpace('ideen'));
 
-    await page.getByRole('group', { name: 'Essen filtern' }).getByRole('button', { name: /^Vegi/ }).click();
+    await page.getByRole('group', { name: 'Cravings filtern' }).getByRole('button', { name: /^Vegi/ }).click();
     // Shakshuka gibt es als Rezept und als Gericht – angezeigt wird es einmal.
     await expect(page.getByRole('button', { name: 'Rezept Shakshuka öffnen' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Idee Shakshuka öffnen' })).toHaveCount(0);
@@ -754,7 +754,7 @@ test.describe('Ideen', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
     await expect(page.getByRole('button', { name: 'Blumenkohl Wraps aus Cook Next entfernen' })).toHaveCount(1);
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(page.locator('.plannedstrip')).toContainText('Blumenkohl Wraps');
     await expect(shoppingRow(page, 'Kichererbsen')).toHaveCount(1);
     await expect(shoppingRow(page, 'Kichererbsen')).toContainText('1 Dose');
@@ -781,7 +781,7 @@ test.describe('Ideen', () => {
 
     // Cook Next legt genau diese Zutaten auf die Einkaufsliste.
     await page.getByRole('button', { name: 'Skyr-Bowl zu Cook Next hinzufügen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(page.locator('.plannedstrip')).toContainText('Skyr-Bowl');
     await expect(shoppingRow(page, 'Skyr')).toContainText('200');
     await expect(shoppingRow(page, 'Heidelbeeren')).toContainText('150');
@@ -792,7 +792,7 @@ test.describe('Ideen', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Von Cook Next nehmen' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Skyr')).toHaveCount(0);
     await expect(shoppingRow(page, 'Heidelbeeren')).toHaveCount(0);
   });
@@ -854,11 +854,11 @@ test.describe('Ideen', () => {
     await form.getByRole('button', { name: 'Speichern' }).click();
 
     await page.getByRole('button', { name: 'Toast Hawaii zu Cook Next hinzufügen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Ananasscheiben')).toBeVisible();
 
     // Zutat austauschen, waehrend die Idee geplant ist.
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Idee Toast Hawaii öffnen' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Idee bearbeiten' }).click();
     form = page.getByRole('dialog');
@@ -866,7 +866,7 @@ test.describe('Ideen', () => {
     await form.getByRole('button', { name: 'Speichern' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Kochschinken')).toBeVisible();
     await expect(shoppingRow(page, 'Ananasscheiben')).toHaveCount(0);
   });
@@ -908,17 +908,17 @@ test.describe('Cook Next', () => {
 
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     // Die Vorschau zeigt, wofuer die Liste da ist.
     await expect(page.locator('.plannedstrip')).toContainText('Shakshuka');
     await expect(shoppingRow(page, 'Eier')).toBeVisible();
     await expect(shoppingRow(page, 'Pelati')).toBeVisible();
 
     // Abwaehlen raeumt genau diese Zutaten wieder weg.
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(page.locator('.plannedstrip')).toHaveCount(0);
     await expect(shoppingRow(page, 'Eier')).toHaveCount(0);
     await expect(shoppingRow(page, 'Pelati')).toHaveCount(0);
@@ -928,20 +928,20 @@ test.describe('Cook Next', () => {
     await openSpace(page, newSpace('planmanuell'));
 
     // Erst von Hand, dann zusaetzlich geplant: die Mengen summieren sich.
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await page.getByPlaceholder('z. B. 400 g Poulet').fill('4 Eier');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await expect(shoppingRow(page, 'Eier')).toContainText('4');
 
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Eier')).toContainText('8');
 
     // Nach dem Abwaehlen bleiben die eigenen vier stehen.
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Eier')).toContainText('4');
   });
 
@@ -953,23 +953,23 @@ test.describe('Cook Next', () => {
       .getByRole('button', { name: 'Tomatensuppe mit Basilikum zu Cook Next hinzufügen' })
       .click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Pelati')).toBeVisible();
     const zusammen = await shoppingRow(page, 'Pelati').innerText();
 
     // Eines abwaehlen: die Zutat bleibt, nur der Anteil geht weg.
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Pelati')).toBeVisible();
     expect(await shoppingRow(page, 'Pelati').innerText()).not.toBe(zusammen);
 
     // Auch das zweite abwaehlen: jetzt ist die Zeile weg.
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page
       .getByRole('button', { name: 'Tomatensuppe mit Basilikum aus Cook Next entfernen' })
       .click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Pelati')).toHaveCount(0);
   });
 
@@ -978,16 +978,16 @@ test.describe('Cook Next', () => {
 
     await page.getByRole('button', { name: 'Shakshuka zu Cook Next hinzufügen' }).click();
     await expect(
-      page.getByRole('group', { name: 'Essen filtern' }).getByRole('button', { name: /^Cook Next/ }),
+      page.getByRole('group', { name: 'Cravings filtern' }).getByRole('button', { name: /^Cook Next/ }),
     ).toContainText('1');
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(page.locator('.plannedstrip').getByRole('button')).toHaveCount(1);
     await expect(shoppingRow(page, 'Eier')).toBeVisible();
 
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Shakshuka aus Cook Next entfernen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Eier')).toHaveCount(0);
   });
 });
@@ -995,7 +995,7 @@ test.describe('Cook Next', () => {
 test.describe('Einkaufsliste und Grundliste', () => {
   test('verschiebt Zutaten zwischen Grundliste und Einkaufsliste', async ({ page }) => {
     await openSpace(page, newSpace('shop'));
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await openPantryGroup(page, 'Vorrat');
 
     // Grundliste -> Einkaufsliste
@@ -1012,7 +1012,7 @@ test.describe('Einkaufsliste und Grundliste', () => {
 
   test('Rueckgaengig stellt eine abgehakte Zutat wieder her', async ({ page }) => {
     await openSpace(page, newSpace('undo'));
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await openPantryGroup(page, 'Vorrat');
 
     await pantryChip(page, 'Butter').click();
@@ -1026,9 +1026,9 @@ test.describe('Einkaufsliste und Grundliste', () => {
 
   test('Schnelleingabe erkennt Menge und Einheit', async ({ page }) => {
     await openSpace(page, newSpace('quick'));
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
 
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('400 g Poulet');
+    await page.getByLabel('Zutat zu Groceries hinzufügen').fill('400 g Poulet');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
 
     const row = shoppingRow(page, 'Poulet');
@@ -1041,11 +1041,11 @@ test.describe('Einkaufsliste und Grundliste', () => {
 
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
     const detail = page.getByRole('dialog');
-    await detail.getByRole('button', { name: 'Zur Einkaufsliste hinzufügen' }).click();
-    await expect(page.getByText(/Zutaten zur Einkaufsliste/)).toBeVisible();
+    await detail.getByRole('button', { name: 'Zu Groceries hinzufügen' }).click();
+    await expect(page.getByText(/Zutaten in Groceries/)).toBeVisible();
     await detail.getByRole('button', { name: 'Schliessen' }).click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     const poulet = shoppingRow(page, 'Poulet');
     await expect(poulet.locator('.row__amount')).toHaveText('400 g');
     await expect(shoppingRow(page, 'Reis').locator('.row__amount')).toHaveText('200 g');
@@ -1056,21 +1056,21 @@ test.describe('Einkaufsliste und Grundliste', () => {
     await expect(pantryChip(page, 'Sojasauce')).toHaveCount(0);
 
     // Zweites Hinzufuegen fasst die Mengen zusammen statt zu doppeln.
-    await goToTab(page, 'Essen');
+    await goToTab(page, 'Cravings');
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Eine Portion mehr' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Eine Portion mehr' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Zur Einkaufsliste hinzufügen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Zu Groceries hinzufügen' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Poulet')).toHaveCount(1);
     await expect(shoppingRow(page, 'Poulet').locator('.row__amount')).toHaveText('1.2 kg');
   });
 
   test('Grundliste laesst sich ergaenzen und aufraeumen', async ({ page }) => {
     await openSpace(page, newSpace('pantry'));
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
 
     await page.getByRole('button', { name: 'Verwalten' }).click();
     const sheet = page.getByRole('dialog');
@@ -1176,10 +1176,10 @@ test.describe('Kühlschrankfoto', () => {
     await page.getByRole('button', { name: 'Foto vom Kühlschrank aufnehmen' }).click();
     await page.setInputFiles('input[type="file"]', foto);
     await page.getByRole('dialog').getByRole('button', { name: 'Fehlendes einkaufen' }).click();
-    await expect(page.getByText('1 Zutat zur Einkaufsliste')).toBeVisible();
+    await expect(page.getByText('1 Zutat in Groceries')).toBeVisible();
 
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Crème fraîche')).toHaveCount(1);
   });
 
@@ -1274,7 +1274,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await alterStand(request, space);
 
     await page.goto(`/s/${space}`);
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     // Vorher gibt es nur die eine Rubrik "Weitere".
     await expect(page.locator('.pantrygroup__title')).toHaveText(['Weitere']);
 
@@ -1296,7 +1296,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     ]);
 
     await page.getByRole('button', { name: 'Carbs' }).click();
-    await expect(page.getByRole('button', { name: 'Orzo in die Einkaufsliste' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Orzo in Groceries' })).toBeVisible();
 
     // Ein zweiter Lauf legt nichts doppelt an.
     await page.getByRole('button', { name: 'Verwalten' }).click();
@@ -1334,7 +1334,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     });
 
     await page.goto(`/s/${space}`);
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
 
     // Keine zweite Gruppe mit dem alten Namen, die Zutat steckt in der neuen.
     await expect(page.locator('.pantrygroup__title')).toHaveText(['Frisches Gemüse/Früchte']);
@@ -1347,7 +1347,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await alterStand(request, space);
 
     await page.goto(`/s/${space}`);
-    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Cravings', level: 1 })).toBeVisible();
 
     // Der Datenraum hatte ein einziges Rezept; der Rest kommt von selbst dazu.
     await expect(page.getByText(new RegExp(`^${START_REZEPTE} Rezepte ·`))).toBeVisible();
@@ -1411,7 +1411,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     });
 
     await page.goto(`/s/${space}`);
-    await expect(page.getByRole('heading', { name: 'Essen', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Cravings', level: 1 })).toBeVisible();
     // Die uebrigen Rezepte kommen, das geloeschte bleibt weg.
     await expect(
       page.getByRole('button', { name: 'Rezept Rotes Linsencurry öffnen' }),
@@ -1479,23 +1479,23 @@ test.describe('Speichern und Synchronisieren', () => {
   test('haelt Aenderungen ueber einen Neustart hinweg', async ({ page }) => {
     const space = newSpace('persist');
     await openSpace(page, space);
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
 
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('3 Limetten');
+    await page.getByLabel('Zutat zu Groceries hinzufügen').fill('3 Limetten');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await expect(shoppingRow(page, 'Limetten')).toHaveCount(1);
     await waitForSync(page);
 
     await page.reload();
-    await goToTab(page, 'Einkaufsliste');
+    await goToTab(page, 'Groceries');
     await expect(shoppingRow(page, 'Limetten')).toHaveCount(1);
   });
 
   test('ein zweites Geraet mit demselben Link sieht dieselben Daten', async ({ page, browser }) => {
     const space = newSpace('sync');
     await openSpace(page, space);
-    await goToTab(page, 'Einkaufsliste');
-    await page.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('2 Ciabatta');
+    await goToTab(page, 'Groceries');
+    await page.getByLabel('Zutat zu Groceries hinzufügen').fill('2 Ciabatta');
     await page.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await waitForSync(page);
 
@@ -1503,11 +1503,11 @@ test.describe('Speichern und Synchronisieren', () => {
     const second = await browser.newContext();
     const other = await second.newPage();
     await other.goto(`/s/${space}`);
-    await goToTab(other, 'Einkaufsliste');
+    await goToTab(other, 'Groceries');
     await expect(shoppingRow(other, 'Ciabatta')).toHaveCount(1);
 
     // Aenderung auf dem zweiten Geraet kommt beim ersten an.
-    await other.getByLabel('Zutat zur Einkaufsliste hinzufügen').fill('1 Focaccia');
+    await other.getByLabel('Zutat zu Groceries hinzufügen').fill('1 Focaccia');
     await other.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
     await waitForSync(other);
 

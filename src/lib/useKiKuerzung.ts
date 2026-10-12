@@ -1,7 +1,12 @@
 'use client';
 
 /**
- * Lange Rezepte im Hintergrund von der KI umschreiben lassen.
+ * Rezepte im Hintergrund von der KI nacharbeiten lassen: englische zuerst
+ * auf Deutsch uebersetzen, dann lange Schritte kuerzen.
+ *
+ * Die Uebersetzung kommt zuerst, weil die Kuerzung danach den deutschen
+ * Text liest. Sie trifft jedes englische Rezept, auch eines, das beim Import
+ * auf Englisch blieb, weil die KI da nicht erreichbar war.
  *
  * Die Kuerzung nach Regeln (lib/kuerzen) teilt nur und streicht Verweise;
  * richtig kuerzer und einfacher wird ein Schritt erst durch die KI. Sobald
@@ -19,12 +24,13 @@
 import { useEffect, useRef } from 'react';
 import { useStore, useSync } from './store';
 import { brauchtKi } from './kuerzen';
+import { Uebersetzung, brauchtUebersetzung, rezeptAuftrag } from './uebersetzen';
 
 /** Hoechstens so viele Rezepte je Start; der Rest kommt beim naechsten Mal. */
 const PRO_START = 12;
 
 /** Antworten, bei denen das Rezept selbst das Problem ist: nicht nochmal fragen. */
-const REZEPT_PROBLEM = new Set(['no_result', 'refused', 'too_large', 'no_steps']);
+const REZEPT_PROBLEM = new Set(['no_result', 'refused', 'too_large', 'no_steps', 'incomplete']);
 
 export function useKiKuerzung(): void {
   const store = useStore();
@@ -46,13 +52,58 @@ export function useKiKuerzung(): void {
     if (gestartet.current || !ersterAbgleich) return;
     gestartet.current = true;
 
-    const kandidaten = aktuell.current.recipes
-      .filter(brauchtKi)
+    const zuUebersetzen = aktuell.current.recipes
+      .filter(brauchtUebersetzung)
       .slice(0, PRO_START)
       .map((recipe) => recipe.id);
-    if (kandidaten.length === 0) return;
+    if (zuUebersetzen.length === 0 && !aktuell.current.recipes.some(brauchtKi)) return;
+
+    /** Gibt `false` zurueck, wenn der Zugang fehlt – dann lohnt auch das Kuerzen nicht. */
+    const uebersetzen = async (): Promise<boolean> => {
+      for (const id of zuUebersetzen) {
+        if (vorbei.current) return false;
+        const recipe = aktuell.current.getRecipe(id);
+        if (!recipe || !brauchtUebersetzung(recipe)) continue;
+
+        let antwort: Response;
+        let daten: { ok?: boolean; error?: string; recipe?: Uebersetzung } | null;
+        try {
+          antwort = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ recipe: rezeptAuftrag(recipe) }),
+          });
+          daten = await antwort.json().catch(() => null);
+        } catch {
+          return false; // keine Verbindung – beim naechsten Start
+        }
+        if (vorbei.current) return false;
+
+        if (antwort.ok && daten?.ok && daten.recipe) {
+          aktuell.current.uebersetzungUebernehmen(id, recipe.updatedAt, daten.recipe);
+          continue;
+        }
+        if (REZEPT_PROBLEM.has(String(daten?.error))) {
+          aktuell.current.uebersetzungUebernehmen(id, recipe.updatedAt, null);
+          continue;
+        }
+        return false; // Zugang fehlt oder Anbieter ueberlastet: beim naechsten Start
+      }
+      return true;
+    };
 
     void (async () => {
+      if (!(await uebersetzen())) return;
+      // Die Uebersetzungen sind eben gespeichert; einen Moment warten, bis
+      // die App sie gezeichnet hat – erst dann sieht `aktuell` sie. Kommt sie
+      // nicht nach, lehnt der Store die Kuerzung ab (Stand passt nicht), und
+      // sie folgt beim naechsten Start.
+      if (zuUebersetzen.length) await new Promise((weiter) => setTimeout(weiter, 50));
+
+      const kandidaten = aktuell.current.recipes
+        .filter(brauchtKi)
+        .slice(0, PRO_START)
+        .map((recipe) => recipe.id);
       for (const id of kandidaten) {
         if (vorbei.current) return;
         const recipe = aktuell.current.getRecipe(id);

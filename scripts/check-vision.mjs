@@ -111,6 +111,60 @@ const GELESEN = {
   usage: { input_tokens: 10, output_tokens: 10 },
 };
 
+/** Ein englisches Rezept, wie es die KI aus dem Text liest – noch nicht uebersetzt. */
+const GELESEN_ENGLISCH = {
+  ...GELESEN,
+  content: [
+    {
+      ...GELESEN.content[0],
+      input: {
+        gefunden: true,
+        uebersetzt: false,
+        name: 'Banana Bread',
+        portionen: 8,
+        minuten: 70,
+        zutaten: ['2 cups flour', '1 stick butter'],
+        schritte: ['Preheat the oven to 350°F and grease the pan.', 'Mix it all and bake for 60 minutes, until golden.'],
+      },
+    },
+  ],
+};
+
+/** Antwort fuer das Uebersetzen. Das Eszett darin muss die App selbst wegraeumen. */
+function uebersetzt(kurz) {
+  return {
+    ...GELESEN,
+    content: [
+      {
+        type: 'tool_use',
+        id: 'toolu_test4',
+        name: 'rezept_uebersetzt',
+        input: {
+          name: 'Bananenbrot',
+          zutaten: ['250 g Mehl', '115 g Butter'],
+          schritte: kurz
+            ? ['Alles in einer großen Schüssel mischen.']
+            : ['Den Ofen auf 180 °C vorheizen und die Form einfetten.', 'In einer großen Schüssel alles mischen und 60 Minuten backen.'],
+          vorbereitung: [],
+          original_schritte: [],
+          original_vorbereitung: [],
+        },
+      },
+    ],
+  };
+}
+
+/** Ein englisches Rezept zum Einfuegen. */
+const ENGLISCH = [
+  'Banana Bread',
+  'Ingredients',
+  '2 cups flour',
+  '1 stick butter',
+  'Instructions',
+  'Preheat the oven to 350°F and grease the pan.',
+  'Mix it all and bake for 60 minutes, until golden.',
+].join('\n');
+
 /** Text ohne Ueberschriften, wie aus einer Nachricht kopiert – das schaffen die Regeln nicht. */
 const NACHRICHT =
   'Hey, hier das Pfannkuchen-Rezept von Oma! Man nimmt Mehl, Milch und Eier, verrührt alles und lässt es ruhen. Dann ausbacken, fertig.';
@@ -172,8 +226,15 @@ async function starteGateway(modus) {
       }
 
       if (body?.tools?.[0]?.name === 'rezept_gelesen') {
+        const englisch = JSON.stringify(body.messages ?? '').includes('Banana');
         res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify(GELESEN));
+        res.end(JSON.stringify(englisch ? GELESEN_ENGLISCH : GELESEN));
+        return;
+      }
+
+      if (body?.tools?.[0]?.name === 'rezept_uebersetzt') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(uebersetzt(modus === 'kurz')));
         return;
       }
 
@@ -448,6 +509,75 @@ async function lesen(modus) {
   }
 }
 
+/**
+ * Englische Rezepte: beim Import liest die KI zuerst, dann uebersetzt sie –
+ * und ein gespeichertes Rezept geht ueber /api/translate. Kommt eine Liste
+ * kuerzer zurueck, gilt die Uebersetzung nicht.
+ */
+async function uebersetzen(modus) {
+  const gateway = await starteGateway(modus);
+  const appPort = await freierPort();
+  const app = await starteApp(gateway.port, appPort, false);
+
+  try {
+    const res = await fetch(`http://127.0.0.1:${appPort}/api/translate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        recipe: {
+          name: 'Banana Bread',
+          zutaten: ['2 cups flour', '1 stick butter'],
+          schritte: ['Preheat the oven to 350°F and grease the pan.', 'Mix it all in a large bowl and bake for 60 minutes.'],
+          vorbereitung: [],
+          originalSchritte: [],
+          originalVorbereitung: [],
+        },
+      }),
+    });
+    const daten = await res.json();
+
+    if (modus === 'karte') {
+      check('[uebersetzen karte] ohne Zahlungskarte: billing', daten.error === 'billing', daten.error);
+      return;
+    }
+    if (modus === 'kurz') {
+      check('[uebersetzen kurz] eine fehlende Zeile verwirft die Uebersetzung', res.status === 422 && daten.error === 'incomplete', `${res.status} ${daten.error}`);
+      return;
+    }
+
+    check('[uebersetzen ok] die Route antwortet mit 200', res.status === 200, `war ${res.status} ${daten.error ?? ''}`);
+    check('[uebersetzen ok] der Name kommt auf Deutsch', daten.recipe?.name === 'Bananenbrot');
+    check('[uebersetzen ok] Zutaten in Gramm', daten.recipe?.zutaten?.[0] === '250 g Mehl');
+    check('[uebersetzen ok] kein Eszett', daten.recipe?.schritte?.[1]?.includes('grossen Schüssel'), daten.recipe?.schritte?.[1]);
+    const anfrage = gateway.anfragen[gateway.anfragen.length - 1];
+    check('[uebersetzen ok] das Werkzeug ist angemeldet', anfrage?.body?.tools?.[0]?.name === 'rezept_uebersetzt');
+    check('[uebersetzen ok] die Zutaten gehen mit', JSON.stringify(anfrage?.body?.messages ?? '').includes('2 cups flour'));
+    check('[uebersetzen ok] die Regeln rechnen Fahrenheit um', String(anfrage?.body?.system ?? '').includes('350 °F → 180 °C'));
+
+    // Import: die KI liest das Rezept, es ist englisch – also gleich uebersetzen.
+    const importiert = await fetch(`http://127.0.0.1:${appPort}/api/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: ENGLISCH }),
+    });
+    const rezept = (await importiert.json()).recipe;
+    check('[uebersetzen import] kommt auf Deutsch an', rezept?.name === 'Bananenbrot', rezept?.name);
+    check('[uebersetzen import] traegt den Vermerk', rezept?.uebersetztAus === 'en');
+    check(
+      '[uebersetzen import] Menge und Einheit sind getrennt',
+      rezept?.ingredients?.[0]?.name === 'Mehl' && rezept?.ingredients?.[0]?.amount === 250 && rezept?.ingredients?.[0]?.unit === 'g',
+      JSON.stringify(rezept?.ingredients?.[0]),
+    );
+    check('[uebersetzen import] Timer aus dem deutschen Schritt', rezept?.steps?.[1]?.durationSec === 3600);
+    check('[uebersetzen import] kein Eszett', !JSON.stringify(rezept).includes('ß'));
+    const werkzeuge = gateway.anfragen.slice(-2).map((eintrag) => eintrag.body?.tools?.[0]?.name);
+    check('[uebersetzen import] erst lesen, dann uebersetzen', JSON.stringify(werkzeuge) === '["rezept_gelesen","rezept_uebersetzt"]', JSON.stringify(werkzeuge));
+  } finally {
+    app.kill();
+    gateway.server.close();
+  }
+}
+
 await durchlauf('ok');
 await durchlauf('meckert');
 await durchlauf('direkt');
@@ -457,6 +587,9 @@ await vereinfachen('unbekannt');
 await vereinfachen('direkt');
 await lesen('ok');
 await lesen('karte');
+await uebersetzen('ok');
+await uebersetzen('kurz');
+await uebersetzen('karte');
 
 console.log(`\n${pass} ok, ${fail} fehlgeschlagen`);
 process.exit(fail === 0 ? 0 : 1);

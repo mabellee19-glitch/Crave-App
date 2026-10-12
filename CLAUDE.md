@@ -6,6 +6,12 @@
   Antworten im Chat, UI-Texte, Kommentare, Commit-Nachrichten, README und
   KI-Prompts (Schweizer Schreibweise: "Strasse", "gross", "Sauce", "Spass").
 - Ausnahme ist nur Code, der eingehendes ß erkennen oder umwandeln muss
-  (z. B. `normalizeName` in `src/lib/units.ts`, `spa(ss|ß)` in
-  `src/lib/kuerzen.ts`, `szlig` in `src/lib/recipeImport.ts`), und
+  (z. B. `ohneEszett` in `src/lib/aufraeumen.ts`, `normalizeName` in
+  `src/lib/units.ts`, `spa(ss|ß)` in `src/lib/kuerzen.ts`, `szlig` in
+  `src/lib/recipeImport.ts`), und
   Test-Fixtures, die Text von Webseiten nachbilden. Diese Stellen bleiben.
+
+## Rezepte
+
+- Englische Rezepte werden immer auf Deutsch übersetzt, mit metrischen Massen
+  (siehe README, «Englische Rezepte auf Deutsch»).

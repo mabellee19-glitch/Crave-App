@@ -5,8 +5,10 @@ import { Recipe, matchDishCategory } from '@/lib/types';
 import { formatQuantity, scaleAmount } from '@/lib/units';
 import { ABMESSEN } from '@/lib/prep';
 import { zutatenProSchritt } from '@/lib/stepIngredients';
+import { istEnglisch, rezeptTexte } from '@/lib/sprache';
 import { Sheet, ConfirmDialog } from './ui';
 import { TimerHint } from './Timer';
+import { Notiz } from './Notiz';
 import {
   IconCart,
   IconClock,
@@ -62,6 +64,11 @@ export function RecipeDetail({
   const schrittZutaten = useMemo(() => zutatenProSchritt(steps, ingredients), [steps, ingredients]);
   // Abmessen gehoert immer dazu, sobald es Zutaten gibt.
   const hatVorbereitung = prep.length > 0 || ingredients.length > 0;
+  // Englisch und noch nicht uebersetzt: das macht der Start, sobald die KI da ist.
+  const nochEnglisch = useMemo(
+    () => !recipe.uebersetztAus && istEnglisch(rezeptTexte(recipe)),
+    [recipe],
+  );
 
   return (
     <>
@@ -118,9 +125,7 @@ export function RecipeDetail({
         </div>
 
         {recipe.notes ? (
-          <p className="muted" style={{ fontSize: 14.5, marginBottom: 4 }}>
-            {recipe.notes}
-          </p>
+          <Notiz className="muted detail__notiz" text={recipe.notes} />
         ) : null}
 
         <div className="detail__section">
@@ -249,6 +254,15 @@ export function RecipeDetail({
               ))}
             </ol>
           )}
+          {recipe.uebersetztAus === 'en' ? (
+            <p className="kuerzung">Aus dem Englischen übersetzt.</p>
+          ) : nochEnglisch ? (
+            <p className="kuerzung">
+              {recipe.uebersetzungVersuch
+                ? 'Dieses Rezept ist auf Englisch. Die KI konnte es nicht übersetzen.'
+                : 'Dieses Rezept ist auf Englisch. Die App übersetzt es von selbst, sobald die KI erreichbar ist.'}
+            </p>
+          ) : null}
           {steps.length > 0 &&
           recipe.vorKuerzen &&
           (recipe.kuerzung === 'regeln' || recipe.kuerzung === 'ki') ? (

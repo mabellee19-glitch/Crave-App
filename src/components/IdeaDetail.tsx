@@ -4,6 +4,7 @@ import React from 'react';
 import { DISH_CATEGORY_LABEL, Dish } from '@/lib/types';
 import { formatQuantity } from '@/lib/units';
 import { Sheet } from './ui';
+import { Notiz } from './Notiz';
 import { IconBook, IconCookNext, IconIdee, IconPencil } from './Icons';
 
 /**
@@ -56,9 +57,7 @@ export function IdeaDetail({
       </div>
 
       {dish.notes ? (
-        <p className="muted" style={{ fontSize: 14.5, marginBottom: 4 }}>
-          {dish.notes}
-        </p>
+        <Notiz className="muted detail__notiz" text={dish.notes} />
       ) : null}
 
       <div className="detail__section">

@@ -6,6 +6,8 @@
  * Stelle beschrieben.
  */
 
+import { ohneEszett } from './aufraeumen';
+
 export interface VisionIngredient {
   name: string;
   /** Menge, 0 = ohne Mengenangabe. */
@@ -312,5 +314,8 @@ function normalise(input: Partial<VisionResult>): VisionResult {
       .filter(Boolean),
   }));
 
-  return { lebensmittel, ideen: ideen.filter((idee) => idee.name) };
+  const ergebnis: VisionResult = { lebensmittel, ideen: ideen.filter((idee) => idee.name) };
+  // Schweizer Schreibweise, auch wenn das Modell sich einmal vertut. Ein
+  // Eszett kommt in JSON nur in Texten vor, nie in der Struktur.
+  return JSON.parse(ohneEszett(JSON.stringify(ergebnis))) as VisionResult;
 }

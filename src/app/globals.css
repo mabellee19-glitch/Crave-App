@@ -1422,10 +1422,28 @@ ol {
 
 .sheet__body {
   overflow-y: auto;
+  /* Nur hoch und runter: ein zu breites Stueck (eine lange Adresse, ein
+     Wort ohne Trennstelle) liess das ganze Blatt seitlich verrutschen. */
+  overflow-x: hidden;
+  overflow-wrap: break-word;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 0 16px calc(20px + var(--safe-bottom));
   flex: 1;
+}
+
+.detail__notiz {
+  font-size: 14.5px;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+
+.notiz__link {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
 
 .sheet__foot {
@@ -1723,6 +1741,8 @@ ol {
 .cook__body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   /* Die Spalte bleibt auf breiten Bildschirmen 716 px schmal, die Fläche

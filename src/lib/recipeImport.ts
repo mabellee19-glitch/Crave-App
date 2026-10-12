@@ -18,6 +18,7 @@
  */
 
 import { WORT_EINHEITEN, canonicalUnit, unitInfo } from './units';
+import { ohneEszett, ohneTracking } from './aufraeumen';
 import { Knoten, finde, leseHtml, rohtext } from './htmlBaum';
 
 export interface ImportedIngredient {
@@ -46,6 +47,14 @@ export interface ImportedRecipe {
    * lohnt sich ein pruefender Blick.
    */
   herkunft?: 'seite' | 'ki';
+  /** Aus dem Englischen uebersetzt (recipeAi.ts). */
+  uebersetztAus?: 'en';
+  /**
+   * Auf Englisch, aber (noch) nicht uebersetzt – die KI war nicht
+   * erreichbar. `kiFehler` sagt, warum.
+   */
+  sprache?: 'en';
+  kiFehler?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -762,4 +771,22 @@ export function seitentext(html: string, maxZeichen = 30_000): string {
     .filter(Boolean)
     .join('\n')
     .slice(0, maxZeichen);
+}
+
+/**
+ * Ein gelesenes Rezept so, wie die App schreibt: ohne Eszett, die Quelle ohne
+ * Werbeparameter. Am Ende jedes Imports, egal woher das Rezept kam.
+ */
+export function rezeptAufraeumen(rezept: ImportedRecipe): ImportedRecipe {
+  return {
+    ...rezept,
+    name: ohneEszett(rezept.name),
+    ingredients: rezept.ingredients.map((zutat) => ({
+      ...zutat,
+      name: ohneEszett(zutat.name),
+      unit: ohneEszett(zutat.unit),
+    })),
+    steps: rezept.steps.map((schritt) => ({ ...schritt, text: ohneEszett(schritt.text) })),
+    source: ohneTracking(rezept.source),
+  };
 }

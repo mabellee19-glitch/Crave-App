@@ -11,6 +11,8 @@ import React, {
 } from 'react';
 import {
   AppData,
+  COLLECTIONS,
+  CollectionName,
   Dish,
   Ingredient,
   PantryItem,
@@ -29,6 +31,8 @@ import {
 } from './seed';
 import { schrittSignatur, vorbereitungVorschlagen } from './prep';
 import { schritteKuerzen } from './kuerzen';
+import { ohneEszett, textOhneTracking } from './aufraeumen';
+import { Uebersetzung, uebersetzungAnwenden } from './uebersetzen';
 import {
   addAmounts,
   canonicalUnit,
@@ -103,6 +107,8 @@ interface StoreValue {
   kiKuerzungUebernehmen: (id: string, stand: number, ergebnis: KiErgebnis | null) => void;
   /** Gekuerzte Schritte und Vorbereitung auf den Stand davor zuruecksetzen. */
   originalWiederherstellen: (id: string) => void;
+  /** Uebersetzung uebernehmen, wenn das Rezept seit `stand` unveraendert ist. */
+  uebersetzungUebernehmen: (id: string, stand: number, ergebnis: Uebersetzung | null) => void;
   /** Fehlende Startrezepte nachtragen; vorhandene bleiben unangetastet. */
   addMissingRecipes: () => { added: number; completed: number };
   deletePantryItem: (id: string) => void;
@@ -335,6 +341,54 @@ function kuerzeLangeSchritte(data: AppData, now: number): AppData | null {
   }
 
   return changed ? { ...data, recipes } : null;
+}
+
+/** Einen gespeicherten Eintrag aufraeumen: jedes Eszett zu "ss", Notizen ohne Werbeparameter. */
+function aufgeraeumt<T>(wert: T, schluessel = ''): T {
+  if (typeof wert === 'string') {
+    const text = ohneEszett(wert);
+    return (schluessel === 'notes' ? textOhneTracking(text) : text) as T;
+  }
+  if (Array.isArray(wert)) return wert.map((eintrag) => aufgeraeumt(eintrag)) as T;
+  if (wert && typeof wert === 'object') {
+    return Object.fromEntries(
+      Object.entries(wert).map(([name, inhalt]) => [name, aufgeraeumt(inhalt, name)]),
+    ) as T;
+  }
+  return wert;
+}
+
+/**
+ * Schweizer Schreibweise fuer alles, was schon gespeichert ist: Eszett wird
+ * "ss", und Adressen in Notizen verlieren ihre Werbeparameter. Beides kam mit
+ * Rezepten von deutschen Seiten und aus Suchanzeigen, bevor der Import es
+ * selbst aufraeumte.
+ *
+ * Laeuft bei jedem Start, faellt aber nur auf Eintraege, die noch ein Eszett
+ * oder eine Adresse tragen – und aendert nur, was sich dabei wirklich aendert.
+ * Danach ist nichts mehr zu tun. Ids enthalten weder das eine noch das andere.
+ */
+function schreibweiseAngleichen(data: AppData, now: number): AppData | null {
+  let changed = false;
+  const next = { ...data };
+  for (const name of COLLECTIONS) {
+    const sammlung = data[name] as Record<string, { updatedAt: number; deleted?: boolean }>;
+    let neu: typeof sammlung | null = null;
+    for (const [id, eintrag] of Object.entries(sammlung)) {
+      if (!eintrag || eintrag.deleted) continue;
+      const vorher = JSON.stringify(eintrag);
+      if (!/[ßẞ]|https?:/.test(vorher)) continue;
+      const sauber = aufgeraeumt(eintrag);
+      if (JSON.stringify(sauber) === vorher) continue;
+      neu ??= { ...sammlung };
+      neu[id] = { ...sauber, updatedAt: now };
+    }
+    if (neu) {
+      (next as Record<CollectionName, unknown>)[name] = neu;
+      changed = true;
+    }
+  }
+  return changed ? next : null;
 }
 
 function isEmpty(data: AppData): boolean {
@@ -659,6 +713,11 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         const gekuerzt = kuerzeLangeSchritte(next, stamp());
         if (gekuerzt) {
           next = gekuerzt;
+          dirtyRef.current = true;
+        }
+        const angeglichen = schreibweiseAngleichen(next, stamp());
+        if (angeglichen) {
+          next = angeglichen;
           dirtyRef.current = true;
         }
       }
@@ -1301,6 +1360,33 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     [mutate],
   );
 
+  /**
+   * Die Uebersetzung eines englischen Rezepts uebernehmen – wie bei der
+   * Kuerzung nur, wenn das Rezept seit der Anfrage niemand angefasst hat.
+   * `null`: die KI hat geantwortet, aber nichts Brauchbares; nicht nochmal.
+   */
+  const uebersetzungUebernehmen = useCallback(
+    (id: string, stand: number, ergebnis: Uebersetzung | null) => {
+      mutate((draft) => {
+        const recipe = draft.recipes[id];
+        if (!recipe || recipe.deleted || recipe.updatedAt !== stand) return;
+        const uebersetzt = ergebnis ? uebersetzungAnwenden(recipe, ergebnis) : null;
+        if (!uebersetzt) {
+          draft.recipes[id] = { ...recipe, uebersetzungVersuch: Date.now(), updatedAt: stamp() };
+          return;
+        }
+        draft.recipes[id] = { ...uebersetzt, updatedAt: stamp() };
+        // Wie beim Speichern: ein geplantes Rezept bringt seine Zutaten auf
+        // die Einkaufsliste – jetzt auf Deutsch und in Gramm.
+        if (uebersetzt.cookNext) {
+          nimmGeplantZurueck(draft, id);
+          legeGeplantAn(draft, uebersetzt, uebersetzt.servings);
+        }
+      });
+    },
+    [mutate],
+  );
+
   /** Gekuerzte Schritte zuruecknehmen. Danach wird das Rezept nicht mehr von allein gekuerzt. */
   const originalWiederherstellen = useCallback(
     (id: string) => {
@@ -1491,6 +1577,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     fillRecipeSteps,
     kiKuerzungUebernehmen,
     originalWiederherstellen,
+    uebersetzungUebernehmen,
     addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,
@@ -1524,6 +1611,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     fillRecipeSteps,
     kiKuerzungUebernehmen,
     originalWiederherstellen,
+    uebersetzungUebernehmen,
     addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,

@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { holeSeite } from '@/lib/safeFetch';
-import { ImportedRecipe, ausEingefuegtemText, extractRecipe, seitentext } from '@/lib/recipeImport';
-import { rezeptLesen } from '@/lib/recipeAi';
+import {
+  ImportedRecipe,
+  ausEingefuegtemText,
+  extractRecipe,
+  rezeptAufraeumen,
+  seitentext,
+} from '@/lib/recipeImport';
+import { rezeptLesen, rezeptUebersetzen } from '@/lib/recipeAi';
+import { importAuftrag, importIstEnglisch, importUebersetzt } from '@/lib/uebersetzen';
+import { ohneTracking } from '@/lib/aufraeumen';
 import { hasVisionKey } from '@/lib/vision';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +28,10 @@ const MAX_TEXT = 40_000;
  * Ueberschriften "Zutaten" und "Zubereitung". Findet sich so nichts und ist
  * die KI erreichbar, liest sie den Text. Klappt auch das nicht, sagt `ki`,
  * woran es lag – die App kann dann erklaeren, was fehlt.
+ *
+ * Englische Rezepte kommen auf Deutsch zurueck, mit Gramm und Grad Celsius.
+ * Ist die KI dafuer nicht erreichbar, kommt das Rezept auf Englisch, mit
+ * `sprache: 'en'` – die App uebersetzt es dann spaeter von selbst.
  */
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -57,15 +69,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: ergebnis }, { status, headers: NO_STORE });
   }
 
-  const quelle = ergebnis.url.toString();
+  const quelle = ohneTracking(ergebnis.url.toString());
   const rezept = extractRecipe(ergebnis.html, quelle);
   // Strukturierte Daten sind verlaesslich – dafuer braucht es keine KI.
   if (rezept && !rezept.herkunft) return gefunden(rezept);
   return mitKi(seitentext(ergebnis.html), quelle, rezept);
 }
 
-function gefunden(recipe: ImportedRecipe) {
-  return NextResponse.json({ ok: true, recipe }, { headers: NO_STORE });
+async function gefunden(recipe: ImportedRecipe) {
+  const fertig = rezeptAufraeumen(await aufDeutsch(recipe));
+  return NextResponse.json({ ok: true, recipe: fertig }, { headers: NO_STORE });
+}
+
+/** Ein englisches Rezept uebersetzen; jedes andere bleibt, wie es ist. */
+async function aufDeutsch(recipe: ImportedRecipe): Promise<ImportedRecipe> {
+  if (recipe.uebersetztAus || !importIstEnglisch(recipe)) return recipe;
+  if (!hasVisionKey()) return { ...recipe, sprache: 'en', kiFehler: 'no_key' };
+  try {
+    return importUebersetzt(recipe, await rezeptUebersetzen(importAuftrag(recipe)));
+  } catch (err) {
+    return { ...recipe, sprache: 'en', kiFehler: err instanceof Error ? err.message : 'unknown_error' };
+  }
 }
 
 /**

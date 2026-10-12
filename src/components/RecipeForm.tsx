@@ -29,6 +29,18 @@ function kiGrund(ki: string): string {
   }
 }
 
+/** Warum ein englisches Rezept (noch) nicht uebersetzt ist. */
+function uebersetzenGrund(ki: string): string {
+  switch (ki) {
+    case 'billing':
+      return 'Dafür fehlt beim Anbieter noch die Zahlungsangabe (Vercel → AI Gateway).';
+    case 'no_key':
+      return 'Dafür muss die KI eingerichtet sein.';
+    default:
+      return '';
+  }
+}
+
 /** Fehler der Import-Route in einen Satz uebersetzen, der weiterhilft. */
 function importMeldung(code: string, ki = '', ausText = false): string {
   const einfuegen = 'Kopiere den Text des Rezepts und füge ihn unten ein.';
@@ -388,6 +400,9 @@ export function RecipeForm({
         steps: Array<{ text: string; durationSec: number | null }>;
         source: string;
         herkunft?: 'seite' | 'ki';
+        uebersetztAus?: 'en';
+        sprache?: 'en';
+        kiFehler?: string;
       };
 
       const current = draftRef.current;
@@ -403,6 +418,10 @@ export function RecipeForm({
           ? rezept.steps.map((schritt) => ({ ...blankStep(), ...schritt }))
           : current.steps,
         notes: current.notes || (rezept.source ? `Übernommen von ${rezept.source}` : ''),
+        // Ein neuer Import ersetzt den Inhalt – und mit ihm, was die KI
+        // daran schon versucht hat.
+        uebersetztAus: rezept.uebersetztAus,
+        uebersetzungVersuch: undefined,
       };
       // Sofort eine Vorbereitung aus dem Text – die KI ersetzt sie gleich
       // durch eine bessere, falls sie eingerichtet ist.
@@ -425,13 +444,22 @@ export function RecipeForm({
       setUrl('');
       setRezeptText('');
       setTextModus(false);
+      const hinweise: string[] = [];
       if (rezept.herkunft === 'ki') {
-        setImportHinweis('Die KI hat das Rezept aus dem Text gelesen. Bitte kurz prüfen, ob alles stimmt.');
+        hinweise.push('Die KI hat das Rezept aus dem Text gelesen.');
       } else if (rezept.herkunft === 'seite') {
-        setImportHinweis(
-          'Zutaten und Schritte sind aus dem Text gelesen, nicht aus Rezeptdaten. Bitte kurz prüfen, ob alles stimmt.',
+        hinweise.push('Zutaten und Schritte sind aus dem Text gelesen, nicht aus Rezeptdaten.');
+      }
+      if (rezept.uebersetztAus === 'en') {
+        hinweise.push('Aus dem Englischen übersetzt, Mengen in Gramm, Deziliter und Grad Celsius.');
+      }
+      if (hinweise.length) hinweise.push('Bitte kurz prüfen, ob alles stimmt.');
+      if (rezept.sprache === 'en') {
+        hinweise.push(
+          `Das Rezept ist auf Englisch. Die App übersetzt es von selbst, sobald die KI erreichbar ist. ${uebersetzenGrund(rezept.kiFehler ?? '')}`.trim(),
         );
       }
+      if (hinweise.length) setImportHinweis(hinweise.join(' '));
       if (rezept.steps.length) {
         void vereinfachen('oben', mitKurzenSchritten, vorbereitung.join('\n'), original);
       }

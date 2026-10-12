@@ -15,6 +15,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 type Antwort = Anthropic.Message | Anthropic.Beta.BetaMessage;
 import { einordnen, istFeldFehler, visionAccess } from './vision';
 import { ImportedRecipe, durationFromText, zutatenAusZeilen } from './recipeImport';
+import { ohneEszett } from './aufraeumen';
+import type { Uebersetzung } from './uebersetzen';
 
 export interface SimplifyInput {
   name: string;
@@ -227,12 +229,12 @@ export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResu
 
   const prep = (Array.isArray(roh.vorbereitung) ? roh.vorbereitung : [])
     .filter((eintrag): eintrag is string => typeof eintrag === 'string')
-    .map((eintrag) => eintrag.trim().replace(/\.$/, ''))
+    .map((eintrag) => ohneEszett(eintrag.trim().replace(/\.$/, '')))
     .filter(Boolean);
 
   const steps = (Array.isArray(roh.schritte) ? roh.schritte : [])
     .map((schritt) => {
-      const text = String(schritt?.text ?? '').trim();
+      const text = ohneEszett(String(schritt?.text ?? '').trim());
       const minuten = Number(schritt?.minuten);
       return {
         text,
@@ -250,6 +252,36 @@ export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResu
 
   return { prep, steps, missingNumbers };
 }
+
+/**
+ * Wie uebersetzt wird – beim Lesen einer Seite und beim Uebersetzen eines
+ * schon gespeicherten Rezepts dieselben Regeln. Steht vor LESEN, weil der
+ * Text dort sie einbettet.
+ */
+const UEBERSETZEN_REGELN = `So wird übersetzt:
+- Ins Deutsche, wie man in der Schweiz schreibt: nie Eszett, immer "ss"
+  (gross, Sauce, Strasse). Poulet statt Hähnchen, Rahm statt Sahne,
+  Peperoni statt Paprika (das Gemüse).
+- Amerikanische Masse in metrische umrechnen, gerundet auf Werte, die man
+  abmessen kann:
+  - Grad Fahrenheit in Grad Celsius, auf 5 gerundet: 350 °F → 180 °C,
+    375 °F → 190 °C, 400 °F → 200 °C, 425 °F → 220 °C.
+  - oz in g (1 oz = 28 g), lb in g (1 lb = 450 g), fl oz in ml
+    (1 fl oz = 30 ml), Inch in cm (1 Inch = 2,5 cm).
+  - cup: bei Flüssigkeiten in dl (1 cup = 2,4 dl); bei Mehl, Zucker, Reis,
+    Haferflocken, geriebenem Käse, Nüssen und Ähnlichem in g nach der
+    üblichen Umrechnung (1 cup Mehl = 125 g, 1 cup Zucker = 200 g); wo das
+    nicht passt, etwa bei gehackten Kräutern, "Tasse".
+  - 1 stick butter = 115 g Butter; tbsp wird EL, tsp wird TL.
+  - Steht schon eine metrische Angabe daneben, gilt diese.
+- Zutaten: Menge und Einheit vorne, z. B. "250 g Mehl" oder "2 EL Olivenöl".
+  Brüche als Dezimalzahl mit Punkt: "0.5 TL Salz", nicht "1/2 TL Salz".
+  Zusätze in Klammern, etwa die Gruppe einer Zutat, übersetzt du mit.
+- Schritte und Vorbereitung: nichts weglassen, nichts zusammenfassen, nichts
+  kürzen, nichts dazuerfinden. Zeiten bleiben im Text, in Minuten.
+- Der Name: der übliche deutsche Name des Gerichts. Namen, die man auch hier
+  auf Englisch kennt (Pancakes, Brownies, Cheesecake, Cookies, Coleslaw),
+  bleiben.`;
 
 /* -------------------------------------------------------------------------- */
 /* Ein Rezept aus Text lesen                                                   */
@@ -273,6 +305,11 @@ dasteht. Gekürzt und vereinfacht wird später in einem eigenen Schritt.
   pro Schritt, ohne Nummern. Nichts weglassen, nichts dazuerfinden.
 - Kommentare, Werbung, Nährwerte und die Geschichte drumherum gehören nicht
   dazu.
+- Steht das Rezept nicht auf Deutsch, übersetzt du es dabei nach den Regeln
+  unten und setzt "uebersetzt" auf true. Sonst bleibt der Text, wie er ist,
+  und "uebersetzt" ist false.
+
+${UEBERSETZEN_REGELN}
 
 Antworte ausschliesslich über das Werkzeug rezept_gelesen.`;
 
@@ -283,9 +320,10 @@ const LESEN_TOOL = {
   input_schema: {
     type: 'object' as const,
     additionalProperties: false,
-    required: ['gefunden', 'name', 'portionen', 'minuten', 'zutaten', 'schritte'],
+    required: ['gefunden', 'uebersetzt', 'name', 'portionen', 'minuten', 'zutaten', 'schritte'],
     properties: {
       gefunden: { type: 'boolean' },
+      uebersetzt: { type: 'boolean' },
       name: { type: 'string' },
       portionen: { type: 'number' },
       minuten: { type: 'number' },
@@ -307,6 +345,7 @@ export async function rezeptLesen(text: string, quelle: string): Promise<Importe
     `Quelle: ${quelle || 'eingefügter Text'}\n\n${text}`,
   )) as {
     gefunden?: unknown;
+    uebersetzt?: unknown;
     name?: unknown;
     portionen?: unknown;
     minuten?: unknown;
@@ -337,5 +376,92 @@ export async function rezeptLesen(text: string, quelle: string): Promise<Importe
     steps,
     source: quelle,
     herkunft: 'ki',
+    ...(roh.uebersetzt === true ? { uebersetztAus: 'en' as const } : {}),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Englische Rezepte auf Deutsch                                               */
+/* -------------------------------------------------------------------------- */
+
+const UEBERSETZEN = `Du hilfst in einer privaten Koch-App in der Schweiz. Du bekommst
+ein Rezept auf Englisch und übersetzt es ins Deutsche.
+
+Jede Liste kommt in derselben Länge und Reihenfolge zurück, Eintrag für
+Eintrag: die dritte Zutat bleibt die dritte, der zweite Schritt der zweite.
+Eine leere Liste bleibt leer.
+
+${UEBERSETZEN_REGELN}
+
+Antworte ausschliesslich über das Werkzeug rezept_uebersetzt.`;
+
+const LISTEN = ['zutaten', 'schritte', 'vorbereitung', 'originalSchritte', 'originalVorbereitung'] as const;
+
+const LISTEN_FELD: Record<(typeof LISTEN)[number], string> = {
+  zutaten: 'zutaten',
+  schritte: 'schritte',
+  vorbereitung: 'vorbereitung',
+  originalSchritte: 'original_schritte',
+  originalVorbereitung: 'original_vorbereitung',
+};
+
+const LISTEN_TITEL: Record<(typeof LISTEN)[number], string> = {
+  zutaten: 'Zutaten (zutaten)',
+  schritte: 'Schritte (schritte)',
+  vorbereitung: 'Vorbereitung (vorbereitung)',
+  originalSchritte: 'Ursprüngliche Schritte (original_schritte)',
+  originalVorbereitung: 'Ursprüngliche Vorbereitung (original_vorbereitung)',
+};
+
+const UEBERSETZEN_TOOL = {
+  name: 'rezept_uebersetzt',
+  description: 'Liefert das Rezept auf Deutsch, jede Liste in derselben Länge wie im Original.',
+  strict: true,
+  input_schema: {
+    type: 'object' as const,
+    additionalProperties: false,
+    required: ['name', ...LISTEN.map((liste) => LISTEN_FELD[liste])],
+    properties: {
+      name: { type: 'string' },
+      ...Object.fromEntries(
+        LISTEN.map((liste) => [LISTEN_FELD[liste], { type: 'array', items: { type: 'string' } }]),
+      ),
+    },
+  },
+};
+
+/**
+ * Ein englisches Rezept auf Deutsch. Kommt eine Liste in anderer Laenge
+ * zurueck, gilt die Uebersetzung nicht ("incomplete"): dann passten Zutaten
+ * und Schritte nicht mehr zu dem, was am Rezept haengt.
+ */
+export async function rezeptUebersetzen(eingabe: Uebersetzung): Promise<Uebersetzung> {
+  if (!visionAccess()) throw new Error('no_key');
+
+  const text = [
+    `Name: ${eingabe.name}`,
+    ...LISTEN.map((liste) => {
+      const eintraege = eingabe[liste];
+      return `\n${LISTEN_TITEL[liste]}:\n${
+        eintraege.length ? eintraege.map((eintrag, index) => `${index + 1}. ${eintrag}`).join('\n') : '(leer)'
+      }`;
+    }),
+  ].join('\n');
+
+  const roh = (await frageWerkzeug(UEBERSETZEN, UEBERSETZEN_TOOL, text)) as Record<string, unknown>;
+
+  const name = ohneEszett(String(roh.name ?? '').trim());
+  if (!name) throw new Error('no_result');
+  const heraus: Uebersetzung = { ...eingabe, name };
+  for (const liste of LISTEN) {
+    const wert = roh[LISTEN_FELD[liste]];
+    const eintraege = (Array.isArray(wert) ? wert : []).map((eintrag) =>
+      ohneEszett(String(eintrag ?? '').trim()),
+    );
+    if (eintraege.length !== eingabe[liste].length || eintraege.some((eintrag) => !eintrag)) {
+      throw new Error('incomplete');
+    }
+    heraus[liste] = eintraege;
+  }
+  return heraus;
 }

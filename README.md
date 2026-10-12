@@ -19,6 +19,8 @@ Zwei Bereiche:
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
 | Rezepte | `Rezept über Link hinzufügen`: Adresse einfügen, Zutaten und Zubereitung kommen mit – samt Timern |
 | Rezepte | Übernommene Schritte werden mit KI kürzer und einfacher – Zutaten, Mengen und Reihenfolge bleiben, das Original lässt sich zurückholen |
+| Rezepte | Englische Rezepte kommen auf Deutsch an, mit Gramm, Deziliter und Grad Celsius |
+| Rezepte | Schweizer Schreibweise: kein Eszett, immer «ss» – auch in schon gespeicherten Rezepten |
 | Rezepte | Die Kategorie (High-Protein, Comfort, Vegi, Dessert) wird beim Anlegen aus den Zutaten erkannt |
 | Rezepte | Jedes Rezept hat eine **Vorbereitung**: was vorher geschnitten und bereitgelegt wird |
 | Rezepte | Portionen ändern – die Zutatenmengen rechnen sich automatisch um |
@@ -183,6 +185,33 @@ liest daraus Zutaten und Schritte – über die Überschriften, sonst über die
 Mengen vorne –, mit KI auch aus Fliesstext oder einer Nachricht. Schlägt der
 Link fehl, öffnet sich das Feld von selbst, und die Meldung sagt, woran es lag.
 Was nicht aus Rezeptdaten stammt, kommt mit dem Hinweis, kurz zu prüfen.
+
+### Englische Rezepte auf Deutsch
+
+Ein englisches Rezept wird beim Übernehmen übersetzt (`src/lib/uebersetzen.ts`,
+`src/lib/sprache.ts`). Amerikanische Masse werden dabei umgerechnet: 350 °F
+werden 180 °C, ein Cup Milch 2,4 dl, ein Cup Mehl 125 g, ein Stick Butter
+115 g, tbsp und tsp werden EL und TL. Die Wörter sind die schweizerischen
+(Poulet, Rahm, Peperoni). Die Zeilen bleiben dieselben: jede Zutat und jeder
+Schritt wird einzeln übersetzt, nichts zusammengefasst oder gekürzt – das
+Kürzen kommt danach, wie bei jedem übernommenen Rezept.
+
+Erkannt wird die Sprache ohne KI, an kleinen Wörtern, die nur im Englischen
+vorkommen («the», «until», «with»). Ein englischer Name allein («Marry me
+Chicken») macht noch kein englisches Rezept.
+
+Ist die KI gerade nicht erreichbar, kommt das Rezept auf Englisch, mit dem
+Hinweis, dass es übersetzt wird. Das geschieht dann von selbst beim nächsten
+Start, auch für Rezepte, die schon gespeichert sind. Am Rezept steht danach
+«Aus dem Englischen übersetzt». Ist es für Cook Next geplant, stehen die
+Zutaten auf der Einkaufsliste danach ebenfalls auf Deutsch.
+
+### Schweizer Schreibweise
+
+Die App schreibt kein Eszett: beim Import, in KI-Antworten und einmal für alles,
+was schon gespeichert ist, wird jedes Eszett zu «ss». Adressen in Notizen verlieren
+dabei die Werbeparameter von Suchanzeigen (`utm_…`, `gclid`), und im Rezept
+steht die Quelle als kurzer Link («swissmilk.ch»).
 
 ### Mit KI vereinfacht
 
@@ -439,10 +468,13 @@ src/
   components/                 Oberfläche
   lib/
     vision.ts                 Auswertung des Kühlschrankfotos
-    recipeAi.ts               Vereinfachen übernommener Rezepte mit KI
+    recipeAi.ts               Vereinfachen, Lesen und Übersetzen mit KI
+    uebersetzen.ts            Englische Rezepte: Auftrag an die KI, Antwort ans Rezept
+    sprache.ts                Ist ein Rezept englisch?
+    aufraeumen.ts             Eszett zu ss, Adressen ohne Werbeparameter
     kuerzen.ts                Lange Schritte ohne KI teilen
     htmlBaum.ts               Kleiner HTML-Leser für den Import
-    useKiKuerzung.ts          KI-Kürzung bestehender Rezepte im Hintergrund
+    useKiKuerzung.ts          Übersetzen und Kürzen bestehender Rezepte im Hintergrund
     prep.ts                   Vorbereitung: aus Text lesen, Fingerabdruck
     category.ts               Kategorie aus den Zutaten
     stepIngredients.ts        Welche Zutaten zu welchem Schritt gehören

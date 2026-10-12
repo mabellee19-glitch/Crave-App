@@ -7,6 +7,9 @@ import { buildSeedData } from '../src/lib/seed';
 const HEFETEIG =
   'Milch, Zucker und Hefe in einer großen Rührschüssel mischen. Butter, Ei, Salz und die Hälfte des Mehls unterrühren, entweder mit einem Kochlöffel oder in der Küchenmaschine mit Knethaken. Wenn alles gründlich vermengt ist, das restliche Mehl einrühren und alles zu einem glatten Teig kneten, rund 5-7 Minuten. Nachdem der Teig sehr weich ist, empfehle ich die Zubereitung in einer Küchenmaschine, ein Kneten von Hand ist eine sehr klebrige Angelegenheit. Tipps zum Arbeiten mit weichen Teigen finden sich im Artikel oben.';
 
+/** So steht er nach dem Start in der App: Schweizer Schreibweise, ohne Eszett. */
+const HEFETEIG_SS = HEFETEIG.replace('großen', 'grossen');
+
 /** "Pasta mit Thunfisch", wie das Rezept vor dem Kuerzen ausgeliefert wurde. */
 const THUNFISCH_ALT = [
   'Pasta in kräftig gesalzenem Wasser al dente kochen. Vor dem Abgiessen eine Tasse Pastawasser beiseitestellen.',
@@ -145,7 +148,8 @@ test.describe('Lange Schritte in bestehenden Rezepten', () => {
     await page.getByRole('button', { name: 'Rezept Zimtschnecken öffnen' }).click();
     let detail = page.getByRole('dialog');
     await expect(detail.getByText('Vorbereitung + 5 Schritte')).toBeVisible();
-    await expect(detail.getByText('Milch, Zucker und Hefe in einer großen Rührschüssel mischen.', { exact: true })).toBeVisible();
+    // Das Eszett aus dem Original wird beim Start zu "ss".
+    await expect(detail.getByText('Milch, Zucker und Hefe in einer grossen Rührschüssel mischen.', { exact: true })).toBeVisible();
     await expect(detail.getByText(/im Artikel oben/)).toHaveCount(0);
     await expect(detail.getByText('Lange Schritte wurden in kurze aufgeteilt.')).toBeVisible();
 
@@ -153,7 +157,7 @@ test.describe('Lange Schritte in bestehenden Rezepten', () => {
     await detail.getByRole('button', { name: 'Original wiederherstellen' }).click();
     await expect(page.locator('.toast__text')).toContainText('wiederhergestellt');
     await expect(detail.getByText('Vorbereitung + 2 Schritte')).toBeVisible();
-    await expect(detail.getByText(HEFETEIG)).toBeVisible();
+    await expect(detail.getByText(HEFETEIG_SS)).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Original wiederherstellen' })).toHaveCount(0);
 
     await expect(page.getByText('Alles synchronisiert').first()).toBeVisible({ timeout: 20_000 });
@@ -210,11 +214,11 @@ test.describe('Lange Schritte in bestehenden Rezepten', () => {
 
     // Die KI hat den ungeteilten Originaltext bekommen, nicht die Stuecke.
     expect(anfragen).toHaveLength(1);
-    expect(JSON.parse(anfragen[0]).recipe.steps).toEqual([{ text: HEFETEIG, durationSec: 300 }]);
+    expect(JSON.parse(anfragen[0]).recipe.steps).toEqual([{ text: HEFETEIG_SS, durationSec: 300 }]);
 
     // Und auch von hier geht es zurueck zum Original.
     await detail.getByRole('button', { name: 'Original wiederherstellen' }).click();
-    await expect(detail.getByText(HEFETEIG)).toBeVisible();
+    await expect(detail.getByText(HEFETEIG_SS)).toBeVisible();
   });
 
   test('ohne Zugang zur KI bleibt es bei einer einzigen Anfrage', async ({ page, request }) => {

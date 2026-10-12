@@ -78,6 +78,10 @@ export interface Recipe extends Syncable {
   vorKuerzen?: { steps: Step[]; prep: string[] };
   /** Wann die KI ein Ergebnis lieferte, das nicht uebernommen wurde – dann nicht nochmal. */
   kiVersuch?: number;
+  /** Aus dem Englischen uebersetzt (lib/uebersetzen). */
+  uebersetztAus?: 'en';
+  /** Wann die Uebersetzung kein brauchbares Ergebnis lieferte – dann nicht nochmal. */
+  uebersetzungVersuch?: number;
   /**
    * "Cook Next": geplant fuer die naechsten Tage. Solange das gesetzt ist,
    * stehen die Zutaten des Rezepts auf der Einkaufsliste; beim Abwaehlen

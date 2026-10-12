@@ -504,7 +504,9 @@ test.describe('Rezept über Link', () => {
     await form.getByLabel('Rezept über Link hinzufügen').fill('https://beispiel.test/blog');
     await form.getByRole('button', { name: 'Holen' }).click();
 
-    await expect(form.getByText(/kein maschinenlesbares Rezept/)).toBeVisible();
+    await expect(form.getByText(/in keiner Form, die die App lesen kann/)).toBeVisible();
+    // Und gleich der Ausweg: der kopierte Rezepttext.
+    await expect(form.getByLabel('Rezepttext einfügen')).toBeVisible();
     // Das Formular bleibt leer und benutzbar.
     await expect(form.getByLabel('Name', { exact: true })).toHaveValue('');
   });

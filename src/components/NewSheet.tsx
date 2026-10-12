@@ -15,7 +15,7 @@ export function NewSheet({ onPick, onClose }: { onPick: (art: NeuArt) => void; o
     {
       art: 'link',
       titel: 'Rezept über Link',
-      text: 'Adresse einer Rezeptseite einfügen – die KI macht die Schritte kurz und einfach.',
+      text: 'Link einer Rezeptseite – oder den kopierten Rezepttext – einfügen. Die Schritte werden kurz und einfach.',
       icon: <IconLink size={22} />,
     },
     {

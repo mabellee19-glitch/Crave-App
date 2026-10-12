@@ -86,6 +86,35 @@ const VEREINFACHT = {
   usage: { input_tokens: 10, output_tokens: 10 },
 };
 
+/** Antwort fuer das Lesen eines Rezepts aus Text. */
+const GELESEN = {
+  id: 'msg_test3',
+  type: 'message',
+  role: 'assistant',
+  model: 'anthropic/claude-opus-5.5',
+  stop_reason: 'tool_use',
+  content: [
+    {
+      type: 'tool_use',
+      id: 'toolu_test3',
+      name: 'rezept_gelesen',
+      input: {
+        gefunden: true,
+        name: 'Pfannkuchen',
+        portionen: 4,
+        minuten: 0,
+        zutaten: ['Teig:', '250 g Mehl', '5 dl Milch'],
+        schritte: ['Alles verrühren und 30 Minuten ruhen lassen.', 'In der Pfanne ausbacken.'],
+      },
+    },
+  ],
+  usage: { input_tokens: 10, output_tokens: 10 },
+};
+
+/** Text ohne Ueberschriften, wie aus einer Nachricht kopiert – das schaffen die Regeln nicht. */
+const NACHRICHT =
+  'Hey, hier das Pfannkuchen-Rezept von Oma! Man nimmt Mehl, Milch und Eier, verrührt alles und lässt es ruhen. Dann ausbacken, fertig.';
+
 /** Ein Rezept, wie es von einer Seite kommt. */
 const REZEPT = {
   name: 'Zwiebelkuchen',
@@ -139,6 +168,12 @@ async function starteGateway(modus) {
             },
           }),
         );
+        return;
+      }
+
+      if (body?.tools?.[0]?.name === 'rezept_gelesen') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(GELESEN));
         return;
       }
 
@@ -370,6 +405,49 @@ async function vereinfachen(modus) {
   }
 }
 
+/**
+ * Ein Rezept aus Text lesen: was die Regeln nicht schaffen, liest die KI.
+ * Ohne Zahlungskarte sagt die Route, woran es liegt.
+ */
+async function lesen(modus) {
+  const gateway = await starteGateway(modus);
+  const appPort = await freierPort();
+  const app = await starteApp(gateway.port, appPort, false);
+
+  try {
+    const res = await fetch(`http://127.0.0.1:${appPort}/api/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: NACHRICHT }),
+    });
+    const daten = await res.json();
+
+    if (modus === 'karte') {
+      check('[lesen karte] kein Rezept, mit Grund', res.status === 422 && daten.ki === 'billing', `${res.status} ${daten.ki}`);
+      return;
+    }
+
+    check(`[lesen ${modus}] die Route antwortet mit 200`, res.status === 200, `war ${res.status} ${daten.error ?? ''}`);
+    check(`[lesen ${modus}] von der KI gelesen`, daten.recipe?.herkunft === 'ki');
+    check(`[lesen ${modus}] der Name kommt an`, daten.recipe?.name === 'Pfannkuchen');
+    check(
+      `[lesen ${modus}] Zutaten mit Gruppe und Menge`,
+      daten.recipe?.ingredients?.[0]?.name === 'Mehl (Teig)' && daten.recipe?.ingredients?.[0]?.amount === 250,
+      JSON.stringify(daten.recipe?.ingredients?.[0]),
+    );
+    check(`[lesen ${modus}] Timer aus dem Schritt`, daten.recipe?.steps?.[0]?.durationSec === 1800);
+    const letzte = gateway.anfragen[gateway.anfragen.length - 1];
+    check(`[lesen ${modus}] das Werkzeug ist angemeldet`, letzte?.body?.tools?.[0]?.name === 'rezept_gelesen');
+    check(
+      `[lesen ${modus}] der Text geht mit`,
+      JSON.stringify(letzte?.body?.messages ?? '').includes('Pfannkuchen-Rezept von Oma'),
+    );
+  } finally {
+    app.kill();
+    gateway.server.close();
+  }
+}
+
 await durchlauf('ok');
 await durchlauf('meckert');
 await durchlauf('direkt');
@@ -377,6 +455,8 @@ await durchlauf('karte');
 await vereinfachen('ok');
 await vereinfachen('unbekannt');
 await vereinfachen('direkt');
+await lesen('ok');
+await lesen('karte');
 
 console.log(`\n${pass} ok, ${fail} fehlgeschlagen`);
 process.exit(fail === 0 ? 0 : 1);

@@ -13,15 +13,34 @@ import { IconArrowUp, IconPlus, IconSpark, IconTrash } from './Icons';
 
 const CATEGORY_SUGGESTIONS = ['High-Protein', 'Comfort', 'Vegi', 'Frühstück', 'Dessert', 'Snack'];
 
+/** Was die KI beim Lesen einer Seite verhindert hat – als halber Satz. */
+function kiGrund(ki: string): string {
+  switch (ki) {
+    case 'billing':
+      return 'Mit KI ginge es auch so – dafür fehlt beim Anbieter die Zahlungsangabe (Vercel → AI Gateway).';
+    case 'no_key':
+      return 'Mit eingerichteter KI ginge es auch so.';
+    case 'not_found':
+      return 'Auch die KI hat darin kein Rezept gefunden.';
+    case 'rate_limit':
+      return 'Die KI ist gerade ausgelastet – gleich nochmal versuchen.';
+    default:
+      return '';
+  }
+}
+
 /** Fehler der Import-Route in einen Satz uebersetzen, der weiterhilft. */
-function importMeldung(code: string): string {
+function importMeldung(code: string, ki = '', ausText = false): string {
+  const einfuegen = 'Kopiere den Text des Rezepts und füge ihn unten ein.';
   switch (code) {
     case 'no_recipe':
-      return 'Auf dieser Seite steht kein maschinenlesbares Rezept. Die meisten Rezeptseiten liefern eines – bei Blogs und Videoseiten fehlt es oft. Dann hilft nur von Hand.';
+      return ausText
+        ? `Im Text war kein Rezept zu erkennen – am besten mit den Überschriften «Zutaten» und «Zubereitung» einfügen. ${kiGrund(ki)}`.trim()
+        : `Auf dieser Seite steht das Rezept in keiner Form, die die App lesen kann. ${kiGrund(ki)} ${einfuegen}`.replace(/\s+/g, ' ');
     case 'not_found':
       return 'Die Seite gibt es nicht (404). Stimmt die Adresse?';
     case 'blocked_by_site':
-      return 'Die Seite hat den Abruf abgelehnt. Manche Seiten lassen nur Browser zu.';
+      return `Die Seite lässt keinen Abruf durch Apps zu. ${einfuegen}`;
     case 'not_html':
       return 'Das ist keine Webseite, sondern eine Datei.';
     case 'too_large':
@@ -33,7 +52,7 @@ function importMeldung(code: string): string {
     case 'missing_url':
       return 'Bitte eine Adresse einfügen.';
     default:
-      return 'Die Seite liess sich nicht laden. Versuch es nochmal.';
+      return `Die Seite liess sich nicht laden. Versuch es nochmal – oder ${einfuegen.charAt(0).toLowerCase()}${einfuegen.slice(1)}`;
   }
 }
 
@@ -330,25 +349,34 @@ export function RecipeForm({
   const [url, setUrl] = useState('');
   const [laedt, setLaedt] = useState(false);
   const [importFehler, setImportFehler] = useState<string | null>(null);
+  // Fuer Seiten, die den Abruf sperren: den Rezepttext selbst einfuegen.
+  const [textModus, setTextModus] = useState(false);
+  const [rezeptText, setRezeptText] = useState('');
+  const [importHinweis, setImportHinweis] = useState<string | null>(null);
 
   /**
-   * Rezeptseite einlesen und das Formular damit fuellen. Bewusst nicht direkt
-   * speichern: so sieht man vorher, was angekommen ist, und kann es geraderuecken.
+   * Rezept einlesen – ueber den Link oder aus eingefuegtem Text – und das
+   * Formular damit fuellen. Bewusst nicht direkt speichern: so sieht man
+   * vorher, was angekommen ist, und kann es geraderuecken.
    */
-  const holen = async () => {
-    const adresse = url.trim();
-    if (!adresse || laedt) return;
+  const holen = async (art: 'link' | 'text' = 'link') => {
+    const eingabe = art === 'link' ? url.trim() : rezeptText.trim();
+    if (!eingabe || laedt) return;
     setLaedt(true);
     setImportFehler(null);
+    setImportHinweis(null);
     try {
       const antwort = await fetch('/api/import', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url: adresse }),
+        body: JSON.stringify(art === 'link' ? { url: eingabe } : { text: eingabe }),
       });
       const daten = await antwort.json();
       if (!antwort.ok || !daten.ok) {
-        setImportFehler(importMeldung(String(daten?.error ?? 'unknown')));
+        const code = String(daten?.error ?? 'unknown');
+        setImportFehler(importMeldung(code, String(daten?.ki ?? ''), art === 'text'));
+        // Wo der Link nicht weiterkommt, hilft der Text.
+        if (art === 'link' && code !== 'not_found' && code !== 'missing_url') setTextModus(true);
         return;
       }
 
@@ -359,6 +387,7 @@ export function RecipeForm({
         ingredients: Array<{ name: string; amount: number | null; unit: string }>;
         steps: Array<{ text: string; durationSec: number | null }>;
         source: string;
+        herkunft?: 'seite' | 'ki';
       };
 
       const current = draftRef.current;
@@ -373,7 +402,7 @@ export function RecipeForm({
         steps: rezept.steps.length
           ? rezept.steps.map((schritt) => ({ ...blankStep(), ...schritt }))
           : current.steps,
-        notes: current.notes || `Übernommen von ${rezept.source}`,
+        notes: current.notes || (rezept.source ? `Übernommen von ${rezept.source}` : ''),
       };
       // Sofort eine Vorbereitung aus dem Text – die KI ersetzt sie gleich
       // durch eine bessere, falls sie eingerichtet ist.
@@ -394,11 +423,20 @@ export function RecipeForm({
       setDraft(mitKurzenSchritten);
       setPrepText(vorbereitung.join('\n'));
       setUrl('');
+      setRezeptText('');
+      setTextModus(false);
+      if (rezept.herkunft === 'ki') {
+        setImportHinweis('Die KI hat das Rezept aus dem Text gelesen. Bitte kurz prüfen, ob alles stimmt.');
+      } else if (rezept.herkunft === 'seite') {
+        setImportHinweis(
+          'Zutaten und Schritte sind aus dem Text gelesen, nicht aus Rezeptdaten. Bitte kurz prüfen, ob alles stimmt.',
+        );
+      }
       if (rezept.steps.length) {
         void vereinfachen('oben', mitKurzenSchritten, vorbereitung.join('\n'), original);
       }
     } catch {
-      setImportFehler('Die Seite liess sich nicht laden. Prüfe die Verbindung.');
+      setImportFehler('Keine Verbindung zum Server. Prüfe die Verbindung.');
     } finally {
       setLaedt(false);
     }
@@ -503,8 +541,47 @@ export function RecipeForm({
           </Field>
 
           {importFehler ? (
-            <div className="notice notice--warn" style={{ marginBottom: 16 }}>
+            <div className="notice notice--warn" style={{ marginBottom: 16 }} role="alert">
               {importFehler}
+            </div>
+          ) : null}
+
+          {textModus ? (
+            <Field
+              label="Rezepttext einfügen"
+              htmlFor="recipe-text"
+              hint="Auf der Seite das Rezept markieren und kopieren – mit Zutaten und Zubereitung. Auch aus Nachrichten oder Notizen."
+            >
+              <textarea
+                id="recipe-text"
+                className="textarea"
+                rows={6}
+                value={rezeptText}
+                placeholder={'Zutaten\n200 g Mehl\n…\n\nZubereitung\nMehl und …'}
+                onChange={(event) => setRezeptText(event.target.value)}
+              />
+              <div style={{ height: 8 }} />
+              <button
+                className="btn btn--primary"
+                onClick={() => void holen('text')}
+                disabled={!rezeptText.trim() || laedt}
+              >
+                {laedt ? 'Liest…' : 'Text übernehmen'}
+              </button>
+            </Field>
+          ) : (
+            <button
+              className="btn btn--quiet"
+              style={{ paddingInline: 0, marginTop: -6, marginBottom: 10 }}
+              onClick={() => setTextModus(true)}
+            >
+              Oder Rezepttext einfügen
+            </button>
+          )}
+
+          {importHinweis ? (
+            <div className="notice" style={{ marginBottom: 16 }} role="status">
+              {importHinweis}
             </div>
           ) : null}
 

@@ -160,8 +160,29 @@ untere Wert, damit man eher zu früh als zu spät nachschaut).
 
 Das braucht weder Schlüssel noch Guthaben: die meisten Rezeptseiten legen ihre
 Daten als schema.org-Rezept im Quelltext ab, dasselbe, woraus Google seine
-Rezeptkarten baut. Fehlt das – bei manchen Blogs und Videoseiten – sagt die App
-das und man tippt von Hand.
+Rezeptkarten baut. Gelesen wird in dieser Reihenfolge, und was einer Quelle
+fehlt, füllt die nächste (`src/lib/recipeImport.ts`):
+
+1. **JSON-LD** – ein Recipe-Objekt, auch tief verschachtelt, und daneben ein
+   HowTo, das manche Seiten nur für die Schritte ausliefern.
+2. **Microdata** – dieselben Felder als Attribute im HTML. So macht es
+   Swissmilk.
+3. **Die Seite selbst** – Listen unter Überschriften wie «Zutaten» und
+   «Zubereitung», für Blogs ohne Rezeptdaten.
+4. **KI** – ist sie erreichbar und hat bis hier nichts gegriffen, liest sie
+   den Seitentext (ohne Navigation und Fusszeile).
+
+Teilt ein Rezept seine Zutaten in Gruppen («Teig:», «Für den Guss»), steht die
+Gruppe am Namen: «Milch (Guss)». Ein Schritt «Guss: alle Zutaten verrühren»
+zeigt dann genau diese. Auf der Einkaufsliste zählt die Klammer nicht.
+
+Manche grosse Seiten lassen keinen Abruf durch einen Server zu (Chefkoch,
+Allrecipes, BBC Good Food antworten mit 403). Dafür gibt es `Oder Rezepttext
+einfügen`: auf der Seite das Rezept markieren, kopieren, einfügen. Die App
+liest daraus Zutaten und Schritte – über die Überschriften, sonst über die
+Mengen vorne –, mit KI auch aus Fliesstext oder einer Nachricht. Schlägt der
+Link fehl, öffnet sich das Feld von selbst, und die Meldung sagt, woran es lag.
+Was nicht aus Rezeptdaten stammt, kommt mit dem Hinweis, kurz zu prüfen.
 
 ### Mit KI vereinfacht
 
@@ -420,6 +441,7 @@ src/
     vision.ts                 Auswertung des Kühlschrankfotos
     recipeAi.ts               Vereinfachen übernommener Rezepte mit KI
     kuerzen.ts                Lange Schritte ohne KI teilen
+    htmlBaum.ts               Kleiner HTML-Leser für den Import
     useKiKuerzung.ts          KI-Kürzung bestehender Rezepte im Hintergrund
     prep.ts                   Vorbereitung: aus Text lesen, Fingerabdruck
     category.ts               Kategorie aus den Zutaten

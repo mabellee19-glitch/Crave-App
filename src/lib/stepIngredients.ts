@@ -186,13 +186,19 @@ export function zutatenFuerSchritt(text: string, ingredients: Ingredient[]): Ing
     .filter((zutat) => zutat.name.trim())
     .map((zutat) => ({ zutat, schluessel: schluesselFuer(zutat.name) }));
 
-  const alle = /\balle zutaten\b/.test(roh);
+  // "Guss: Alle Zutaten verrühren" meint die Zutaten des Gusses, nicht alle.
+  const zweckImSchritt = (schluessel: Schluessel) =>
+    schluessel.zusatz.some((stamm) => schrittWoerter.some((wort) => wort.startsWith(stamm)));
+  const alleZutaten = /\balle zutaten\b/.test(roh);
+  const gruppeGenannt = alleZutaten && kandidaten.some(({ schluessel }) => zweckImSchritt(schluessel));
+  const alle = alleZutaten && !gruppeGenannt;
   const gewuerze = /\bgewürze?n?\b/.test(roh);
   const gemuese = /\bgemüse\b/.test(roh);
   const kraeuter = /\bkräutern?\b/.test(roh);
 
   const treffer = kandidaten.filter(({ schluessel }) => {
     if (alle) return true;
+    if (gruppeGenannt && zweckImSchritt(schluessel)) return true;
     // Sammelwoerter meinen, was in den Topf kommt – nicht die Garnitur.
     const gruppe = !schluessel.servieren;
     if (gruppe && gewuerze && gehoertZu(GEWUERZE, schluessel)) return true;

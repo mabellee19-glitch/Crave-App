@@ -14,7 +14,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 
 type Antwort = Anthropic.Message | Anthropic.Beta.BetaMessage;
 import { einordnen, istFeldFehler, visionAccess } from './vision';
-import { durationFromText } from './recipeImport';
+import { ImportedRecipe, durationFromText, zutatenAusZeilen } from './recipeImport';
 
 export interface SimplifyInput {
   name: string;
@@ -140,12 +140,21 @@ function modellUnbekannt(err: unknown): boolean {
   return status === 404 || (status === 400 && text.includes('model'));
 }
 
-export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResult> {
+/** Ein Werkzeug, wie es die Messages-API erwartet. */
+interface Werkzeug {
+  name: string;
+  description: string;
+  strict: boolean;
+  input_schema: { type: 'object'; [schluessel: string]: unknown };
+}
+
+/**
+ * Das Modell mit einem Werkzeug fragen und dessen Eingabe zurueckgeben.
+ * Gemeinsamer Weg fuers Vereinfachen und fuers Lesen von Seiten.
+ */
+async function frageWerkzeug(system: string, werkzeug: Werkzeug, inhalt: string): Promise<unknown> {
   const access = visionAccess();
   if (!access) throw new Error('no_key');
-
-  const original = input.steps.filter((step) => step.text.trim());
-  if (original.length === 0) throw new Error('no_steps');
 
   const { default: AnthropicClient } = await import('@anthropic-ai/sdk');
   const client = new AnthropicClient({ apiKey: access.apiKey, baseURL: access.baseURL });
@@ -153,20 +162,21 @@ export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResu
   const anfrage = (model: string) => ({
     model,
     max_tokens: 16000,
-    system: SYSTEM,
-    tools: [TOOL],
+    system,
+    tools: [werkzeug],
     // Erzwungene Werkzeugaufrufe nimmt das Modell nicht an; die Anweisung im
     // Systemtext und das strikte Schema genuegen.
     tool_choice: { type: 'auto' as const },
-    messages: [{ role: 'user' as const, content: alsText(input) }],
+    messages: [{ role: 'user' as const, content: inhalt }],
   });
 
   /*
    * Ueber das Gateway geht die Anfrage denselben schlichten Weg wie das
    * Kuehlschrankfoto – der ist dort erprobt. Direkt bei Anthropic kommen zwei
-   * Dinge dazu: wenig Nachdenken, weil Umformulieren keine schwere Aufgabe ist
-   * und die Wartezeit im Formular kurz bleiben soll; und ein Ersatzmodell,
-   * das serverseitig einspringt, falls die Sicherheitspruefung ablehnt.
+   * Dinge dazu: wenig Nachdenken, weil Umformulieren und Abschreiben keine
+   * schweren Aufgaben sind und die Wartezeit im Formular kurz bleiben soll;
+   * und ein Ersatzmodell, das serverseitig einspringt, falls die
+   * Sicherheitspruefung ablehnt.
    */
   const erstellen = async (model: string): Promise<Antwort> => {
     if (access.gateway) return client.messages.create(anfrage(model));
@@ -200,8 +210,17 @@ export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResu
   if (response.stop_reason === 'refusal') throw new Error('refused');
   const call = response.content.find((block) => block.type === 'tool_use');
   if (!call || call.type !== 'tool_use') throw new Error('no_result');
+  return call.input;
+}
 
-  const roh = call.input as {
+export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResult> {
+  if (!visionAccess()) throw new Error('no_key');
+  const original = input.steps.filter((step) => step.text.trim());
+  if (original.length === 0) throw new Error('no_steps');
+
+  const eingabe = await frageWerkzeug(SYSTEM, TOOL, alsText(input));
+
+  const roh = eingabe as {
     vorbereitung?: unknown;
     schritte?: Array<{ text?: unknown; minuten?: unknown }>;
   };
@@ -230,4 +249,93 @@ export async function simplifyRecipe(input: SimplifyInput): Promise<SimplifyResu
   const missingNumbers = [...vorher].filter((zahl) => !nachher.has(zahl));
 
   return { prep, steps, missingNumbers };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Ein Rezept aus Text lesen                                                   */
+/* -------------------------------------------------------------------------- */
+
+const LESEN = `Du hilfst in einer privaten Koch-App. Du bekommst den Text einer
+Webseite oder einen kopierten Text. Lies das Rezept daraus – so, wie es
+dasteht. Gekürzt und vereinfacht wird später in einem eigenen Schritt.
+
+- "gefunden": false, wenn im Text kein Rezept steht (nur eine Übersicht,
+  eine Werbeseite, ein Fehler). Dann den Rest leer lassen.
+- "name": der Name des Gerichts, ohne Zusätze wie "Rezept" oder den Namen
+  der Seite.
+- "portionen": für wie viele Personen oder Stück, sonst 0.
+- "minuten": die gesamte Zubereitungszeit, sonst 0.
+- "zutaten": eine Zeile pro Zutat, Menge und Einheit vorne, so wie sie im
+  Text stehen, z. B. "200 g Mehl" oder "1 Prise Salz". Teilt das Rezept die
+  Zutaten in Gruppen, kommt vor jede Gruppe eine eigene Zeile mit ihrem
+  Namen und einem Doppelpunkt, z. B. "Teig:".
+- "schritte": die Zubereitung in der Reihenfolge des Textes, ein Eintrag
+  pro Schritt, ohne Nummern. Nichts weglassen, nichts dazuerfinden.
+- Kommentare, Werbung, Nährwerte und die Geschichte drumherum gehören nicht
+  dazu.
+
+Antworte ausschliesslich über das Werkzeug rezept_gelesen.`;
+
+const LESEN_TOOL = {
+  name: 'rezept_gelesen',
+  description: 'Liefert das Rezept, das im Text steht.',
+  strict: true,
+  input_schema: {
+    type: 'object' as const,
+    additionalProperties: false,
+    required: ['gefunden', 'name', 'portionen', 'minuten', 'zutaten', 'schritte'],
+    properties: {
+      gefunden: { type: 'boolean' },
+      name: { type: 'string' },
+      portionen: { type: 'number' },
+      minuten: { type: 'number' },
+      zutaten: { type: 'array', items: { type: 'string' } },
+      schritte: { type: 'array', items: { type: 'string' } },
+    },
+  },
+};
+
+/**
+ * Ein Rezept aus Seitentext oder eingefuegtem Text lesen lassen – fuer
+ * Seiten ohne Rezeptdaten. `null`, wenn das Modell keines findet.
+ */
+export async function rezeptLesen(text: string, quelle: string): Promise<ImportedRecipe | null> {
+  if (!text.trim()) return null;
+  const roh = (await frageWerkzeug(
+    LESEN,
+    LESEN_TOOL,
+    `Quelle: ${quelle || 'eingefügter Text'}\n\n${text}`,
+  )) as {
+    gefunden?: unknown;
+    name?: unknown;
+    portionen?: unknown;
+    minuten?: unknown;
+    zutaten?: unknown;
+    schritte?: unknown;
+  };
+  if (!roh.gefunden) return null;
+
+  const zeilen = (Array.isArray(roh.zutaten) ? roh.zutaten : []).filter(
+    (zeile): zeile is string => typeof zeile === 'string',
+  );
+  const steps = (Array.isArray(roh.schritte) ? roh.schritte : [])
+    .filter((schritt): schritt is string => typeof schritt === 'string')
+    .map((schritt) => schritt.trim())
+    .filter(Boolean)
+    .map((schritt) => ({ text: schritt, durationSec: durationFromText(schritt) }));
+  const ingredients = zutatenAusZeilen(zeilen);
+  const name = String(roh.name ?? '').trim();
+  if (!name || (ingredients.length === 0 && steps.length === 0)) return null;
+
+  const portionen = Number(roh.portionen);
+  const minuten = Number(roh.minuten);
+  return {
+    name,
+    servings: portionen > 0 && portionen <= 99 ? Math.round(portionen) : null,
+    timeMin: minuten > 0 ? Math.round(minuten) : null,
+    ingredients,
+    steps,
+    source: quelle,
+    herkunft: 'ki',
+  };
 }

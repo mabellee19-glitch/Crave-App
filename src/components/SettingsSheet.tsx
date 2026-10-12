@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { SyncInfo } from '@/lib/store';
+import { SyncInfo, useSync } from '@/lib/store';
 import { Sheet } from './ui';
 import { testAlarm } from '@/lib/audio';
 import { STANDARD_THEME, THEMES, applyTheme, readTheme } from '@/lib/theme';
@@ -9,19 +9,18 @@ import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare, IconTimer } from
 
 export function SettingsSheet({
   spaceId,
-  sync,
   counts,
   onSyncNow,
   onAddMissingRecipes,
   onClose,
 }: {
   spaceId: string;
-  sync: SyncInfo;
   counts: { recipes: number; ideen: number; shopping: number; pantry: number };
   onSyncNow: () => void;
   onAddMissingRecipes: () => void;
   onClose: () => void;
 }) {
+  const sync = useSync();
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState(STANDARD_THEME);
@@ -117,7 +116,7 @@ export function SettingsSheet({
       <div className="detail__h">Synchronisation</div>
       <div className="notice" style={{ marginTop: 10 }}>
         <div className="rowline" style={{ marginBottom: 8 }}>
-          <SyncBadge sync={sync} />
+          <SyncBadge />
           <span className="spacer" />
           <button className="btn btn--ghost" style={{ minHeight: 38 }} onClick={onSyncNow}>
             <IconRefresh size={17} />
@@ -207,7 +206,9 @@ export function SettingsSheet({
   );
 }
 
-export function SyncBadge({ sync }: { sync: SyncInfo }) {
+/** Liest den Abgleich selbst – so zeichnet ein Wechsel nur diese Zeile neu. */
+export function SyncBadge() {
+  const sync: SyncInfo = useSync();
   const label =
     sync.state === 'offline'
       ? 'Offline – Änderungen werden gespeichert'

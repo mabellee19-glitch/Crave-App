@@ -59,7 +59,6 @@ interface StoreValue {
   spaceId: string;
   data: AppData;
   ready: boolean;
-  sync: SyncInfo;
   syncNow: () => void;
 
   recipes: Recipe[];
@@ -120,6 +119,14 @@ export interface KiErgebnis {
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
+
+/*
+ * Der Stand des Abgleichs hat seinen eigenen Kanal. Er aendert sich bei jedem
+ * Speichern zweimal ("syncing", "synced") und bei jeder Abfrage – haengt er am
+ * selben Wert wie die Daten, zeichnet jedes Mal die ganze App neu. So sind es
+ * nur die kleine Anzeige und die Einstellungen.
+ */
+const SyncContext = createContext<SyncInfo | null>(null);
 
 const PUSH_DEBOUNCE_MS = 700;
 const POLL_INTERVAL_MS = 7000;
@@ -382,18 +389,51 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
 
   const dataRef = useRef<AppData>(data);
   const dirtyRef = useRef(false);
+  /** Die Version des Serverstands, der zuletzt eingearbeitet wurde. */
+  const serverVersionRef = useRef(0);
   const inFlightRef = useRef(false);
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
+  /*
+   * Auf dem Geraet wird gebuendelt gespeichert: der ganze Stand als ein Text,
+   * bei jedem Tipp neu geschrieben, kostete im Moment des Tippens spuerbar
+   * Zeit. Jetzt geht das kurz danach in einem Rutsch – und sofort, sobald die
+   * App in den Hintergrund geht oder geschlossen wird.
+   */
+  const zuSchreibenRef = useRef<AppData | null>(null);
+  const schreibTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schreibeJetzt = useCallback(() => {
+    if (schreibTimerRef.current) clearTimeout(schreibTimerRef.current);
+    schreibTimerRef.current = null;
+    if (zuSchreibenRef.current) writeLocal(spaceId, zuSchreibenRef.current);
+    zuSchreibenRef.current = null;
+  }, [spaceId]);
+
+  useEffect(() => {
+    const versteckt = () => {
+      if (document.visibilityState === 'hidden') schreibeJetzt();
+    };
+    window.addEventListener('pagehide', schreibeJetzt);
+    document.addEventListener('visibilitychange', versteckt);
+    return () => {
+      window.removeEventListener('pagehide', schreibeJetzt);
+      document.removeEventListener('visibilitychange', versteckt);
+      schreibeJetzt();
+    };
+  }, [schreibeJetzt]);
+
   const commit = useCallback(
-    (next: AppData, options: { dirty?: boolean } = {}) => {
+    (next: AppData, options: { dirty?: boolean; speichern?: boolean } = {}) => {
       dataRef.current = next;
       setDataState(next);
-      writeLocal(spaceId, next);
+      if (options.speichern !== false) {
+        zuSchreibenRef.current = next;
+        if (!schreibTimerRef.current) schreibTimerRef.current = setTimeout(schreibeJetzt, 300);
+      }
       if (options.dirty) dirtyRef.current = true;
     },
-    [spaceId],
+    [schreibeJetzt],
   );
 
   /** Zustand veraendern: der Mutator erhaelt eine flache Kopie und darf sie anpassen. */
@@ -430,17 +470,25 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     async (silent = false) => {
       if (!silent) setSync((s) => ({ ...s, state: 'syncing' }));
       try {
-        const res = await fetch(`/api/space/${spaceId}`, { cache: 'no-store' });
+        // Ohne lokale Aenderung genuegt die Frage, ob sich der Serverstand
+        // bewegt hat. Meist hat er das nicht – dann bleibt alles, wie es ist.
+        const bekannt = !dirtyRef.current && serverVersionRef.current > 0 ? serverVersionRef.current : 0;
+        const res = await fetch(`/api/space/${spaceId}${bekannt ? `?v=${bekannt}` : ''}`, {
+          cache: 'no-store',
+        });
         const body = await res.json().catch(() => null);
         if (!body?.ok) {
           noteFailure(body);
           throw new Error(body?.error ?? `HTTP ${res.status}`);
         }
         if (!mountedRef.current) return;
-        const serverData: AppData = { ...emptyData(), ...(body.data ?? {}) };
-        const merged = pruneTombstones(mergeData(dataRef.current, serverData));
-        if (!sameData(merged, dataRef.current)) commit(merged);
-        if (!sameData(merged, serverData)) dirtyRef.current = true;
+        if (!body.unchanged) {
+          const serverData: AppData = { ...emptyData(), ...(body.data ?? {}) };
+          const merged = pruneTombstones(mergeData(dataRef.current, serverData));
+          if (!sameData(merged, dataRef.current)) commit(merged);
+          if (!sameData(merged, serverData)) dirtyRef.current = true;
+          serverVersionRef.current = Number(body.version) || 0;
+        }
         setSync((s) => ({
           ...s,
           state: dirtyRef.current ? 'syncing' : 'synced',
@@ -488,6 +536,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
       const merged = pruneTombstones(mergeData(dataRef.current, serverData));
       if (!sameData(merged, dataRef.current)) commit(merged);
       if (!sameData(merged, serverData)) dirtyRef.current = true;
+      serverVersionRef.current = Number(body.version) || 0;
       setSync((s) => ({
         ...s,
         state: dirtyRef.current ? 'syncing' : 'synced',
@@ -549,7 +598,8 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
        */
       const local = readLocal(spaceId);
       if (local && !cancelled) {
-        commit(local);
+        // Eben gelesen – kein Grund, es gleich wieder zu schreiben.
+        commit(local, { speichern: false });
         setReady(true);
       }
 
@@ -565,6 +615,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
 
       if (res?.ok) {
         cloud = res.storage === 'postgres';
+        serverVersionRef.current = Number(res.version) || 0;
         const serverData: AppData = { ...emptyData(), ...(res.data ?? {}) };
         next = pruneTombstones(mergeData(next, serverData));
         // Startinhalte nur, wenn der Datenraum auf dem Server noch gar nicht
@@ -612,7 +663,9 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
         }
       }
 
-      commit(next);
+      // Nur neu zeichnen, wenn der Abgleich wirklich etwas geaendert hat –
+      // sonst baut sich die Liste gleich nach dem ersten Bild ein zweites Mal.
+      if (!sameData(next, dataRef.current)) commit(next);
       setReady(true);
       setSync((s) => ({
         ...s,
@@ -1410,11 +1463,10 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     [data.pantry],
   );
 
-  const value: StoreValue = {
+  const value = useMemo<StoreValue>(() => ({
     spaceId,
     data,
     ready,
-    sync,
     syncNow,
     recipes,
     dishes,
@@ -1444,9 +1496,52 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     movePantryItemToCart,
     undo,
     setUndo,
-  };
+  }), [
+    spaceId,
+    data,
+    ready,
+    syncNow,
+    recipes,
+    dishes,
+    shopping,
+    pantry,
+    getRecipe,
+    saveRecipe,
+    deleteRecipe,
+    toggleRecipeCookNext,
+    saveDish,
+    deleteDish,
+    toggleDishCookNext,
+    ideeAlsRezept,
+    addShoppingItem,
+    updateShoppingItem,
+    checkOffShoppingItem,
+    clearShoppingList,
+    addRecipeToShopping,
+    savePantryItem,
+    addPantryItem,
+    addPantrySuggestions,
+    fillRecipeSteps,
+    kiKuerzungUebernehmen,
+    originalWiederherstellen,
+    addMissingRecipes,
+    deletePantryItem,
+    movePantryItemToCart,
+    undo,
+  ]);
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>
+      <SyncContext.Provider value={sync}>{children}</SyncContext.Provider>
+    </StoreContext.Provider>
+  );
+}
+
+/** Der Stand des Abgleichs – nur dort lesen, wo er angezeigt wird. */
+export function useSync(): SyncInfo {
+  const ctx = useContext(SyncContext);
+  if (!ctx) throw new Error('useSync muss innerhalb von <StoreProvider> verwendet werden.');
+  return ctx;
 }
 
 export function useStore(): StoreValue {

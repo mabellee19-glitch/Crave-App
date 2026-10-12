@@ -176,15 +176,24 @@ function gehoertZu(gruppe: string[], schluessel: Schluessel): boolean {
  * Die Zutaten, die ein Schritt braucht, in der Reihenfolge der Zutatenliste.
  */
 export function zutatenFuerSchritt(text: string, ingredients: Ingredient[]): Ingredient[] {
+  return zutatenFuerSchrittMit(text, kandidatenAus(ingredients));
+}
+
+type Kandidat = { zutat: Ingredient; schluessel: Schluessel };
+
+/** Die Schluessel aller Zutaten – einmal pro Rezept, nicht einmal pro Schritt. */
+function kandidatenAus(ingredients: Ingredient[]): Kandidat[] {
+  return ingredients
+    .filter((zutat) => zutat.name.trim())
+    .map((zutat) => ({ zutat, schluessel: schluesselFuer(zutat.name) }));
+}
+
+function zutatenFuerSchrittMit(text: string, kandidaten: Kandidat[]): Ingredient[] {
   const roh = text.toLowerCase();
   const schrittWoerter = text
     .split(/[^\p{L}]+/u)
     .map(norm)
     .filter(Boolean);
-
-  const kandidaten = ingredients
-    .filter((zutat) => zutat.name.trim())
-    .map((zutat) => ({ zutat, schluessel: schluesselFuer(zutat.name) }));
 
   // "Guss: Alle Zutaten verrühren" meint die Zutaten des Gusses, nicht alle.
   const zweckImSchritt = (schluessel: Schluessel) =>
@@ -240,7 +249,8 @@ export function zutatenProSchritt(
   steps: Array<{ text: string }>,
   ingredients: Ingredient[],
 ): Ingredient[][] {
-  const proSchritt = steps.map((step) => zutatenFuerSchritt(step.text, ingredients));
+  const kandidaten = kandidatenAus(ingredients);
+  const proSchritt = steps.map((step) => zutatenFuerSchrittMit(step.text, kandidaten));
   if (proSchritt.length === 0) return proSchritt;
 
   const verwendet = new Set(proSchritt.flat());

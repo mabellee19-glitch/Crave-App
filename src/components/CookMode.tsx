@@ -331,7 +331,7 @@ export function CookMode({
             <IconClose />
           </button>
           <div className="cook__progress">
-            <div className="cook__progressbar" style={{ width: `${progress}%` }} />
+            <div className="cook__progressbar" style={{ transform: `scaleX(${progress / 100})` }} />
           </div>
           <span className="syncdot" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {istVorbereitung ? <IconKnife size={16} /> : `${stepIndex + 1}/${total}`}

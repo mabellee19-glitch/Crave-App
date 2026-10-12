@@ -4,7 +4,7 @@ import React, { Activity, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
-import { useKiKuerzung } from '@/lib/useKiKuerzung';
+import { KiKuerzung } from '@/lib/useKiKuerzung';
 import { EssenView } from './EssenView';
 import { ShoppingView } from './ShoppingView';
 import { IdeaDetail } from './IdeaDetail';
@@ -53,7 +53,6 @@ const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
 
 export function AppShell() {
   const store = useStore();
-  useKiKuerzung();
   const [tab, setTab] = useState<Tab>('essen');
   const [stack, setStack] = useState<Overlay[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -191,6 +190,7 @@ export function AppShell() {
   const openRecipe = useCallback((id: string) => openOverlay({ kind: 'recipe', id }), [openOverlay]);
 
   const openIdea = useCallback((id: string) => openOverlay({ kind: 'idea', id }), [openOverlay]);
+  const neuOeffnen = useCallback(() => openOverlay({ kind: 'new' }), [openOverlay]);
 
   /** Die Gerichte, die als eigene Idee in der Liste stehen. */
   const ideen = useMemo(() => ideenAus(store.recipes, store.dishes), [store.recipes, store.dishes]);
@@ -251,6 +251,9 @@ export function AppShell() {
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [store.data.pantry],
   );
+  // Fest gehalten: eine neue Liste bei jedem Neuzeichnen liess das Foto-Blatt
+  // seine Rezeptvorschlaege jedes Mal neu rechnen.
+  const pantryNamen = useMemo(() => allPantry.map((item) => item.name), [allPantry]);
 
   return (
     <div className="app">
@@ -300,14 +303,7 @@ export function AppShell() {
       </header>
 
       <main className="app__main">
-        {store.sync.cloud === false || store.sync.dbUnreachable ? (
-          <div style={{ paddingTop: 18 }}>
-            <CloudNotice
-              sync={store.sync}
-              onOpenSettings={() => openOverlay({ kind: 'settings' })}
-            />
-          </div>
-        ) : null}
+        <CloudNotice onOpenSettings={() => openOverlay({ kind: 'settings' })} />
 
         {!store.ready ? (
           // Nur beim allerersten Oeffnen auf einem Geraet: danach steht der
@@ -332,7 +328,7 @@ export function AppShell() {
                 ideen={ideen}
                 onOpenRecipe={openRecipe}
                 onOpenIdea={openIdea}
-                onNew={() => openOverlay({ kind: 'new' })}
+                onNew={neuOeffnen}
                 onToggleRecipeCookNext={store.toggleRecipeCookNext}
                 onToggleIdeaCookNext={store.toggleDishCookNext}
               />
@@ -380,7 +376,7 @@ export function AppShell() {
 
         <div style={{ height: 26 }} />
         <div className="rowline" style={{ justifyContent: 'center' }}>
-          <SyncBadge sync={store.sync} />
+          <SyncBadge />
         </div>
       </main>
 
@@ -414,6 +410,8 @@ export function AppShell() {
           {renderOverlay(overlay)}
         </VerdecktKontext.Provider>
       ))}
+
+      <KiKuerzung />
 
       {toast ? <Toast toast={toast} onDismiss={() => setToast(null)} /> : null}
     </div>
@@ -514,7 +512,6 @@ export function AppShell() {
       return (
         <SettingsSheet
           spaceId={store.spaceId}
-          sync={store.sync}
           counts={counts}
           onSyncNow={store.syncNow}
           onAddMissingRecipes={() => {
@@ -534,7 +531,7 @@ export function AppShell() {
       return (
         <FridgeSheet
           recipes={store.recipes}
-          pantry={allPantry.map((item) => item.name)}
+          pantry={pantryNamen}
           onClose={closeTop}
           onOpenRecipe={(id) => {
             // Das Foto-Blatt durch das Rezept ersetzen, ohne den Verlauf

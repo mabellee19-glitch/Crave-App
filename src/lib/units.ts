@@ -271,7 +271,24 @@ export function formatQuantity(amount: number | null, unit: string): string {
  * Namen fuer den Duplikat-Abgleich vereinheitlichen: Klein-/Grossschreibung,
  * Umlaute, Plural-Endungen und Zusaetze in Klammern werden ignoriert.
  */
+/*
+ * Dieselben Namen werden staendig verglichen – beim Planen, Abhaken, beim
+ * Foto. Die Rechnung dahinter ist ein gutes Dutzend Ersetzungen; gemerkt
+ * kostet sie einmal pro Name.
+ */
+const normalisiert = new Map<string, string>();
+
 export function normalizeName(name: string): string {
+  const roh = name ?? '';
+  const gemerkt = normalisiert.get(roh);
+  if (gemerkt !== undefined) return gemerkt;
+  const ergebnis = normalisiereNeu(roh);
+  if (normalisiert.size > 5000) normalisiert.clear();
+  normalisiert.set(roh, ergebnis);
+  return ergebnis;
+}
+
+function normalisiereNeu(name: string): string {
   let s = (name ?? '')
     .toLowerCase()
     .replace(/\(.*?\)/g, ' ')

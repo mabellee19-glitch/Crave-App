@@ -13,7 +13,11 @@ import { IconBook, IconCookNext, IconIdee, IconPlus } from './Icons';
  * Ideen ohne. Ein Symbol links sagt, was es ist – das Buch fuer ein Rezept,
  * die Gluehbirne fuer eine Idee.
  */
-export function EssenView({
+/*
+ * Gemerkt (memo): oeffnet sich ein Rezept oder ein Blatt darueber, aendert
+ * sich an der Liste nichts – sie wurde trotzdem jedes Mal ganz neu gebaut.
+ */
+export const EssenView = React.memo(function EssenView({
   recipes,
   ideen,
   onOpenRecipe,
@@ -159,7 +163,7 @@ export function EssenView({
       )}
     </section>
   );
-}
+});
 
 function EintragKarte({
   eintrag,

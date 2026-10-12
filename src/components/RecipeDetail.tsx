@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Recipe, matchDishCategory } from '@/lib/types';
 import { formatQuantity, scaleAmount } from '@/lib/units';
 import { ABMESSEN } from '@/lib/prep';
@@ -52,10 +52,14 @@ export function RecipeDetail({
   }, [recipe.id, recipe.servings]);
 
   const factor = servings / base;
-  const ingredients = recipe.ingredients.filter((i) => i.name.trim().length > 0);
-  const steps = recipe.steps.filter((s) => s.text.trim().length > 0);
+  const ingredients = useMemo(
+    () => recipe.ingredients.filter((i) => i.name.trim().length > 0),
+    [recipe.ingredients],
+  );
+  const steps = useMemo(() => recipe.steps.filter((s) => s.text.trim().length > 0), [recipe.steps]);
   const prep = (recipe.prep ?? []).filter((task) => task.trim().length > 0);
-  const schrittZutaten = zutatenProSchritt(steps, ingredients);
+  // Nur neu, wenn sich das Rezept aendert – nicht bei jedem Tipp auf die Portionen.
+  const schrittZutaten = useMemo(() => zutatenProSchritt(steps, ingredients), [steps, ingredients]);
   // Abmessen gehoert immer dazu, sobald es Zutaten gibt.
   const hatVorbereitung = prep.length > 0 || ingredients.length > 0;
 

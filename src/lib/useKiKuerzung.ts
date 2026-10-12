@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useStore } from './store';
+import { useStore, useSync } from './store';
 import { brauchtKi } from './kuerzen';
 
 /** Hoechstens so viele Rezepte je Start; der Rest kommt beim naechsten Mal. */
@@ -40,7 +40,7 @@ export function useKiKuerzung(): void {
     [],
   );
 
-  const ersterAbgleich = store.sync.lastSyncedAt;
+  const ersterAbgleich = useSync().lastSyncedAt;
 
   useEffect(() => {
     if (gestartet.current || !ersterAbgleich) return;
@@ -107,4 +107,13 @@ export function useKiKuerzung(): void {
       }
     })();
   }, [ersterAbgleich]);
+}
+
+/**
+ * Als eigene Komponente eingehaengt: sie liest den Abgleich, und nur sie
+ * zeichnet bei dessen Wechseln neu – nicht die ganze App.
+ */
+export function KiKuerzung(): null {
+  useKiKuerzung();
+  return null;
 }

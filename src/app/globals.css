@@ -315,7 +315,8 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  /* Kein text-rendering: optimizeLegibility – das bremst in Safari das
+     Setzen jeder Textzeile, in langen Listen spuerbar. */
   overscroll-behavior-y: none;
 }
 
@@ -839,8 +840,13 @@ ol {
   border-color: var(--line-strong);
 }
 
-.card:active {
-  transform: scale(0.99);
+/* Das Eindruecken nur mit Maus: auf dem Touchscreen beginnt jedes Scrollen
+   mit einem Tipp auf eine Karte, und das Skalieren liess Safari dabei fuer
+   jede Karte eine eigene Ebene anlegen und wieder abbauen. */
+@media (hover: hover) {
+  .card:active {
+    transform: scale(0.99);
+  }
 }
 
 /* Der eigentliche Knopf: füllt die Karte, damit überall getippt werden kann. */
@@ -1588,9 +1594,12 @@ ol {
 
 .cook__progressbar {
   height: 100%;
+  width: 100%;
   background: var(--accent);
-  border-radius: 999px;
-  transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  /* Gestreckt statt breiter gemacht: so muss der Browser beim Schrittwechsel
+     nicht jedes Bild neu anordnen. Die Rundung kommt vom Rahmen drumherum. */
+  transform-origin: left center;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Timer, die zu einem anderen Schritt gehören und weiterlaufen. */

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Recipe } from '@/lib/types';
 import { VisionIdea, VisionResult } from '@/lib/vision';
 import { blankRecipe } from '@/lib/store';
-import { formatQuantity, sameIngredient } from '@/lib/units';
+import { formatQuantity, normalizeName } from '@/lib/units';
 import { randomId } from '@/lib/id';
 import { vorbereitungVorschlagen } from '@/lib/prep';
 import { Sheet } from './ui';
@@ -70,13 +70,15 @@ export function FridgeSheet({
     if (erkannt.length === 0) return [];
     // Was in der Grundliste steht, ist zu Hause – sonst gälten Salz und Öl als
     // fehlend, nur weil sie nicht im Kühlschrank liegen.
-    const vorrat = [...erkannt, ...pantry];
+    // Einmal vereinheitlicht und als Menge: vorher wurde fuer jede Zutat
+    // jedes Rezepts die ganze Liste neu verglichen.
+    const vorrat = new Set([...erkannt, ...pantry].map(normalizeName).filter(Boolean));
     return recipes
       .map((recipe) => {
         const zutaten = recipe.ingredients.filter((entry) => entry.name.trim());
         if (zutaten.length === 0) return null;
         const fehlt = zutaten
-          .filter((entry) => !vorrat.some((name) => sameIngredient(name, entry.name)))
+          .filter((entry) => !vorrat.has(normalizeName(entry.name)))
           .map((entry) => entry.name);
         const vorhanden = zutaten.length - fehlt.length;
         if (vorhanden === 0) return null;

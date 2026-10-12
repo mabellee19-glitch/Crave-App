@@ -431,7 +431,11 @@ function PantrySheet({
   );
 }
 
-function PantryRow({
+/*
+ * Gemerkt (memo): im Blatt "Grundliste" stehen schnell hundert Zeilen, und
+ * jeder Buchstabe im Eingabefeld oben zeichnete sonst jede davon neu.
+ */
+const PantryRow = React.memo(function PantryRow({
   item,
   onSave,
   onDelete,
@@ -506,4 +510,4 @@ function PantryRow({
       </button>
     </div>
   );
-}
+});

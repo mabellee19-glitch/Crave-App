@@ -155,3 +155,24 @@ test.describe('Bereiche und Meldungen', () => {
     await expect(page.locator('.toast')).toHaveCount(0, { timeout: 7000 });
   });
 });
+
+test.describe('Abgleich im Hintergrund', () => {
+  test('ohne Änderung holt die Abfrage nur die Versionsnummer', async ({ page }) => {
+    await openSpace(page, newSpace('version'));
+    await expect(page.getByText('Alles synchronisiert').first()).toBeVisible({ timeout: 20_000 });
+
+    const antworten: Array<{ url: string; body: Record<string, unknown> }> = [];
+    page.on('response', async (response) => {
+      if (response.request().method() === 'GET' && response.url().includes('/api/space/')) {
+        antworten.push({ url: response.url(), body: await response.json().catch(() => ({})) });
+      }
+    });
+
+    await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Jetzt abgleichen/ }).click();
+    await expect.poll(() => antworten.length).toBeGreaterThan(0);
+    expect(antworten[0].url).toContain('?v=');
+    expect(antworten[0].body).toMatchObject({ ok: true, unchanged: true });
+    expect(antworten[0].body.data).toBeUndefined();
+  });
+});

@@ -11,7 +11,7 @@ const VERSION = 'crave-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 /** So lange darf das Netz fuer eine Seite brauchen, bevor die gespeicherte kommt. */
-const NAV_TIMEOUT_MS = 1500;
+const NAV_TIMEOUT_MS = 1000;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

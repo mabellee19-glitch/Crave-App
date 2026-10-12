@@ -1,4 +1,4 @@
-# CRAVE
+# Crave
 
 Persönliche Koch- und Einkaufs-App. Mobile-first, läuft im Browser (Safari auf
 iPhone und iPad, Chrome, Edge, Firefox) und lässt sich zum Home-Bildschirm
@@ -458,12 +458,13 @@ src/
 
 ## Farbwelten
 
-Unter `Einstellungen & Sync → Design` stehen sechs Farbwelten zur Wahl, jede
+Unter `Einstellungen & Sync → Design` stehen sieben Farbwelten zur Wahl, jede
 mit einer kleinen Vorschau. Die Wahl gilt sofort und wird pro Gerät gemerkt.
 
 | Farbwelt | Charakter |
 | --- | --- |
-| Creme | warm und ruhig, Kupfer als Akzent – der Standard |
+| Diner | wie das Logo: Tomatenrot, Senfgelb, Espresso – der Standard |
+| Creme | warm und ruhig, Kupfer als Akzent – der Standard bis zum neuen Logo |
 | Salbei | frisch und grün, viel Weiss |
 | Pfirsich | fröhlich und warm, Koralle als Akzent |
 | Himmel | hell und luftig, Blau als Akzent |
@@ -474,29 +475,46 @@ Die App ist immer hell, solange niemand `Dunkel` wählt – auch auf einem
 iPhone im dunklen Modus. Gesetzt wird die Farbwelt von einem kleinen Skript
 im Kopf der Seite, bevor etwas gezeichnet wird; so blitzt beim Öffnen keine
 falsche Farbe auf. Alle Farbwelten haben mindestens den Kontrast der
-Creme-Palette.
+Creme-Palette. Wer vor dem neuen Logo Creme gespeichert hatte – bis dahin der
+Standard –, kommt einmalig zu Diner; wer danach Creme wählt, behält es.
+
+Diner setzt Überschriften in runder, kräftiger Schrift (auf iPhone und iPad SF
+Pro Rounded, nichts zu laden). Die anderen Farbwelten behalten die
+Serifenschrift.
 
 ## Farben
 
-Die Grundpalette, aus der Creme und Dunkel gebaut sind:
+Diner kommt aus dem Logo:
 
 | Name | Hex | Verwendung |
 | --- | --- | --- |
-| Master Key | `#dccd8b` | High-Protein, Hintergründe und Linien |
-| Prickly Pear | `#a7993c` | Vegi, erledigte Zutaten, Sync-Anzeige |
-| Mozart | `#475480` | Ideen |
-| Sunburn | `#b57056` | Favoriten, Comfort, Akzent im dunklen Modus |
-| Roycroft Copper Red | `#7f3b25` | Knöpfe, Timer, App-Symbol |
+| Tomatenrot | `#d7263d` | Logo, Knöpfe, Timer, Akzent |
+| Senfgelb | `#f2b632` | Grund des App-Symbols, Hervorhebungen |
+| Senf, abgedunkelt | `#b8790f` | Cook Next |
+| Espresso | `#3b1a14` | Schatten im Logo, Schrift |
+| Creme | `#fff6e6` | Seitengrund |
+
+Creme und Dunkel bauen auf der ersten Palette auf: Master Key `#dccd8b`,
+Prickly Pear `#a7993c`, Mozart `#475480`, Sunburn `#b57056`, Roycroft Copper
+Red `#7f3b25`.
 
 Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`:
-oben Creme, darunter je ein Block `:root[data-theme=…]` für jede weitere
-Farbwelt. Name, Beschreibung und Vorschau stehen in `src/lib/theme.ts`. Wer
+oben Diner, darunter je ein Block `:root[data-theme=…]` für jede weitere
+Farbwelt. Jede setzt auch `--logo` und `--logo-schatten` für den Schriftzug. Name, Beschreibung und Vorschau stehen in `src/lib/theme.ts`. Wer
 eine Farbwelt dazubauen will, ergänzt beides. Für kleine Schrift auf hellem Grund sind
 abgedunkelte Abstufungen hinterlegt, damit der Text lesbar bleibt.
 
-## App-Symbol
+## Logo und App-Symbol
 
-`npm run icons` erzeugt die PNG-Symbole neu (`public/icons/`). Gezeichnet wird
-der Schriftzug CRAVE aus Strecken und Kreisbögen, ganz ohne Schriftdatei oder
-Bildbibliothek. Für den Browser-Tab entsteht zusätzlich ein kleines Zeichen mit
-nur einem C, weil der Schriftzug bei 32 Pixeln nicht mehr lesbar wäre.
+Das Logo ist «Crave» in Shrikhand mit hartem Schatten, wie auf einem
+Diner-Schild (`src/components/Logo.tsx`). Die Buchstaben stehen dort als
+SVG-Pfade, nicht als Schrift – die App lädt keine Schriftdatei, und das Logo
+sieht auf jedem Gerät gleich aus. Shrikhand ist von Jonny Pinhorn und steht
+unter der SIL Open Font License 1.1.
+
+`npm run icons` erzeugt die PNG-Symbole neu (`public/icons/`): ein senfgelbes
+«C» mit Espresso-Schatten auf Tomatenrot, gezeichnet aus demselben Pfad mit
+dem Chromium, den Playwright mitbringt. Die Symbole tragen `?v=2` in der
+Adresse, damit Browser und Service Worker die neuen holen. Auf dem
+Home-Bildschirm von iPhone und iPad bleibt das alte Symbol, bis man die App
+dort einmal entfernt und neu hinzufügt.

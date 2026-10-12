@@ -6,21 +6,92 @@
 
 :root {
   /* ------------------------------------------------------------------------
-     Farbpalette
+     Farbwelt "Diner" – aus dem Logo
 
-       Master Key            #dccd8b
-       Prickly Pear          #a7993c
-       Mozart                #475480
-       Sunburn               #b57056
-       Roycroft Copper Red   #7f3b25
+       Tomatenrot   #d7263d   Schrift im Logo, Knoepfe, Akzent
+       Senfgelb     #f2b632   Grund im Logo, Hervorhebungen
+       Espresso     #3b1a14   Schatten im Logo, Schrift
+       Creme        #fff6e6   Seitengrund
 
-     Die fünf Farben sind mitteldunkel und gesättigt – als Seitenhintergrund
-     oder als Fliesstext wäre keine davon brauchbar. Hintergründe sind deshalb
-     stark aufgehellte Abstufungen von Master Key, Textfarben abgedunkelte von
-     Roycroft. Wo kleine Schrift auf hellem Grund steht, ist die jeweilige
-     Palettenfarbe abgedunkelt, damit sie lesbar bleibt.
+     Senfgelb ist auf hellem Grund als Schrift nicht lesbar; wo es Text oder
+     ein kleines Symbol traegt, steht eine abgedunkelte Fassung.
      ------------------------------------------------------------------------ */
 
+  /* Basis – helles Creme mit einem Hauch Senf, Espresso als Schrift */
+  --cream: #fff6e6;
+  --cream-deep: #f8e8c6;
+  --surface: #fffcf5;
+  --surface-sunken: #fbefd6;
+  --ink: #3b1a14; /* Espresso – der Schatten im Logo */
+  --ink-soft: #5e3a2e;
+  --ink-muted: #7d5d4f;
+  --line: #f0ddb8;
+  --line-strong: #e2c68e;
+
+  /* Akzente */
+  --accent: #d7263d; /* Tomatenrot – das Logo */
+  --accent-strong: #b51d31;
+  --accent-soft: #fce3e4;
+  --accent-ink: #fffcf5;
+  --plan: #b8790f; /* Senf, abgedunkelt – Cook Next */
+  --link: #3d5a8c;
+  --link-soft: #e5ebf4;
+  --sage: #4e7a2c;
+  --sage-soft: #e7f0da;
+  --gold: #f2b632; /* Senfgelb – der Grund im Logo */
+  --berry: #d7263d;
+
+  /* Das Logo selbst */
+  --logo: #d7263d;
+  --logo-schatten: #3b1a14;
+
+  /* Kategorien: eine zart getoente Flaeche, die Farbe traegt die Schrift –
+     auf hellem Grund abgedunkelt, damit auch 11,5 px fett lesbar bleiben. */
+  --cat-high-protein: #8a5a00; /* Senf, abgedunkelt */
+  --cat-high-protein-soft: #fdefc8;
+  --cat-comfort: #b51d31; /* Tomatenrot, abgedunkelt */
+  --cat-comfort-soft: #fce3e4;
+  --cat-vegi: #3f6b22;
+  --cat-vegi-soft: #e5f0d8;
+  --cat-dessert: #6a3f8c;
+  --cat-dessert-soft: #f0e6f6;
+
+  /* Form */
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --shadow-sm: 0 1px 2px rgba(59, 26, 20, 0.06), 0 2px 8px rgba(59, 26, 20, 0.05);
+  --shadow: 0 2px 6px rgba(59, 26, 20, 0.07), 0 12px 28px rgba(59, 26, 20, 0.09);
+  --shadow-lg: 0 8px 20px rgba(59, 26, 20, 0.12), 0 28px 60px rgba(59, 26, 20, 0.16);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  /* Runde, kraeftige Ueberschriften passen zum Diner-Schriftzug. Auf iPhone
+     und iPad ist das SF Pro Rounded – schon da, nichts zu laden. */
+  --font-display: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  --display-weight: 800;
+  --display-text-weight: 600;
+
+  --nav-height: 62px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   Farbwelten
+
+   Wählbar unter Einstellungen → Design und pro Gerät gemerkt (lib/theme.ts).
+   Ohne Wahl gilt Diner oben – hell, auch wenn das iPhone im dunklen Modus
+   ist. Jede Farbwelt setzt dieselben Variablen; Bausteine weiter unten kennen
+   nur die Variablen, nie die Farben.
+   -------------------------------------------------------------------------- */
+
+/* Creme – die erste Farbwelt: warm und ruhig, Kupfer als Akzent. */
+:root[data-theme='creme'] {
   /* Basis */
   --cream: #faf6ea;
   --cream-deep: #f1e9d2;
@@ -63,37 +134,26 @@
   --cat-dessert: #56487f;
   --cat-dessert-soft: #ece7f4;
 
-  /* Form */
-  --radius-sm: 10px;
-  --radius: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
+  --logo: #7f3b25;
+  --logo-schatten: #dccd8b;
+
   --shadow-sm: 0 1px 2px rgba(60, 40, 24, 0.06), 0 2px 8px rgba(60, 40, 24, 0.05);
   --shadow: 0 2px 6px rgba(60, 40, 24, 0.07), 0 12px 28px rgba(60, 40, 24, 0.09);
   --shadow-lg: 0 8px 20px rgba(60, 40, 24, 0.12), 0 28px 60px rgba(60, 40, 24, 0.16);
-
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  --font-display: ui-serif, 'New York', Iowan Old Style, Georgia, 'Times New Roman', serif;
-
-  --nav-height: 62px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  color-scheme: light;
 }
 
-/* --------------------------------------------------------------------------
-   Farbwelten
-
-   Wählbar unter Einstellungen → Design und pro Gerät gemerkt (lib/theme.ts).
-   Ohne Wahl gilt Creme oben – hell, auch wenn das iPhone im dunklen Modus
-   ist. Jede Farbwelt setzt dieselben Variablen; Bausteine weiter unten kennen
-   nur die Variablen, nie die Farben.
-   -------------------------------------------------------------------------- */
+/* Alle Farbwelten ausser Diner behalten die Serifenschrift von frueher. */
+:root[data-theme]:not([data-theme='diner']) {
+  --font-display: ui-serif, 'New York', Iowan Old Style, Georgia, 'Times New Roman', serif;
+  --display-weight: 600;
+  --display-text-weight: 500;
+}
 
 /* Salbei – frisch und ruhig, viel Weiss, Grün als Akzent. */
 :root[data-theme='salbei'] {
+  --logo: #3c7650;
+  --logo-schatten: #1f2a22;
+
   --cream: #f4f7f1;
   --cream-deep: #e7eee2;
   --surface: #ffffff;
@@ -132,6 +192,9 @@
 
 /* Pfirsich – warm und fröhlich, Koralle als Akzent. */
 :root[data-theme='pfirsich'] {
+  --logo: #c24b20;
+  --logo-schatten: #3a2418;
+
   --cream: #fff6f0;
   --cream-deep: #fde9dc;
   --surface: #ffffff;
@@ -170,6 +233,9 @@
 
 /* Himmel – hell und luftig, Blau als Akzent, Koralle für Cook Next. */
 :root[data-theme='himmel'] {
+  --logo: #2c68ad;
+  --logo-schatten: #1b2a3d;
+
   --cream: #f3f7fc;
   --cream-deep: #e4edf8;
   --surface: #ffffff;
@@ -208,6 +274,9 @@
 
 /* Klar – reinweiss und modern, Tomatenrot als Akzent. */
 :root[data-theme='klar'] {
+  --logo: #c43a25;
+  --logo-schatten: #1d1d1b;
+
   --cream: #ffffff;
   --cream-deep: #f1f1ef;
   --surface: #ffffff;
@@ -249,6 +318,9 @@
    dunklen Roycroft, die Schrift aus dem hellen Master Key. Die Akzente sind
    aufgehellt, damit sie auf dunklem Grund tragen. */
 :root[data-theme='dunkel'] {
+  --logo: #f2b632;
+  --logo-schatten: #d7263d;
+
   --cream: #17110d;
   --cream-deep: #1e1712;
   --surface: #221a14;
@@ -432,18 +504,22 @@ ol {
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink);
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  line-height: 0;
 }
 
-.brand em {
-  font-style: normal;
-  color: var(--accent);
+.topbar .brand svg {
+  display: block;
+  height: 30px;
+  width: auto;
+}
+
+@media (min-width: 900px) {
+  .topbar .brand svg {
+    height: 34px;
+  }
 }
 
 .topbar__spacer {
@@ -552,7 +628,7 @@ ol {
 .section-title {
   font-family: var(--font-display);
   font-size: 30px;
-  font-weight: 600;
+  font-weight: var(--display-weight, 600);
   letter-spacing: -0.02em;
   margin: 22px 0 4px;
 }
@@ -1389,6 +1465,7 @@ ol {
   line-height: 1.15;
   letter-spacing: -0.02em;
   margin: 18px 0 8px;
+  font-weight: var(--display-weight, 600);
 }
 
 .detail__meta {
@@ -1671,7 +1748,7 @@ ol {
   font-size: clamp(26px, 6.2vw, 40px);
   line-height: 1.24;
   letter-spacing: -0.02em;
-  font-weight: 500;
+  font-weight: var(--display-text-weight, 500);
 }
 
 .cook__foot {
@@ -1712,6 +1789,9 @@ ol {
 .zutatenliste strong {
   color: var(--accent);
   font-variant-numeric: tabular-nums;
+  /* "500 g" bleibt zusammen, auch wenn der Name lang ist. */
+  white-space: nowrap;
+  flex: none;
 }
 
 /* Vorbereitung im Kochmodus: zwei Abhaklisten statt eines Schritttexts. */

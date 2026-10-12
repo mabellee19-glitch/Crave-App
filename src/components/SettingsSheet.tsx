@@ -36,7 +36,7 @@ export function SettingsSheet({
   const share = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'CRAVE', url });
+        await navigator.share({ title: 'Crave', url });
         return;
       }
     } catch {
@@ -161,7 +161,7 @@ export function SettingsSheet({
 
       <div className="detail__h">Zum Home-Bildschirm hinzufügen</div>
       <p className="muted" style={{ fontSize: 14.5, marginTop: 8 }}>
-        In Safari auf «Teilen» tippen und «Zum Home-Bildschirm» wählen. Danach startet CRAVE wie
+        In Safari auf «Teilen» tippen und «Zum Home-Bildschirm» wählen. Danach startet Crave wie
         eine App im Vollbild.
       </p>
 
@@ -183,7 +183,7 @@ export function SettingsSheet({
 
       <div className="detail__h">Kochtimer</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Läuft ein Schritt mit Timer ab, klingelt CRAVE und vibriert. Während des Kochens zählt
+        Läuft ein Schritt mit Timer ab, klingelt Crave und vibriert. Während des Kochens zählt
         der Ton als Medienwiedergabe – er kommt also auch durch, wenn am iPhone der Schalter auf
         lautlos steht. Hier lässt er sich vorher ausprobieren.
       </p>

@@ -22,7 +22,7 @@ type Props = { params: Promise<{ id: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   return {
-    title: 'CRAVE',
+    title: 'Crave',
     // Eigenes Manifest pro Datenraum: so startet die App vom Home-Bildschirm
     // wieder genau in diesem Datenraum.
     manifest: isValidSpaceId(id) ? `/s/${id}/manifest` : undefined,

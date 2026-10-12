@@ -5,6 +5,7 @@ import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
 import { KiKuerzung } from '@/lib/useKiKuerzung';
+import { Wordmark } from './Logo';
 import { EssenView } from './EssenView';
 import { ShoppingView } from './ShoppingView';
 import { IdeaDetail } from './IdeaDetail';
@@ -260,7 +261,7 @@ export function AppShell() {
       <header className={`topbar${scrolled ? ' topbar--scrolled' : ''}`}>
         <div className="topbar__inner">
           <span className="brand">
-            Cr<em>a</em>ve
+            <Wordmark hoehe={30} />
           </span>
 
           <nav className="desknav" aria-label="Bereiche">

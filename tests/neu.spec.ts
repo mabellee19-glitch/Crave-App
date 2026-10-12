@@ -457,7 +457,9 @@ test.describe('Design', () => {
 
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
     const auswahl = page.getByRole('radiogroup', { name: 'Design' });
-    await expect(auswahl.getByRole('radio')).toHaveCount(6);
+    await expect(auswahl.getByRole('radio')).toHaveCount(7);
+    // Ohne Wahl gilt Diner, die Farbwelt des Logos.
+    await expect(auswahl.getByRole('radio', { name: /Diner/ })).toHaveAttribute('aria-checked', 'true');
     await auswahl.getByRole('radio', { name: /Salbei/ }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'salbei');
     await expect(auswahl.getByRole('radio', { name: /Salbei/ })).toHaveAttribute('aria-checked', 'true');
@@ -473,7 +475,38 @@ test.describe('Design', () => {
     const page = await context.newPage();
     await openSpace(page, newSpace('hell'));
     const grund = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(grund).toBe('rgb(250, 246, 234)');
+    expect(grund).toBe('rgb(255, 246, 230)');
+    await context.close();
+  });
+
+  test('oben steht das Logo, rot mit Espresso-Schatten', async ({ page }) => {
+    await openSpace(page, newSpace('logo'));
+    const logo = page.locator('.topbar').getByRole('img', { name: 'Crave' });
+    await expect(logo).toBeVisible();
+    const farben = await logo.evaluate((svg) =>
+      [...svg.querySelectorAll('path')].map((pfad) => getComputedStyle(pfad).fill),
+    );
+    expect(farben).toEqual(['rgb(59, 26, 20)', 'rgb(215, 38, 61)']);
+  });
+
+  test('wer noch den alten Standard Creme hatte, kommt einmal zu Diner', async ({ browser }) => {
+    const context = await browser.newContext();
+    await context.addInitScript(() => {
+      // Nur beim allerersten Laden: so stand es vor dem neuen Logo auf dem Geraet.
+      if (!sessionStorage.getItem('vorbereitet')) {
+        localStorage.setItem('crave:theme', 'creme');
+        sessionStorage.setItem('vorbereitet', '1');
+      }
+    });
+    const page = await context.newPage();
+    await openSpace(page, newSpace('marke'));
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'diner');
+
+    // Wer danach Creme bewusst waehlt, behaelt es.
+    await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
+    await page.getByRole('radiogroup', { name: 'Design' }).getByRole('radio', { name: /Creme/ }).click();
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'creme');
     await context.close();
   });
 });

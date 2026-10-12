@@ -15,21 +15,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   return NextResponse.json(
     {
-      name: 'CRAVE – Kochen & Einkaufen',
-      short_name: 'CRAVE',
+      name: 'Crave – Kochen & Einkaufen',
+      short_name: 'Crave',
       description: 'Rezepte, Gerichte und Einkaufsliste – auf allen Geräten gleich.',
       start_url: `/s/${id}`,
       scope: '/',
       display: 'standalone',
       orientation: 'portrait',
-      background_color: '#faf6ea',
-      theme_color: '#faf6ea',
+      background_color: '#fff6e6',
+      theme_color: '#fff6e6',
       lang: 'de',
       dir: 'ltr',
       icons: [
-        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-        { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        { src: '/icons/icon-192.png?v=2', sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: '/icons/icon-512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: '/icons/icon-maskable-512.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
       ],
     },
     {

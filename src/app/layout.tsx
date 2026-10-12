@@ -3,21 +3,22 @@ import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CRAVE – Kochen & Einkaufen',
+  title: 'Crave – Kochen & Einkaufen',
   description:
     'Persönliche Koch- und Einkaufs-App: Rezepte, Gerichte, Kochmodus mit Timer und eine Einkaufsliste, die auf allen Geräten gleich ist.',
-  applicationName: 'CRAVE',
+  applicationName: 'Crave',
   appleWebApp: {
     capable: true,
-    title: 'CRAVE',
+    title: 'Crave',
     statusBarStyle: 'default',
   },
   icons: {
     icon: [
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/favicon-32.png?v=2', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192.png?v=2', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png?v=2', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/icons/apple-touch-icon.png?v=2', sizes: '180x180', type: 'image/png' }],
   },
   formatDetection: { telephone: false },
 };
@@ -28,7 +29,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: 'cover',
   // Die gewaehlte Farbwelt passt die Farbe beim Start selbst an (lib/theme).
-  themeColor: '#faf6ea',
+  themeColor: '#fff6e6',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

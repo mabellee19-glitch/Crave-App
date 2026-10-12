@@ -19,6 +19,13 @@ export interface Theme {
 
 export const THEMES: Theme[] = [
   {
+    id: 'diner',
+    name: 'Diner',
+    beschreibung: 'Wie das Logo: Tomatenrot, Senfgelb, Espresso',
+    vorschau: ['#fff6e6', '#fffcf5', '#d7263d', '#f2b632'],
+    themeColor: '#fff6e6',
+  },
+  {
     id: 'creme',
     name: 'Creme',
     beschreibung: 'Warm und ruhig, Kupfer als Akzent',
@@ -62,14 +69,22 @@ export const THEMES: Theme[] = [
   },
 ];
 
-export const STANDARD_THEME = 'creme';
+export const STANDARD_THEME = 'diner';
 export const THEME_KEY = 'crave:theme';
+
+/*
+ * Mit dem neuen Logo wurde Diner zum Standard. Creme war es bis dahin – wer
+ * es gespeichert hat, hat es meist nie bewusst gewaehlt. Einmalig wechselt
+ * Creme deshalb zu Diner; wer danach Creme waehlt, behaelt es.
+ */
+const MARKE_KEY = 'crave:marke';
+const MARKE = 'diner-2026';
 
 /**
  * Laeuft im <head>, bevor irgendetwas gezeichnet wird – sonst blitzte beim
  * Oeffnen kurz die Standardfarbe auf. Muss ohne Imports auskommen.
  */
-export const THEME_SCRIPT = `try{var t=localStorage.getItem('${THEME_KEY}');var ok=${JSON.stringify(
+export const THEME_SCRIPT = `try{var t=localStorage.getItem('${THEME_KEY}');if(localStorage.getItem('${MARKE_KEY}')!=='${MARKE}'){if(t==='creme'){t='diner';localStorage.setItem('${THEME_KEY}',t)}localStorage.setItem('${MARKE_KEY}','${MARKE}')}var ok=${JSON.stringify(
   THEMES.map((theme) => theme.id),
 )};var c=${JSON.stringify(Object.fromEntries(THEMES.map((theme) => [theme.id, theme.themeColor])))};if(t&&ok.indexOf(t)>=0){document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t])}}catch(e){}`;
 

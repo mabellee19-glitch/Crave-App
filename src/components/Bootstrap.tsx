@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { isValidSpaceId, newSpaceId } from '@/lib/id';
+import { Wordmark } from './Logo';
 
 const LAST_SPACE_KEY = 'crave:space';
 
@@ -41,12 +42,12 @@ export function Bootstrap() {
       }}
     >
       <div>
-        <div className="brand" style={{ fontSize: 30, marginBottom: 10 }}>
-          Cr<em>a</em>ve
+        <div className="brand" style={{ marginBottom: 12 }}>
+          <Wordmark hoehe={44} />
         </div>
         <p className="muted">Küche wird vorbereitet…</p>
         <noscript>
-          <p className="muted">Bitte aktiviere JavaScript, um CRAVE zu benutzen.</p>
+          <p className="muted">Bitte aktiviere JavaScript, um Crave zu benutzen.</p>
         </noscript>
       </div>
     </div>

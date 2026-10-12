@@ -7,7 +7,7 @@
  * den Offline-Fall.
  */
 
-const VERSION = 'crave-v2';
+const VERSION = 'crave-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 /** So lange darf das Netz fuer eine Seite brauchen, bevor die gespeicherte kommt. */
@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(['/icons/icon-192.png', '/icons/apple-touch-icon.png']))
+      .then((cache) => cache.addAll(['/icons/icon-192.png?v=2', '/icons/apple-touch-icon.png?v=2']))
       .catch(() => undefined)
       .then(() => self.skipWaiting()),
   );

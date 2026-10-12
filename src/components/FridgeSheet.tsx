@@ -155,7 +155,7 @@ export function FridgeSheet({
             </div>
           ) : null}
           <p className="muted" style={{ fontSize: 15, lineHeight: 1.55, marginBottom: 16 }}>
-            Mach ein Foto vom offenen Kühlschrank. CRAVE liest heraus, was darin ist, sucht
+            Mach ein Foto vom offenen Kühlschrank. Crave liest heraus, was darin ist, sucht
             passende Rezepte aus deiner Sammlung und schlägt zusätzlich neue Gerichte vor.
           </p>
           <button

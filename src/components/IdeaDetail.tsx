@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { DISH_CATEGORY_LABEL, Dish } from '@/lib/types';
-import { formatQuantity } from '@/lib/units';
+import { useInhalt } from '@/lib/inhalt';
+import { useT } from '@/lib/i18n';
 import { Sheet } from './ui';
 import { Notiz } from './Notiz';
 import { IconBook, IconCookNext, IconIdee, IconPencil } from './Icons';
@@ -25,14 +26,17 @@ export function IdeaDetail({
   onToggleCookNext: () => void;
   onMakeRecipe: () => void;
 }) {
+  const t = useT();
   const zutaten = (dish.ingredients ?? []).filter((zutat) => zutat.name.trim());
+  const inhalt = useInhalt();
+  const name = inhalt.text(dish.name, dish.en);
 
   return (
     <Sheet
-      title={dish.name || 'Idee'}
+      title={name || t.idee.idee}
       onClose={onClose}
       actions={
-        <button className="iconbtn iconbtn--plain" onClick={onEdit} aria-label="Idee bearbeiten">
+        <button className="iconbtn iconbtn--plain" onClick={onEdit} aria-label={t.idee.bearbeiten}>
           <IconPencil />
         </button>
       }
@@ -43,37 +47,37 @@ export function IdeaDetail({
           aria-pressed={dish.cookNext}
         >
           <IconCookNext size={19} filled={dish.cookNext} />
-          {dish.cookNext ? 'Von Cook Next nehmen' : 'Auf Cook Next'}
+          {dish.cookNext ? t.idee.vonCookNext : t.idee.aufCookNext}
         </button>
       }
     >
-      <h1 className="detail__title">{dish.name || 'Ohne Namen'}</h1>
+      <h1 className="detail__title">{name || t.idee.ohneNamen}</h1>
       <div className="detail__meta">
         <span className="tag tag--idee">
           <IconIdee size={13} />
-          Idee
+          {t.idee.idee}
         </span>
-        <span className={`tag tag--${dish.category}`}>{DISH_CATEGORY_LABEL[dish.category]}</span>
+        <span className={`tag tag--${dish.category}`}>{inhalt.kategorie(DISH_CATEGORY_LABEL[dish.category])}</span>
       </div>
 
       {dish.notes ? (
-        <Notiz className="muted detail__notiz" text={dish.notes} />
+        <Notiz className="muted detail__notiz" text={inhalt.text(dish.notes, dish.en)} />
       ) : null}
 
       <div className="detail__section">
         <div className="detail__sectionhead">
-          <span className="detail__h">Zutaten</span>
+          <span className="detail__h">{t.idee.zutaten}</span>
         </div>
         {zutaten.length === 0 ? (
           <p className="muted" style={{ fontSize: 14.5 }}>
-            Noch keine Zutaten – über den Stift oben lassen sie sich eintragen.
+            {t.idee.keineZutaten}
           </p>
         ) : (
           <ul className="ingredients">
             {zutaten.map((zutat) => (
               <li className="ingredient" key={zutat.id}>
-                <span className="ingredient__amount">{formatQuantity(zutat.amount, zutat.unit)}</span>
-                <span>{zutat.name}</span>
+                <span className="ingredient__amount">{inhalt.menge(zutat.amount, zutat.unit)}</span>
+                <span>{inhalt.zutat(zutat.name, zutat.amount, dish.en)}</span>
               </li>
             ))}
           </ul>
@@ -81,19 +85,18 @@ export function IdeaDetail({
         {dish.cookNext ? (
           <p className="detail__planhint">
             <IconCookNext size={15} filled />
-            Für die nächsten Tage geplant – die Zutaten stehen in Groceries.
+            {t.idee.geplant}
           </p>
         ) : null}
       </div>
 
       <div className="detail__section">
         <div className="notice">
-          <strong>Noch keine Anleitung.</strong> Mach ein Rezept daraus: Name und Zutaten sind
-          schon eingetragen, es fehlen nur noch die Schritte – oder ein Link zu einer Rezeptseite.
+          <strong>{t.idee.keineAnleitung}</strong> {t.idee.rezeptDaraus}
           <div style={{ height: 10 }} />
           <button className="btn btn--ghost" onClick={onMakeRecipe}>
             <IconBook size={18} />
-            Rezept daraus machen
+            {t.idee.rezeptMachen}
           </button>
         </div>
       </div>

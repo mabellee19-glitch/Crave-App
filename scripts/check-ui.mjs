@@ -132,7 +132,7 @@ async function durchlauf(browser, geraet, theme) {
 
   // Alle Filter durchklicken
   for (const name of ['Cook Next', 'Comfort', 'High-Protein', 'Vegi', 'Dessert', 'Alle']) {
-    const knopf = p.getByRole('group', { name: 'Cravings filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
+    const knopf = p.getByRole('group', { name: 'Gelüste filtern' }).getByRole('button', { name: new RegExp(`^${name}`) });
     if (await knopf.count()) { await knopf.first().click(); await p.waitForTimeout(150); }
     else melde(wo0, `Filter "${name}" fehlt bei Cravings`);
   }
@@ -177,7 +177,7 @@ async function durchlauf(browser, geraet, theme) {
   await p.waitForTimeout(300);
 
   // Einkaufsliste inkl. Grundliste aufklappen
-  await p.getByRole('button', { name: 'Groceries' }).first().click();
+  await p.getByRole('button', { name: 'Beute' }).first().click();
   await p.waitForTimeout(400);
   await pruefeSeite(p, `${wo0}/Groceries`);
   const gruppe = p.locator('.pantrygroup__title').first();

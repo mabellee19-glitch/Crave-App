@@ -81,6 +81,21 @@ export const WORT_EINHEITEN = new Set([
   'portion',
   'portionen',
   'handvoll',
+  'würfel',
+  'kugel',
+  'kugeln',
+  'rolle',
+  'rollen',
+  'tafel',
+  'tafeln',
+  'beutel',
+  'flasche',
+  'flaschen',
+  'schale',
+  'schalen',
+  'schote',
+  'schoten',
+  'päckli',
 ]);
 
 /**

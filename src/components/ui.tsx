@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { useT } from '@/lib/i18n';
 import { IconClose } from './Icons';
 
 /* -------------------------------------------------------------------------- */
@@ -149,6 +150,7 @@ export function Sheet({
   footer?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  const t = useT();
   useBodyScrollLock(true);
   const overlayRef = useRef<HTMLDivElement>(null);
   const verdeckt = useVerdeckt();
@@ -191,7 +193,7 @@ export function Sheet({
           <div className="sheet__head">
             <h2 className="sheet__title">{title}</h2>
             {actions}
-            <button className="iconbtn iconbtn--plain" onClick={onClose} aria-label="Schliessen">
+            <button className="iconbtn iconbtn--plain" onClick={onClose} aria-label={t.allgemein.schliessen}>
               <IconClose />
             </button>
           </div>
@@ -314,6 +316,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   useBodyScrollLock(true);
   return (
     <Portal>
@@ -327,7 +330,7 @@ export function ConfirmDialog({
           </div>
           <div className="sheet__foot">
             <button className="btn btn--ghost btn--block" onClick={onCancel}>
-              Abbrechen
+              {t.allgemein.abbrechen}
             </button>
             <button
               className="btn btn--block"

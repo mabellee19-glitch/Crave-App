@@ -4,9 +4,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Recipe } from '@/lib/types';
 import { VisionIdea, VisionResult } from '@/lib/vision';
 import { blankRecipe } from '@/lib/store';
-import { formatQuantity, normalizeName } from '@/lib/units';
+import { normalizeName } from '@/lib/units';
+import { useInhalt } from '@/lib/inhalt';
+import { spracheJetzt } from '@/lib/i18n';
 import { randomId } from '@/lib/id';
 import { vorbereitungVorschlagen } from '@/lib/prep';
+import { useT } from '@/lib/i18n';
+import type { Texte } from '@/lib/texte';
 import { Sheet } from './ui';
 import { IconCamera, IconCart, IconClock, IconKnife, IconPlus, IconServings, IconSpark } from './Icons';
 
@@ -40,6 +44,8 @@ export function FridgeSheet({
   onSaveIdea: (recipe: Recipe) => void;
   onAddMissing: (names: string[]) => void;
 }) {
+  const t = useT();
+  const inhalt = useInhalt();
   const [status, setStatus] = useState<Status>({ kind: 'start' });
   // Ob auf dem Server ein Schlüssel hinterlegt ist. `null`, solange unbekannt.
   const [visionReady, setVisionReady] = useState<boolean | null>(null);
@@ -102,7 +108,9 @@ export function FridgeSheet({
       const response = await fetch('/api/vision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image }),
+        // Auf Englisch antwortet die KI englisch; gespeichert wird es wie jedes
+        // englische Rezept und dann ins Deutsche uebersetzt.
+        body: JSON.stringify({ image, sprache: spracheJetzt() }),
       });
       const body = await response.json().catch(() => null);
       if (!body?.ok) {
@@ -117,13 +125,13 @@ export function FridgeSheet({
 
   return (
     <Sheet
-      title="Was kann ich kochen?"
+      title={t.fridge.titel}
       onClose={onClose}
       footer={
         status.kind === 'fertig' ? (
           <button className="btn btn--ghost btn--block" onClick={() => inputRef.current?.click()}>
             <IconCamera size={18} />
-            Neues Foto
+            {t.fridge.neuesFoto}
           </button>
         ) : undefined
       }
@@ -147,16 +155,18 @@ export function FridgeSheet({
         <>
           {visionReady === false ? (
             <div className="notice notice--warn">
-              <strong>Bilderkennung nicht eingerichtet.</strong> Am einfachsten über Vercel: dort
-              unter <em>AI Gateway</em> einen Schlüssel anlegen und ihn als{' '}
-              <code>AI_GATEWAY_API_KEY</code> beim Projekt hinterlegen – ein Konto beim
-              Modellanbieter braucht es dafür nicht. Wer lieber direkt abrechnet, setzt
-              stattdessen <code>ANTHROPIC_API_KEY</code>. Siehe README.
+              <strong>{t.fridge.nichtEingerichtet}</strong>
+              {t.fridge.einrichten.vor}
+              <em>AI Gateway</em>
+              {t.fridge.einrichten.alsSchluessel}
+              <code>AI_GATEWAY_API_KEY</code>
+              {t.fridge.einrichten.oderDirekt}
+              <code>ANTHROPIC_API_KEY</code>
+              {t.fridge.einrichten.ende}
             </div>
           ) : null}
           <p className="muted" style={{ fontSize: 15, lineHeight: 1.55, marginBottom: 16 }}>
-            Mach ein Foto vom offenen Kühlschrank. Crave liest heraus, was darin ist, sucht
-            passende Rezepte aus deiner Sammlung und schlägt zusätzlich neue Gerichte vor.
+            {t.fridge.einleitung}
           </p>
           <button
             className="btn btn--primary btn--lg btn--block"
@@ -164,11 +174,10 @@ export function FridgeSheet({
             disabled={visionReady === false}
           >
             <IconCamera size={19} />
-            Foto aufnehmen
+            {t.fridge.fotoAufnehmen}
           </button>
           <p className="row__note" style={{ marginTop: 12, lineHeight: 1.5 }}>
-            Das Foto wird zur Auswertung an Anthropic geschickt und dort nicht gespeichert. Es
-            landet weder in deinen Daten noch in Groceries.
+            {t.fridge.datenschutz}
           </p>
         </>
       ) : null}
@@ -177,8 +186,8 @@ export function FridgeSheet({
         <div className="fridge__busy">
           <IconSpark size={26} />
           <div>
-            <div style={{ fontWeight: 650 }}>Foto wird ausgewertet…</div>
-            <div className="row__note">Das dauert einen Moment.</div>
+            <div style={{ fontWeight: 650 }}>{t.fridge.wirdAusgewertet}</div>
+            <div className="row__note">{t.fridge.dauert}</div>
           </div>
         </div>
       ) : null}
@@ -186,27 +195,27 @@ export function FridgeSheet({
       {status.kind === 'fehler' ? (
         <>
           <div className="notice notice--error">
-            <strong>{fehlerTitel(status.error)}</strong> {fehlerText(status.error)}
+            <strong>{fehlerTitel(status.error, t.fridge)}</strong>{' '}
+            {fehlerText(status.error, t.fridge)}
           </div>
           <button className="btn btn--ghost btn--block" onClick={() => setStatus({ kind: 'start' })}>
-            Nochmal versuchen
+            {t.fridge.nochmal}
           </button>
         </>
       ) : null}
 
       {status.kind === 'fertig' ? (
         <>
-          <div className="detail__h">Erkannt</div>
+          <div className="detail__h">{t.fridge.erkannt}</div>
           {erkannt.length === 0 ? (
             <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 0' }}>
-              Auf dem Foto war nichts eindeutig zu erkennen. Versuch es mit mehr Licht oder näher
-              dran.
+              {t.fridge.nichtsErkannt}
             </p>
           ) : (
             <div className="pantrychips" style={{ padding: '10px 0 4px' }}>
               {erkannt.map((name) => (
                 <span className="pantrychip" key={name} style={{ paddingRight: 14 }}>
-                  {name}
+                  {inhalt.zutat(name)}
                 </span>
               ))}
             </div>
@@ -215,7 +224,7 @@ export function FridgeSheet({
           {treffer.length > 0 ? (
             <>
               <hr className="divider" />
-              <div className="detail__h">Aus deinen Rezepten</div>
+              <div className="detail__h">{t.fridge.ausRezepten}</div>
               <div className="stack" style={{ marginTop: 10 }}>
                 {treffer.map(({ recipe, vorhanden, gesamt, fehlt }) => (
                   <button
@@ -225,12 +234,12 @@ export function FridgeSheet({
                     style={{ textAlign: 'left' }}
                   >
                     <div className="card__open" style={{ paddingRight: 16 }}>
-                      <h3 className="card__title">{recipe.name}</h3>
+                      <h3 className="card__title">{inhalt.text(recipe.name, recipe.en)}</h3>
                       <div className="card__meta">
-                        <span className="tag">
-                          {vorhanden} von {gesamt} Zutaten da
-                        </span>
-                        {fehlt.length > 0 ? <span>fehlt: {fehlt.join(', ')}</span> : null}
+                        <span className="tag">{t.fridge.zutatenDa(vorhanden, gesamt)}</span>
+                        {fehlt.length > 0 ? (
+                          <span>{t.fridge.fehlt(fehlt.map((name) => inhalt.zutat(name, null, recipe.en)).join(', '))}</span>
+                        ) : null}
                       </div>
                     </div>
                   </button>
@@ -242,7 +251,7 @@ export function FridgeSheet({
           {status.result.ideen.length > 0 ? (
             <>
               <hr className="divider" />
-              <div className="detail__h">Neue Ideen</div>
+              <div className="detail__h">{t.fridge.neueIdeen}</div>
               <div className="stack" style={{ marginTop: 10 }}>
                 {status.result.ideen.map((idee, index) => (
                   <IdeaCard
@@ -274,6 +283,8 @@ function IdeaCard({
   onSave: () => void;
   onAddMissing: () => void;
 }) {
+  const t = useT();
+  const inhalt = useInhalt();
   const [offen, setOffen] = useState(false);
   return (
     <article className="editcard" style={{ marginBottom: 0 }}>
@@ -288,7 +299,7 @@ function IdeaCard({
           {idee.zeitMin > 0 ? (
             <span className="card__metaitem">
               <IconClock size={13} />
-              {idee.zeitMin} Min
+              {idee.zeitMin} {t.allgemein.minuten}
             </span>
           ) : null}
           <span className="card__metaitem">
@@ -304,9 +315,9 @@ function IdeaCard({
             {idee.zutaten.map((zutat, index) => (
               <li className="ingredient" key={`${zutat.name}-${index}`}>
                 <span className="ingredient__amount">
-                  {formatQuantity(zutat.menge > 0 ? zutat.menge : null, zutat.einheit)}
+                  {inhalt.menge(zutat.menge > 0 ? zutat.menge : null, zutat.einheit)}
                 </span>
-                <span>{zutat.name}</span>
+                <span>{inhalt.zutat(zutat.name, zutat.menge)}</span>
               </li>
             ))}
           </ul>
@@ -316,7 +327,7 @@ function IdeaCard({
                 <IconKnife size={15} />
               </span>
               <div>
-                <div className="step__title">Vorbereitung</div>
+                <div className="step__title">{t.fridge.vorbereitung}</div>
                 <ul className="preplist">
                   {idee.vorbereitung.map((aufgabe, index) => (
                     <li key={`${index}-${aufgabe}`}>{aufgabe}</li>
@@ -338,19 +349,19 @@ function IdeaCard({
 
       {idee.fehlt.length > 0 ? (
         <p className="row__note" style={{ marginTop: 10 }}>
-          Fehlt noch: {idee.fehlt.join(', ')}
+          {t.fridge.fehltNoch(idee.fehlt.join(', '))}
         </p>
       ) : null}
 
       <div className="rowline" style={{ marginTop: 10 }}>
         <button className="btn btn--ghost" onClick={onSave}>
           <IconPlus size={17} />
-          Als Rezept speichern
+          {t.fridge.alsRezept}
         </button>
         {idee.fehlt.length > 0 ? (
           <button className="btn btn--quiet" onClick={onAddMissing}>
             <IconCart size={17} />
-            Fehlendes einkaufen
+            {t.fridge.fehlendesEinkaufen}
           </button>
         ) : null}
       </div>
@@ -387,28 +398,23 @@ export function ideeZuRezept(idee: VisionIdea): Recipe {
   };
 }
 
-function fehlerTitel(error: string): string {
-  if (error === 'no_key') return 'Bilderkennung nicht eingerichtet.';
-  if (error === 'billing') return 'Beim Anbieter fehlt die Zahlungsangabe.';
-  if (error === 'auth') return 'Der hinterlegte Schlüssel wird nicht akzeptiert.';
-  if (error === 'rate_limit') return 'Gerade zu viele Anfragen.';
-  if (error === 'image_too_large') return 'Das Foto ist zu gross.';
-  if (error === 'no_result' || error === 'refused') return 'Damit konnte ich nichts anfangen.';
-  return 'Auswertung fehlgeschlagen.';
+function fehlerTitel(error: string, texte: Texte['fridge']): string {
+  const { fehler } = texte;
+  if (error === 'no_key') return texte.nichtEingerichtet;
+  if (error === 'billing') return fehler.zahlung.titel;
+  if (error === 'auth') return fehler.schluessel.titel;
+  if (error === 'rate_limit') return fehler.zuViele.titel;
+  if (error === 'image_too_large') return fehler.zuGross.titel;
+  if (error === 'no_result' || error === 'refused') return fehler.nichts.titel;
+  return fehler.sonst.titel;
 }
 
-function fehlerText(error: string): string {
-  if (error === 'no_key') return 'Auf dem Server fehlt der Zugang zum Modell, siehe README.';
-  if (error === 'billing') {
-    return 'Bei Vercel unter AI Gateway eine Zahlungskarte hinterlegen – damit werden auch die Freikontingente freigeschaltet. Ein neues Deployment braucht es dafür nicht.';
-  }
-  if (error === 'auth') {
-    return 'Vermutlich wurde der Schlüssel beim Anbieter gelöscht oder ist abgelaufen. Neuen anlegen und in den Umgebungsvariablen ersetzen.';
-  }
-  if (error === 'rate_limit') return 'Kurz warten und nochmal versuchen.';
-  if (error === 'image_too_large') return 'Versuch es mit einem kleineren Ausschnitt.';
-  if (error === 'no_result' || error === 'refused') {
-    return 'Versuch ein anderes Foto, am besten hell und von vorne.';
-  }
-  return 'Prüfe die Verbindung und versuch es nochmal.';
+function fehlerText(error: string, { fehler }: Texte['fridge']): string {
+  if (error === 'no_key') return fehler.keinZugang;
+  if (error === 'billing') return fehler.zahlung.text;
+  if (error === 'auth') return fehler.schluessel.text;
+  if (error === 'rate_limit') return fehler.zuViele.text;
+  if (error === 'image_too_large') return fehler.zuGross.text;
+  if (error === 'no_result' || error === 'refused') return fehler.nichts.text;
+  return fehler.sonst.text;
 }

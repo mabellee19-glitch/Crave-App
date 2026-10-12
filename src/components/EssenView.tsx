@@ -3,7 +3,9 @@
 import React, { useMemo, useState } from 'react';
 import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, Recipe } from '@/lib/types';
 import { Eintrag, eintraegeAus, kategorieKlasse } from '@/lib/essen';
+import { Inhalt, useInhalt } from '@/lib/inhalt';
 import { normalizeName } from '@/lib/units';
+import { useT } from '@/lib/i18n';
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './ui';
 import { IconBook, IconCookNext, IconIdee, IconPlus } from './Icons';
@@ -34,10 +36,17 @@ export const EssenView = React.memo(function EssenView({
   onToggleRecipeCookNext: (id: string) => void;
   onToggleIdeaCookNext: (id: string) => void;
 }) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'cooknext' | string>('all');
 
-  const eintraege = useMemo(() => eintraegeAus(recipes, ideen), [recipes, ideen]);
+  const inhalt = useInhalt();
+  const eintraege = useMemo(() => {
+    const alle = eintraegeAus(recipes, ideen);
+    // Auf Englisch nach dem englischen Namen ordnen.
+    if (inhalt.sprache === 'de') return alle;
+    return [...alle].sort((a, b) => anzeigeName(inhalt, a).localeCompare(anzeigeName(inhalt, b), 'en'));
+  }, [recipes, ideen, inhalt]);
 
   /*
    * Die festen Sparten stehen immer da, auch leer – sonst waere "Dessert"
@@ -68,36 +77,42 @@ export const EssenView = React.memo(function EssenView({
       const zutaten =
         eintrag.art === 'rezept' ? eintrag.recipe.ingredients : (eintrag.dish.ingredients ?? []);
       const notiz = eintrag.art === 'idee' ? eintrag.dish.notes : '';
+      // Gesucht wird in beiden Sprachen: "Poulet" findet auf Englisch auch "chicken".
+      const woerter = woerterVon(eintrag);
+      const englisch =
+        inhalt.sprache === 'en'
+          ? `${anzeigeName(inhalt, eintrag)} ${zutaten.map((zutat) => inhalt.zutat(zutat.name, null, woerter)).join(' ')}`
+          : '';
       return normalizeName(
-        `${eintrag.name} ${eintrag.kategorie} ${notiz} ${zutaten.map((zutat) => zutat.name).join(' ')}`,
+        `${eintrag.name} ${eintrag.kategorie} ${notiz} ${zutaten.map((zutat) => zutat.name).join(' ')} ${englisch}`,
       ).includes(needle);
     });
-  }, [eintraege, query, filter]);
+  }, [eintraege, query, filter, inhalt]);
 
   return (
     <section aria-labelledby="essen-heading">
       <h1 className="section-title" id="essen-heading">
-        Cravings
+        {t.allgemein.bereichRezepte}
       </h1>
       <p className="section-sub">
-        {recipes.length} {recipes.length === 1 ? 'Rezept' : 'Rezepte'} · {ideen.length}{' '}
-        {ideen.length === 1 ? 'Idee' : 'Ideen'}
+        {recipes.length} {t.allgemein.rezepte(recipes.length)} · {ideen.length}{' '}
+        {t.allgemein.ideen(ideen.length)}
       </p>
 
       <SearchBar
         value={query}
         onChange={setQuery}
-        placeholder="Gericht oder Zutat suchen"
-        label="Rezepte und Ideen durchsuchen"
+        placeholder={t.essen.suchen}
+        label={t.essen.suchenLabel}
       />
 
-      <div className="chiprow" role="group" aria-label="Cravings filtern">
+      <div className="chiprow" role="group" aria-label={t.essen.filtern}>
         <button
           className={`chip${filter === 'all' ? ' chip--active' : ''}`}
           onClick={() => setFilter('all')}
           aria-pressed={filter === 'all'}
         >
-          Alle
+          {t.essen.alle}
         </button>
         <button
           className={`chip${filter === 'cooknext' ? ' chip--active' : ''}`}
@@ -105,7 +120,7 @@ export const EssenView = React.memo(function EssenView({
           aria-pressed={filter === 'cooknext'}
         >
           <IconCookNext size={15} filled={filter === 'cooknext'} />
-          Cook Next
+          {t.essen.cookNext}
           {geplant > 0 ? <span className="chip__zahl">{geplant}</span> : null}
         </button>
         {categories.map((category) => {
@@ -119,7 +134,7 @@ export const EssenView = React.memo(function EssenView({
               onClick={() => setFilter(category)}
               aria-pressed={filter === category}
             >
-              {category}
+              {inhalt.kategorie(category)}
             </button>
           );
         })}
@@ -128,17 +143,13 @@ export const EssenView = React.memo(function EssenView({
       {visible.length === 0 ? (
         <EmptyState
           glyph="🍳"
-          title={eintraege.length === 0 ? 'Noch nichts gespeichert' : 'Nichts gefunden'}
-          text={
-            eintraege.length === 0
-              ? 'Leg ein Rezept an oder halte eine Idee fest – mit dem Plus oben.'
-              : 'Passe die Suche oder den Filter an.'
-          }
+          title={eintraege.length === 0 ? t.essen.leerTitel : t.essen.nichtsGefunden}
+          text={eintraege.length === 0 ? t.essen.leerText : t.essen.anpassen}
           action={
             eintraege.length === 0 ? (
               <button className="btn btn--primary" onClick={onNew}>
                 <IconPlus size={18} />
-                Neu anlegen
+                {t.essen.neuAnlegen}
               </button>
             ) : null
           }
@@ -174,20 +185,22 @@ function EintragKarte({
   onOpen: () => void;
   onToggleCookNext: () => void;
 }) {
+  const t = useT();
+  const inhalt = useInhalt();
+  const name = anzeigeName(inhalt, eintrag);
   const klasse = kategorieKlasse(eintrag.kategorie);
   const rezept = eintrag.art === 'rezept';
 
   let meta: string;
   if (eintrag.art === 'rezept') {
     const teile = [
-      eintrag.recipe.timeMin ? `${eintrag.recipe.timeMin} Min` : '',
-      `${eintrag.recipe.servings} ${eintrag.recipe.servings === 1 ? 'Portion' : 'Port.'}`,
+      eintrag.recipe.timeMin ? `${eintrag.recipe.timeMin} ${t.allgemein.minuten}` : '',
+      t.essen.portionenKurz(eintrag.recipe.servings),
     ].filter(Boolean);
     meta = teile.join(' · ');
   } else {
     const zutaten = (eintrag.dish.ingredients ?? []).filter((zutat) => zutat.name.trim()).length;
-    meta =
-      zutaten > 0 ? `Idee · ${zutaten} ${zutaten === 1 ? 'Zutat' : 'Zutaten'}` : 'Idee · noch ohne Zutaten';
+    meta = zutaten > 0 ? t.essen.ideeZutaten(zutaten) : t.essen.ideeOhneZutaten;
   }
 
   return (
@@ -199,8 +212,8 @@ function EintragKarte({
           onClick={onToggleCookNext}
           aria-label={
             eintrag.cookNext
-              ? `${eintrag.name} aus Cook Next entfernen`
-              : `${eintrag.name} zu Cook Next hinzufügen`
+              ? t.essen.ausCookNextEntfernen(name)
+              : t.essen.zuCookNextHinzufuegen(name)
           }
           aria-pressed={eintrag.cookNext}
         >
@@ -211,17 +224,19 @@ function EintragKarte({
       <button
         className="card__open card__open--zeile"
         onClick={onOpen}
-        aria-label={rezept ? `Rezept ${eintrag.name} öffnen` : `Idee ${eintrag.name} öffnen`}
+        aria-label={
+          rezept ? t.essen.rezeptOeffnen(name) : t.essen.ideeOeffnen(name)
+        }
       >
         <span className={`card__art card__art--${klasse}`} aria-hidden="true">
           {rezept ? <IconBook size={19} /> : <IconIdee size={19} />}
         </span>
         <span className="card__text">
-          <h2 className="card__title">{eintrag.name}</h2>
+          <h2 className="card__title">{name}</h2>
           <span className="card__meta">
             {eintrag.kategorie ? (
               <span className={`tag${klasse === 'neutral' ? '' : ` tag--${klasse}`}`}>
-                {eintrag.kategorie}
+                {inhalt.kategorie(eintrag.kategorie)}
               </span>
             ) : null}
             <span className={rezept ? '' : 'card__idee'}>{meta}</span>
@@ -230,4 +245,14 @@ function EintragKarte({
       </button>
     </article>
   );
+}
+
+/** Die englische Fassung eines Eintrags – am Rezept oder am Gericht. */
+function woerterVon(eintrag: Eintrag): Record<string, string> | undefined {
+  return eintrag.art === 'rezept' ? eintrag.recipe.en : eintrag.dish.en;
+}
+
+/** Der Name eines Eintrags in der gewaehlten Sprache. */
+function anzeigeName(inhalt: Inhalt, eintrag: Eintrag): string {
+  return inhalt.text(eintrag.name, woerterVon(eintrag));
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSync } from '@/lib/store';
+import { useT } from '@/lib/i18n';
 import { IconClose } from './Icons';
 
 const DISMISS_KEY = 'crave:cloud-notice-dismissed';
@@ -16,6 +17,7 @@ const DISMISS_KEY = 'crave:cloud-notice-dismissed';
  */
 export function CloudNotice({ onOpenSettings }: { onOpenSettings: () => void }) {
   const sync = useSync();
+  const t = useT();
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
@@ -41,22 +43,18 @@ export function CloudNotice({ onOpenSettings }: { onOpenSettings: () => void }) 
           <div style={{ flex: 1, minWidth: 0 }}>
             {broken ? (
               <>
-                <strong>Datenbank antwortet nicht.</strong> Es ist eine Datenbank hinterlegt, die
-                Verbindung schlägt aber fehl. Deine Änderungen bleiben auf diesem Gerät gespeichert
-                und werden nachgeholt, sobald die Verbindung steht.
+                <strong>{t.cloud.kaputtTitel}</strong> {t.cloud.kaputtText}
               </>
             ) : (
               <>
-                <strong>Geräte-Abgleich noch nicht aktiv.</strong> Diese Installation hat noch keine
-                Datenbank. Alles funktioniert, deine Daten liegen aber nur auf diesem Gerät und
-                können noch nicht verlässlich mit iPhone und iPad geteilt werden.
+                <strong>{t.cloud.lokalTitel}</strong> {t.cloud.lokalText}
               </>
             )}
           </div>
           {broken ? null : (
             <button
               className="iconbtn iconbtn--plain"
-              aria-label="Hinweis ausblenden"
+              aria-label={t.cloud.ausblenden}
               onClick={() => {
                 setDismissed(true);
                 try {
@@ -71,7 +69,7 @@ export function CloudNotice({ onOpenSettings }: { onOpenSettings: () => void }) 
           )}
         </div>
         <button className="btn btn--ghost" style={{ marginTop: 10 }} onClick={onOpenSettings}>
-          {broken ? 'Details anzeigen' : 'Was jetzt fehlt'}
+          {broken ? t.cloud.details : t.cloud.wasFehlt}
         </button>
       </div>
     </div>

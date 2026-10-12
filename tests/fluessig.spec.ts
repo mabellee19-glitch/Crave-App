@@ -118,19 +118,19 @@ test.describe('Bereiche und Meldungen', () => {
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
     const essenPosition = await page.evaluate(() => window.scrollY);
 
-    await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: 'Groceries' }).click();
+    await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: 'Beute' }).click();
     // Die Einkaufsliste beginnt oben, mit Ueberschrift und Eingabefeld.
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-    await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: 'Cravings' }).click();
+    await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name: 'Gelüste' }).click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(essenPosition);
     await expect(page.getByPlaceholder(/Gericht oder Zutat/)).toHaveValue('o');
   });
 
-  test('ein Rezept aus Groceries führt zurück zu Groceries', async ({ page }) => {
+  test('ein Rezept aus der Beute führt zurück in die Beute', async ({ page }) => {
     await openSpace(page, newSpace('vonliste'));
     await page.getByRole('button', { name: /Shakshuka zu Cook Next/ }).first().click();
-    await goToTab(page, 'Groceries');
+    await goToTab(page, 'Beute');
     await page.locator('.chip--plan', { hasText: 'Shakshuka' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
     // Vorher sprang die App dabei in den Bereich "Essen".
@@ -139,8 +139,8 @@ test.describe('Bereiche und Meldungen', () => {
 
   test('die Meldung unten fängt keine Tipps ab und geht von selbst', async ({ page }) => {
     await openSpace(page, newSpace('meldung'));
-    await goToTab(page, 'Groceries');
-    const feld = page.getByLabel('Zutat zu Groceries hinzufügen');
+    await goToTab(page, 'Beute');
+    const feld = page.getByLabel('Zutat zur Beute hinzufügen');
     await feld.fill('Milch');
     await feld.press('Enter');
     await expect(page.locator('.toast')).toBeVisible();

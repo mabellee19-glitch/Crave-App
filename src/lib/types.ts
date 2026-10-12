@@ -83,6 +83,14 @@ export interface Recipe extends Syncable {
   /** Wann die Uebersetzung kein brauchbares Ergebnis lieferte – dann nicht nochmal. */
   uebersetzungVersuch?: number;
   /**
+   * Die englische Fassung fuer die englische Ansicht: deutscher Text →
+   * englischer, fuer Name, Zutaten, Schritte und Vorbereitung (lib/inhalt).
+   * Steht ein Text nicht drin, uebersetzt ihn die KI im Hintergrund.
+   */
+  en?: Record<string, string>;
+  /** Wann die KI die englische Fassung nicht liefern konnte – dann nicht nochmal. */
+  enVersuch?: number;
+  /**
    * "Cook Next": geplant fuer die naechsten Tage. Solange das gesetzt ist,
    * stehen die Zutaten des Rezepts auf der Einkaufsliste; beim Abwaehlen
    * verschwinden genau die wieder.
@@ -106,6 +114,9 @@ export interface Dish extends Syncable {
   /** "Cook Next" – siehe Recipe. Gericht und Rezept bleiben dabei im Gleichschritt. */
   cookNext: boolean;
   notes: string;
+  /** Englische Fassung wie bei Recipe. */
+  en?: Record<string, string>;
+  enVersuch?: number;
   createdAt: number;
 }
 

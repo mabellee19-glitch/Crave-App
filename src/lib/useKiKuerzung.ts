@@ -26,6 +26,13 @@ import { useStore, useSync } from './store';
 import { brauchtKi } from './kuerzen';
 import { Uebersetzung, brauchtUebersetzung, rezeptAuftrag } from './uebersetzen';
 
+/**
+ * Der laufende Durchgang. Die englische Fassung (useKiEnglisch) wartet darauf:
+ * sie aendert die Rezepte ebenfalls, und ein Kuerzen, das waehrenddessen
+ * fertig wuerde, passte nicht mehr zum Stand und waere verloren.
+ */
+export let kiDurchgang: Promise<void> | null = null;
+
 /** Hoechstens so viele Rezepte je Start; der Rest kommt beim naechsten Mal. */
 const PRO_START = 12;
 
@@ -92,7 +99,7 @@ export function useKiKuerzung(): void {
       return true;
     };
 
-    void (async () => {
+    kiDurchgang = (async () => {
       if (!(await uebersetzen())) return;
       // Die Uebersetzungen sind eben gespeichert; einen Moment warten, bis
       // die App sie gezeichnet hat – erst dann sieht `aktuell` sie. Kommt sie

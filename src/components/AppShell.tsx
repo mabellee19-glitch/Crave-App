@@ -5,6 +5,9 @@ import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
 import { KiKuerzung } from '@/lib/useKiKuerzung';
+import { KiEnglisch } from '@/lib/useKiEnglisch';
+import { setzeSprache, spracheAnwenden, useT } from '@/lib/i18n';
+import { useInhalt } from '@/lib/inhalt';
 import { Wordmark } from './Logo';
 import { EssenView } from './EssenView';
 import { ShoppingView } from './ShoppingView';
@@ -47,13 +50,19 @@ type Overlay =
   | { kind: 'fridge' }
   | { kind: 'settings' };
 
-const TABS: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
-  { id: 'essen', label: 'Cravings', icon: <IconBook size={23} /> },
-  { id: 'shopping', label: 'Groceries', icon: <IconCart size={23} /> },
+const TABS: Array<{ id: Tab; icon: React.ReactNode }> = [
+  { id: 'essen', icon: <IconBook size={23} /> },
+  { id: 'shopping', icon: <IconCart size={23} /> },
 ];
 
 export function AppShell() {
   const store = useStore();
+  const texte = useT();
+  const t = texte.app;
+  const inhalt = useInhalt();
+  const tabLabel = (id: Tab) => (id === 'essen' ? texte.allgemein.bereichRezepte : texte.allgemein.bereichEinkauf);
+  // Das lang-Attribut zur gespeicherten Sprache – fuer Vorlesen und Silbentrennung.
+  useEffect(() => spracheAnwenden(), []);
   const [tab, setTab] = useState<Tab>('essen');
   const [stack, setStack] = useState<Overlay[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -220,7 +229,7 @@ export function AppShell() {
 
   const addAction = () => {
     if (tab === 'shopping') {
-      document.querySelector<HTMLInputElement>('input[aria-label="Zutat zu Groceries hinzufügen"]')?.focus();
+      document.querySelector<HTMLInputElement>('.einkauf__eingabe input')?.focus();
       return;
     }
     openOverlay({ kind: 'new' });
@@ -264,7 +273,7 @@ export function AppShell() {
             <Wordmark hoehe={30} />
           </span>
 
-          <nav className="desknav" aria-label="Bereiche">
+          <nav className="desknav" aria-label={t.bereiche}>
             {TABS.map((item) => (
               <button
                 key={item.id}
@@ -272,7 +281,7 @@ export function AppShell() {
                 onClick={() => waehleTab(item.id)}
                 aria-current={tab === item.id ? 'page' : undefined}
               >
-                {item.label}
+                {tabLabel(item.id)}
               </button>
             ))}
           </nav>
@@ -280,23 +289,31 @@ export function AppShell() {
           <span className="topbar__spacer" />
 
           <button
+            className="iconbtn sprachknopf"
+            onClick={() => setzeSprache(inhalt.sprache === 'de' ? 'en' : 'de')}
+            aria-label={t.sprache}
+          >
+            {t.spracheKurz}
+          </button>
+
+          <button
             className="iconbtn"
             onClick={() => openOverlay({ kind: 'fridge' })}
-            aria-label="Foto vom Kühlschrank aufnehmen"
+            aria-label={t.foto}
           >
             <IconCamera />
           </button>
           <button
             className={`iconbtn${tab === 'essen' ? ' iconbtn--primary' : ''}`}
             onClick={addAction}
-            aria-label={tab === 'essen' ? 'Neu anlegen' : 'Zutat hinzufügen'}
+            aria-label={tab === 'essen' ? t.neu : t.zutatHinzufuegen}
           >
             <IconPlus />
           </button>
           <button
             className="iconbtn"
             onClick={() => openOverlay({ kind: 'settings' })}
-            aria-label="Einstellungen und Synchronisation"
+            aria-label={t.einstellungen}
           >
             <IconSettings />
           </button>
@@ -309,7 +326,7 @@ export function AppShell() {
         {!store.ready ? (
           // Nur beim allerersten Oeffnen auf einem Geraet: danach steht der
           // lokale Stand sofort da. Die Form der Seite ist schon erkennbar.
-          <div className="skeleton" role="status" aria-label="Daten werden geladen">
+          <div className="skeleton" role="status" aria-label={t.laedt}>
             <div className="skeleton__title" />
             <div className="skeleton__line" />
             <div className="skeleton__search" />
@@ -341,14 +358,14 @@ export function AppShell() {
                 allPantry={allPantry}
                 onAdd={(input) => {
                   store.addShoppingItem(input);
-                  showToast(`${kurz(input.name)} hinzugefügt`);
+                  showToast(t.hinzugefuegt(kurz(inhalt.zutat(input.name))));
                 }}
                 onCheckOff={(id) => {
                   const item = store.shopping.find((entry) => entry.id === id);
                   store.checkOffShoppingItem(id);
                   showToast(
-                    `${kurz(item?.name ?? 'Zutat')} erledigt`,
-                    'Rückgängig',
+                    t.erledigt(kurz(item ? inhalt.zutat(item.name) : t.zutat)),
+                    t.rueckgaengig,
                     () => storeRef.current.undo?.(),
                   );
                 }}
@@ -365,9 +382,8 @@ export function AppShell() {
                   const { added, categorised } = store.addPantrySuggestions();
                   showToast(
                     added === 0 && categorised === 0
-                      ? 'Alles schon vorhanden'
-                      : `${added} ${added === 1 ? 'Zutat' : 'Zutaten'} ergänzt` +
-                          (categorised > 0 ? `, ${categorised} eingeordnet` : ''),
+                      ? t.allesVorhanden
+                      : t.vorschlaegeErgaenzt(added, categorised),
                   );
                 }}
               />
@@ -381,7 +397,7 @@ export function AppShell() {
         </div>
       </main>
 
-      <nav className="tabbar" aria-label="Hauptnavigation">
+      <nav className="tabbar" aria-label={t.hauptnavigation}>
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -395,7 +411,7 @@ export function AppShell() {
                 <span className="tabbar__badge">{store.shopping.length}</span>
               ) : null}
             </span>
-            {item.label}
+            {tabLabel(item.id)}
           </button>
         ))}
       </nav>
@@ -413,6 +429,7 @@ export function AppShell() {
       ))}
 
       <KiKuerzung />
+      <KiEnglisch />
 
       {toast ? <Toast toast={toast} onDismiss={() => setToast(null)} /> : null}
     </div>
@@ -436,25 +453,25 @@ export function AppShell() {
           const geklappt = store.fillRecipeSteps(recipe.id);
           showToast(
             geklappt
-              ? 'Aus der Vorlage nachgetragen'
-              : 'Für dieses Rezept ist keine Vorlage hinterlegt',
+              ? t.vorlageNachgetragen
+              : t.keineVorlage,
           );
         }}
         onRestoreOriginal={() => {
           store.originalWiederherstellen(recipe.id);
-          showToast('Ursprüngliche Schritte wiederhergestellt');
+          showToast(t.originalZurueck);
         }}
         onDelete={() => {
           store.deleteRecipe(recipe.id);
           closeTop();
-          showToast('Rezept gelöscht');
+          showToast(t.rezeptGeloescht);
         }}
         onStartCooking={(servings) => openOverlay({ kind: 'cook', recipeId: recipe.id, servings })}
         onAddToShopping={(servings) => {
           const count = store.addRecipeToShopping(recipe, servings);
           showToast(
-            `${count} ${count === 1 ? 'Zutat' : 'Zutaten'} in Groceries`,
-            'Rückgängig',
+            t.inDerBeute(count),
+            t.rueckgaengig,
             () => storeRef.current.undo?.(),
           );
         }}
@@ -483,8 +500,8 @@ export function AppShell() {
             store.toggleDishCookNext(dish.id);
             showToast(
               dish.cookNext
-                ? `${kurz(dish.name)} von Cook Next genommen`
-                : `${kurz(dish.name)} auf Cook Next – Zutaten stehen in Groceries`,
+                ? t.vonCookNext(kurz(inhalt.text(dish.name, dish.en)))
+                : t.aufCookNext(kurz(inhalt.text(dish.name, dish.en))),
             );
           }}
           onMakeRecipe={() => {
@@ -518,10 +535,10 @@ export function AppShell() {
           onAddMissingRecipes={() => {
             const { added, completed } = store.addMissingRecipes();
             const teile = [
-              added > 0 ? `${added} nachgetragen` : '',
-              completed > 0 ? `${completed} ergänzt` : '',
+              added > 0 ? t.nachgetragen(added) : '',
+              completed > 0 ? t.ergaenzt(completed) : '',
             ].filter(Boolean);
-            showToast(teile.length ? teile.join(', ') : 'Alles schon vorhanden');
+            showToast(teile.length ? teile.join(', ') : t.allesVorhanden);
           }}
           onClose={closeTop}
         />
@@ -542,13 +559,11 @@ export function AppShell() {
           }}
           onSaveIdea={(recipe) => {
             store.saveRecipe(recipe);
-            showToast(`„${recipe.name}“ gespeichert`);
+            showToast(t.gespeichert(recipe.name));
           }}
           onAddMissing={(names) => {
             for (const name of names) store.addShoppingItem({ name });
-            showToast(
-              `${names.length} ${names.length === 1 ? 'Zutat' : 'Zutaten'} in Groceries`,
-            );
+            showToast(t.inDerBeute(names.length));
           }}
         />
       );
@@ -575,10 +590,10 @@ export function AppShell() {
             closeTop();
             showToast(
               overlay.ausIdee
-                ? 'Aus der Idee ist ein Rezept geworden'
+                ? t.ausIdee
                 : overlay.isNew
-                  ? 'Rezept angelegt'
-                  : 'Rezept gespeichert',
+                  ? t.rezeptAngelegt
+                  : t.rezeptGespeichert,
             );
           }}
         />
@@ -594,14 +609,14 @@ export function AppShell() {
           onSave={(dish) => {
             store.saveDish(dish);
             closeTop();
-            showToast(overlay.isNew ? 'Idee angelegt' : 'Idee gespeichert');
+            showToast(overlay.isNew ? t.ideeAngelegt : t.ideeGespeichert);
           }}
           onDelete={() => {
             store.deleteDish(overlay.dish.id);
             // Liegt die Ansicht der Idee darunter, geht sie mit.
             const darunter = stack[stack.length - 2];
             closeOverlays(darunter?.kind === 'idea' && darunter.id === overlay.dish.id ? 2 : 1);
-            showToast('Idee gelöscht');
+            showToast(t.ideeGeloescht);
           }}
         />
       );

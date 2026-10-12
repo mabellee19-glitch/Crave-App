@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { formatClock } from '@/lib/units';
+import { useT } from '@/lib/i18n';
 import { IconPause, IconPlay, IconRestart, IconTimer } from './Icons';
 
 /**
@@ -44,7 +45,7 @@ export function Timer({
   onPause,
   onReset,
   onDismiss,
-  label = 'Timer',
+  label,
 }: {
   duration: number;
   state: TimerState;
@@ -54,26 +55,27 @@ export function Timer({
   onDismiss: () => void;
   label?: string;
 }) {
+  const t = useT();
   const running = state.endsAt !== null;
   const seconds = remainingSeconds(state);
 
   return (
     <div className={`timer${state.ringing ? ' timer--ringing' : ''}`}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="timer__label">{state.ringing ? 'Zeit ist um' : label}</div>
+        <div className="timer__label">{state.ringing ? t.timer.zeitUm : (label ?? t.timer.timer)}</div>
         <div className="timer__clock">{formatClock(seconds)}</div>
       </div>
       <div className="timer__actions">
         {state.ringing ? (
           <button className="btn btn--primary" onClick={onDismiss}>
-            Fertig
+            {t.timer.fertig}
           </button>
         ) : (
           <>
             <button
               className="iconbtn"
               onClick={onReset}
-              aria-label="Timer zurücksetzen"
+              aria-label={t.timer.zuruecksetzen}
               disabled={!running && seconds === duration}
             >
               <IconRestart size={20} />
@@ -81,10 +83,10 @@ export function Timer({
             <button
               className="btn btn--primary"
               onClick={running ? onPause : onStart}
-              aria-label={running ? 'Timer pausieren' : 'Timer starten'}
+              aria-label={running ? t.timer.pausieren : t.timer.starten}
             >
               {running ? <IconPause size={18} /> : <IconPlay size={18} />}
-              {running ? 'Pause' : 'Start'}
+              {running ? t.timer.pause : t.timer.start}
             </button>
           </>
         )}

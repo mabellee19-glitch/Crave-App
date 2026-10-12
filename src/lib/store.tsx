@@ -33,6 +33,7 @@ import { schrittSignatur, vorbereitungVorschlagen } from './prep';
 import { schritteKuerzen } from './kuerzen';
 import { ohneEszett, textOhneTracking } from './aufraeumen';
 import { Uebersetzung, uebersetzungAnwenden } from './uebersetzen';
+import { englischZusammenfuehren } from './englisch';
 import {
   addAmounts,
   canonicalUnit,
@@ -109,6 +110,15 @@ interface StoreValue {
   originalWiederherstellen: (id: string) => void;
   /** Uebersetzung uebernehmen, wenn das Rezept seit `stand` unveraendert ist. */
   uebersetzungUebernehmen: (id: string, stand: number, ergebnis: Uebersetzung | null) => void;
+  /**
+   * Englische Texte fuer die englische Ansicht an ein Rezept oder Gericht
+   * haengen. `null`: die KI konnte nicht – dann nicht nochmal fragen.
+   */
+  englischUebernehmen: (
+    sammlung: 'recipes' | 'dishes',
+    id: string,
+    paare: Record<string, string> | null,
+  ) => void;
   /** Fehlende Startrezepte nachtragen; vorhandene bleiben unangetastet. */
   addMissingRecipes: () => { added: number; completed: number };
   deletePantryItem: (id: string) => void;
@@ -1387,6 +1397,20 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     [mutate],
   );
 
+  const englischUebernehmen = useCallback(
+    (sammlung: 'recipes' | 'dishes', id: string, paare: Record<string, string> | null) => {
+      mutate((draft) => {
+        const eintrag = draft[sammlung][id] as Recipe | Dish | undefined;
+        if (!eintrag || eintrag.deleted) return;
+        const neu = paare
+          ? { ...eintrag, en: englischZusammenfuehren(eintrag, paare), updatedAt: stamp() }
+          : { ...eintrag, enVersuch: Date.now(), updatedAt: stamp() };
+        (draft[sammlung] as Record<string, Recipe | Dish>)[id] = neu;
+      });
+    },
+    [mutate],
+  );
+
   /** Gekuerzte Schritte zuruecknehmen. Danach wird das Rezept nicht mehr von allein gekuerzt. */
   const originalWiederherstellen = useCallback(
     (id: string) => {
@@ -1578,6 +1602,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     kiKuerzungUebernehmen,
     originalWiederherstellen,
     uebersetzungUebernehmen,
+    englischUebernehmen,
     addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,
@@ -1612,6 +1637,7 @@ export function StoreProvider({ spaceId, children }: { spaceId: string; children
     kiKuerzungUebernehmen,
     originalWiederherstellen,
     uebersetzungUebernehmen,
+    englischUebernehmen,
     addMissingRecipes,
     deletePantryItem,
     movePantryItemToCart,

@@ -465,3 +465,135 @@ export async function rezeptUebersetzen(eingabe: Uebersetzung): Promise<Ueberset
   }
   return heraus;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Menge und Einheit fuer eine Zutat                                           */
+/* -------------------------------------------------------------------------- */
+
+/** Einheiten, die die App kennt und umrechnet oder als Wort fuehrt. */
+export const KI_EINHEITEN = [
+  'g', 'kg', 'ml', 'dl', 'l', 'EL', 'TL', 'Stück', 'Bund', 'Dose', 'Glas', 'Packung', 'Päckchen',
+  'Prise', 'Zehen', 'Becher', 'Würfel', 'Kugel', 'Rolle', 'Tafel', 'Beutel', 'Flasche', 'Scheiben',
+  'Zweige', 'Handvoll', 'Kopf', 'Stangen', 'Blätter',
+];
+
+export const KI_ABTEILUNGEN = [
+  'gemuese', 'brot', 'fleisch', 'kuehl', 'vorrat', 'gewuerze', 'suesses', 'getraenke', 'tiefkuehl',
+  'haushalt', 'weitere',
+];
+
+const EINHEITEN = `Du hilfst in einer privaten Koch-App in der Schweiz. Jemand tippt beim
+Erfassen eines Rezepts eine Zutat ein. Schlag vor, in welcher Menge und Einheit
+man sie in einem Rezept für vier Personen üblicherweise angibt.
+
+- "vorschlaege": eine bis drei Möglichkeiten, die gängigste zuerst. Zum
+  Beispiel Tomatensauce: 1 Dose, 1 Glas, 400 g. Basilikum: 1 Bund. Salz:
+  1 Prise.
+- Einheiten nur aus dieser Liste: ${KI_EINHEITEN.join(', ')}.
+- "abteilung": wo man die Zutat in einem Schweizer Laden findet, einer dieser
+  Werte: ${KI_ABTEILUNGEN.join(', ')}.
+- "de" und "en": der Name der Zutat auf Deutsch (Schweizer Schreibweise, nie
+  Eszett, immer "ss") und auf Englisch, kurz und ohne Menge.
+- Ist es nichts, was man kocht oder einkauft, bleiben die Vorschläge leer.
+
+Antworte ausschliesslich über das Werkzeug einheiten.`;
+
+const EINHEITEN_TOOL = {
+  name: 'einheiten',
+  description: 'Liefert übliche Mengen und Einheiten für eine Zutat.',
+  strict: true,
+  input_schema: {
+    type: 'object' as const,
+    additionalProperties: false,
+    required: ['vorschlaege', 'abteilung', 'de', 'en'],
+    properties: {
+      vorschlaege: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['menge', 'einheit'],
+          properties: { menge: { type: 'number' }, einheit: { type: 'string' } },
+        },
+      },
+      abteilung: { type: 'string', enum: KI_ABTEILUNGEN },
+      de: { type: 'string' },
+      en: { type: 'string' },
+    },
+  },
+};
+
+export interface ZutatKi {
+  vorschlaege: Array<{ amount: number; unit: string }>;
+  abteilung: string;
+  de: string;
+  en: string;
+}
+
+/** Was die KI zu einer Zutat sagt, die die App selbst nicht kennt. */
+export async function zutatFragen(zutat: string): Promise<ZutatKi> {
+  const roh = (await frageWerkzeug(EINHEITEN, EINHEITEN_TOOL, `Zutat: ${zutat}`)) as {
+    vorschlaege?: Array<{ menge?: unknown; einheit?: unknown }>;
+    abteilung?: unknown;
+    de?: unknown;
+    en?: unknown;
+  };
+  const erlaubt = new Map(KI_EINHEITEN.map((einheit) => [einheit.toLowerCase(), einheit]));
+  const vorschlaege = (Array.isArray(roh.vorschlaege) ? roh.vorschlaege : [])
+    .map((eintrag) => ({
+      amount: Number(eintrag?.menge),
+      unit: erlaubt.get(String(eintrag?.einheit ?? '').trim().toLowerCase()) ?? '',
+    }))
+    .filter((eintrag) => eintrag.amount > 0 && eintrag.amount < 10_000 && eintrag.unit)
+    .slice(0, 3);
+  const abteilung = KI_ABTEILUNGEN.includes(String(roh.abteilung)) ? String(roh.abteilung) : 'weitere';
+  return {
+    vorschlaege,
+    abteilung,
+    de: ohneEszett(String(roh.de ?? '').trim()).slice(0, 80),
+    en: String(roh.en ?? '').trim().slice(0, 80),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Deutsche Texte fuer die englische Ansicht                                   */
+/* -------------------------------------------------------------------------- */
+
+const ENGLISCH = `Du hilfst in einer privaten Koch-App. Die Rezepte sind auf Deutsch
+gespeichert; für die englische Ansicht übersetzt du einzelne Texte ins
+Englische: Rezeptnamen, Zutaten, Vorbereitungsaufgaben, Zubereitungsschritte
+und Notizen.
+
+- Natürliches Küchen-Englisch, kurz und klar, Befehlsform bei Schritten.
+- Zahlen, Mengen, Temperaturen und Zeiten bleiben genau so (metrisch, °C).
+- Schweizer Wörter richtig: Poulet = chicken, Rahm = cream, Peperoni = bell
+  pepper, Rüebli = carrot, Zmorge = breakfast, Wähe = tart.
+- Zutaten klein geschrieben ("chopped tomatoes"), Rezeptnamen wie Titel.
+- Adressen und Markennamen bleiben unverändert.
+- Gleiche Anzahl und Reihenfolge wie die Eingabe, Eintrag für Eintrag.
+
+Antworte ausschliesslich über das Werkzeug englisch.`;
+
+const ENGLISCH_TOOL = {
+  name: 'englisch',
+  description: 'Liefert die Texte auf Englisch, in derselben Reihenfolge.',
+  strict: true,
+  input_schema: {
+    type: 'object' as const,
+    additionalProperties: false,
+    required: ['texte'],
+    properties: { texte: { type: 'array', items: { type: 'string' } } },
+  },
+};
+
+/** Deutsche Texte auf Englisch, gleiche Laenge – sonst "incomplete". */
+export async function aufEnglisch(texte: string[]): Promise<string[]> {
+  if (!visionAccess()) throw new Error('no_key');
+  const eingabe = texte.map((text, index) => `${index + 1}. ${text.replace(/\s+/g, ' ')}`).join('\n');
+  const roh = (await frageWerkzeug(ENGLISCH, ENGLISCH_TOOL, eingabe)) as { texte?: unknown };
+  const heraus = (Array.isArray(roh.texte) ? roh.texte : []).map((text) =>
+    String(text ?? '').replace(/^\d+\.\s+/, '').trim(),
+  );
+  if (heraus.length !== texte.length || heraus.some((text) => !text)) throw new Error('incomplete');
+  return heraus;
+}

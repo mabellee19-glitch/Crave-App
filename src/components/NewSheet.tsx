@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@/lib/i18n';
 import { Sheet } from './ui';
 import { IconChevronRight, IconIdee, IconLink, IconPencil } from './Icons';
 
@@ -11,29 +12,30 @@ export type NeuArt = 'link' | 'rezept' | 'idee';
  * ein Rezept oder ein Gericht ist, bevor man den richtigen Bereich fand.
  */
 export function NewSheet({ onPick, onClose }: { onPick: (art: NeuArt) => void; onClose: () => void }) {
+  const t = useT();
   const wege: Array<{ art: NeuArt; titel: string; text: string; icon: React.ReactNode }> = [
     {
       art: 'link',
-      titel: 'Rezept über Link',
-      text: 'Link einer Rezeptseite – oder den kopierten Rezepttext – einfügen. Die Schritte werden kurz und einfach.',
+      titel: t.neu.wege.link.titel,
+      text: t.neu.wege.link.text,
       icon: <IconLink size={22} />,
     },
     {
       art: 'rezept',
-      titel: 'Rezept selbst schreiben',
-      text: 'Zutaten, Vorbereitung und Schritte – mit Timern.',
+      titel: t.neu.wege.rezept.titel,
+      text: t.neu.wege.rezept.text,
       icon: <IconPencil size={22} />,
     },
     {
       art: 'idee',
-      titel: 'Nur eine Idee',
-      text: 'Name und ein paar Zutaten. Kommt auf Cook Next und in Groceries.',
+      titel: t.neu.wege.idee.titel,
+      text: t.neu.wege.idee.text,
       icon: <IconIdee size={22} />,
     },
   ];
 
   return (
-    <Sheet title="Was kommt dazu?" onClose={onClose}>
+    <Sheet title={t.neu.titel} onClose={onClose}>
       <div style={{ height: 16 }} />
       <div className="stack">
         {wege.map((weg) => (
@@ -50,8 +52,7 @@ export function NewSheet({ onPick, onClose }: { onPick: (art: NeuArt) => void; o
         ))}
       </div>
       <p className="row__note" style={{ margin: '14px 2px 8px' }}>
-        Eine Idee lässt sich später mit einem Tipp zum Rezept ausbauen – sie bleibt dabei derselbe
-        Eintrag.
+        {t.neu.ausbauen}
       </p>
     </Sheet>
   );

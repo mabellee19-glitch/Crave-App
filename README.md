@@ -4,19 +4,21 @@ Persönliche Koch- und Einkaufs-App. Mobile-first, läuft im Browser (Safari auf
 iPhone und iPad, Chrome, Edge, Firefox) und lässt sich zum Home-Bildschirm
 hinzufügen. Kein App Store nötig.
 
-Zwei Bereiche:
+Zwei Bereiche, auf Deutsch und auf Englisch:
 
-- **Cravings** – alles, was man kochen kann, in einer Liste: Rezepte mit
-  Zutaten, Vorbereitung, Schritten und Kochmodus, und Ideen – Gerichte ohne
-  Anleitung, nur mit Name und Zutaten.
-- **Groceries** – die Einkaufsliste plus dauerhafte Grundliste mit
-  Standard-Zutaten.
+- **Gelüste** (englisch *Cravings*) – alles, was man kochen kann, in einer
+  Liste: Rezepte mit Zutaten, Vorbereitung, Schritten und Kochmodus, und
+  Ideen – Gerichte ohne Anleitung, nur mit Name und Zutaten.
+- **Beute** (englisch *Groceries*) – die Einkaufsliste, nach Abteilungen des
+  Ladens geordnet, plus dauerhafte Grundliste mit Standard-Zutaten.
 
 ## Was die App kann
 
 | Bereich | Funktion |
 | --- | --- |
+| Überall | Deutsch oder Englisch auf Knopfdruck (`DE`/`EN` oben) – die ganze App samt aller Rezepte |
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
+| Rezepte | Beim Eintippen einer Zutat schlägt die App Menge und Einheit vor: Basilikum «1 Bund», Tomatensauce «1 Dose» oder «1 Glas» |
 | Rezepte | `Rezept über Link hinzufügen`: Adresse einfügen, Zutaten und Zubereitung kommen mit – samt Timern |
 | Rezepte | Übernommene Schritte werden mit KI kürzer und einfacher – Zutaten, Mengen und Reihenfolge bleiben, das Original lässt sich zurückholen |
 | Rezepte | Englische Rezepte kommen auf Deutsch an, mit Gramm, Deziliter und Grad Celsius |
@@ -29,26 +31,73 @@ Zwei Bereiche:
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Cravings | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
-| Cravings | Das Plus fragt: Rezept über Link, Rezept selbst schreiben oder nur eine Idee |
-| Ideen | Auf Cook Next setzen – ihre Zutaten kommen in Groceries |
+| Gelüste | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
+| Gelüste | Das Plus fragt: Rezept über Link, Rezept selbst schreiben oder nur eine Idee |
+| Ideen | Auf Cook Next setzen – ihre Zutaten kommen in die Beute |
 | Ideen | `Rezept daraus machen`: Name und Zutaten sind schon eingetragen, es bleibt ein Eintrag |
-| Groceries | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
-| Groceries | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
+| Beute | Offene Zutaten nach Abteilung: Gemüse & Früchte, Brot, Fleisch & Fisch, Kühlregal … |
+| Beute | Jede Zutat als Kachel mit Menge und dem Rezept, für das sie gebraucht wird |
+| Beute | Schnelleingabe erkennt Menge und Einheit (`400 g Poulet`) |
+| Beute | Abhaken lässt Standard-Zutaten in die Grundliste zurückwandern |
 | Grundliste | Antippen legt eine Zutat in die aktive Liste |
 | Grundliste | Rubriken zum Aufklappen, dazu eine Vorschlagsliste zum Nachtragen |
 | Rezept → Liste | Zutaten werden mit Mengen übernommen und zusammengefasst |
 | Kühlschrankfoto | Foto erkennt Lebensmittel, findet passende eigene Rezepte und schlägt neue vor |
-| Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann in Groceries |
+| Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann in der Beute |
 | Cook Next | Abwählen nimmt genau diese Zutaten wieder von der Liste |
 | Überall | Suche, automatisches Speichern, Geräte-Abgleich |
 | Überall | Sechs Farbwelten zur Auswahl unter `Einstellungen & Sync → Design` |
 | Überall | Startet sofort mit dem Stand auf dem Gerät, der Abgleich läuft im Hintergrund |
 
+## Deutsch und Englisch
+
+Oben rechts steht `DE` oder `EN`: ein Tipp schaltet die ganze App um, auch in
+`Einstellungen & Sync → Sprache`. Die Wahl gilt für dieses Gerät. Die
+Bereiche heissen auf Deutsch «Gelüste» und «Beute», auf Englisch «Cravings»
+und «Groceries».
+
+- **Texte der Oberfläche** stehen je Bildschirm in `src/lib/texte/`, einmal
+  Deutsch und einmal Englisch in derselben Form. Fehlt auf Englisch ein Text,
+  meldet das TypeScript beim Bauen.
+- **Rezepte** sind auf Deutsch gespeichert. Die englische Ansicht schlägt
+  jeden Text nach (`src/lib/inhalt.tsx`): zuerst die englische Fassung am
+  Rezept selbst, dann die von Hand übersetzten Startinhalte
+  (`src/lib/seedEn.ts`), bei Zutaten das Zutatenwissen. Mengen und Einheiten
+  werden mitübersetzt: «2 EL» wird «2 tbsp», «3 Stück Zwiebeln» «3 onions».
+- **Eigene Rezepte** übersetzt die KI im Hintergrund, sobald jemand Englisch
+  wählt – nur die Texte, die noch fehlen. Die Übersetzung hängt am Rezept und
+  gilt damit auf allen Geräten. Ohne erreichbare KI steht bis dahin der
+  deutsche Text da.
+- **Kühlschrankfoto**: auf Englisch antwortet die KI englisch; ein
+  gespeicherter Vorschlag wird wie jedes englische Rezept ins Deutsche
+  übersetzt.
+
+## Zutaten eingeben
+
+Wer im Rezept nur den Namen einer Zutat tippt, bekommt Menge und Einheit
+dazu: «Basilikum» wird «1 Bund», «Tomatensauce» «1 Dose», darunter stehen die
+anderen üblichen Mengen als Knöpfe («1 Glas», «400 g»). Was man selbst bei
+Menge oder Einheit einträgt, wird nie überschrieben.
+
+Das Wissen dafür steckt in `src/lib/zutaten.ts`: gut 230 Zutaten mit
+Schlüsselwörtern auf Deutsch und Englisch, üblichen Mengen, der Abteilung im
+Laden und dem englischen Namen. Kennt die App eine Zutat nicht, fragt sie
+nach einer kurzen Pause die KI (`/api/einheiten`) und merkt sich die Antwort
+auf dem Gerät – dieselbe Zutat kostet nur einmal eine Anfrage.
+
+## Beute: die Einkaufsliste
+
+Offene Zutaten stehen nach Abteilungen, in der Reihenfolge eines Schweizer
+Ladens: Gemüse & Früchte, Brot & Teig, Fleisch & Fisch, Milch, Käse & Eier,
+Vorrat, Gewürze, Süsses, Getränke, Tiefkühl, Haushalt. Jede Zutat ist eine
+Kachel mit Häkchen, Menge und dem Rezept, für das sie gebraucht wird. Was die
+App nicht einordnen kann, lässt sie im Hintergrund von der KI einordnen; bis
+dahin steht es unter «Weitere».
+
 ## Rezepte und Ideen
 
 Früher gab es zwei Bereiche, Rezepte und Gerichte, und fast jedes Gericht
-stand doppelt da. Jetzt steht alles in `Cravings`: ein Buch-Symbol für ein Rezept,
+stand doppelt da. Jetzt steht alles in `Gelüste`: ein Buch-Symbol für ein Rezept,
 eine Glühbirne für eine Idee. Gespeichert wird weiter wie bisher – ein
 Gericht mit hinterlegtem Rezept ist in der Liste einfach das Rezept, ein
 Gericht ohne Rezept ist eine Idee (`src/lib/essen.ts`). Ältere Stände und
@@ -80,7 +129,7 @@ Für den Rest gibt es zwei Knöpfe in der App selbst:
 - Dasselbe geht direkt im Rezept: hat es keine Zubereitungsschritte, steht der
   Knopf `Aus der Vorlage nachtragen` dort, wo man das Problem sieht – nämlich
   neben dem ausgegrauten `Start Cooking`.
-- `Groceries → Verwalten → Vorschlagsliste ergänzen` trägt fehlende
+- `Beute → Verwalten → Vorschlagsliste ergänzen` trägt fehlende
   Standard-Zutaten nach und ordnet vorhandene ohne Rubrik ein.
 
 Beide sind rein ergänzend und lassen sich gefahrlos mehrfach auslösen. Die
@@ -204,7 +253,7 @@ Ist die KI gerade nicht erreichbar, kommt das Rezept auf Englisch, mit dem
 Hinweis, dass es übersetzt wird. Das geschieht dann von selbst beim nächsten
 Start, auch für Rezepte, die schon gespeichert sind. Am Rezept steht danach
 «Aus dem Englischen übersetzt». Ist es für Cook Next geplant, stehen die
-Zutaten in Groceries danach ebenfalls auf Deutsch.
+Zutaten in der Beute danach ebenfalls auf Deutsch.
 
 ### Schweizer Schreibweise
 
@@ -308,7 +357,7 @@ Schlüssel.
 
 Zum Ablauf: das Foto wird im Browser auf 1024 Pixel Kantenlänge verkleinert
 und dann zur Auswertung weitergeschickt. Es wird nirgends gespeichert, weder in
-der Datenbank noch in Groceries. Ein Aufruf kostet je nach Foto grob
+der Datenbank noch in der Beute. Ein Aufruf kostet je nach Foto grob
 ein bis zwei Rappen.
 
 Welche eigenen Rezepte passen, rechnet die App selbst aus – aus den erkannten
@@ -469,6 +518,13 @@ src/
   lib/
     vision.ts                 Auswertung des Kühlschrankfotos
     recipeAi.ts               Vereinfachen, Lesen und Übersetzen mit KI
+    i18n.tsx, texte/          Sprache wählen; Texte der Oberfläche auf Deutsch und Englisch
+    inhalt.tsx                Rezepte, Zutaten und Mengen in der gewählten Sprache zeigen
+    seedEn.ts                 Startinhalte auf Englisch, von Hand übersetzt
+    englisch.ts               Was an der englischen Fassung eines Rezepts noch fehlt
+    useKiEnglisch.ts          Englische Fassung eigener Rezepte im Hintergrund
+    zutaten.ts                Zutatenwissen: Mengen, Einheiten, Abteilung, englischer Name
+    zutatKi.ts                Was die KI zu unbekannten Zutaten gesagt hat (auf dem Gerät)
     uebersetzen.ts            Englische Rezepte: Auftrag an die KI, Antwort ans Rezept
     sprache.ts                Ist ein Rezept englisch?
     aufraeumen.ts             Eszett zu ss, Adressen ohne Werbeparameter

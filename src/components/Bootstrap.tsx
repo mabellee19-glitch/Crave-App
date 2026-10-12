@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { isValidSpaceId, newSpaceId } from '@/lib/id';
+import { useT } from '@/lib/i18n';
 import { Wordmark } from './Logo';
 
 const LAST_SPACE_KEY = 'crave:space';
@@ -12,6 +13,7 @@ const LAST_SPACE_KEY = 'crave:space';
  * genau dieser Link wird zwischen iPhone, iPad und Computer geteilt.
  */
 export function Bootstrap() {
+  const t = useT();
   useEffect(() => {
     let id: string | null = null;
     try {
@@ -45,9 +47,9 @@ export function Bootstrap() {
         <div className="brand" style={{ marginBottom: 12 }}>
           <Wordmark hoehe={44} />
         </div>
-        <p className="muted">Küche wird vorbereitet…</p>
+        <p className="muted">{t.start.laden}</p>
         <noscript>
-          <p className="muted">Bitte aktiviere JavaScript, um Crave zu benutzen.</p>
+          <p className="muted">{t.start.ohneJavaScript}</p>
         </noscript>
       </div>
     </div>

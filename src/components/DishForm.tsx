@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, matchDishCategory } from '@/lib/types';
 import { blankIngredient } from '@/lib/store';
 import { kategorieErkennen } from '@/lib/category';
+import { useSprache, useT } from '@/lib/i18n';
 import { ConfirmDialog, Field, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconTrash } from './Icons';
@@ -25,6 +26,8 @@ export function DishForm({
   onDelete?: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
+  const sprache = useSprache();
   // Gerichte aus aelteren Staenden haben noch gar keine Zutatenliste.
   const [draft, setDraft] = useState<Dish>(() => ({
     ...initial,
@@ -50,12 +53,12 @@ export function DishForm({
   return (
     <>
       <Sheet
-        title={isNew ? 'Neue Idee' : 'Idee bearbeiten'}
+        title={isNew ? t.ideeForm.neu : t.ideeForm.bearbeiten}
         onClose={onClose}
         footer={
           <>
             <button className="btn btn--ghost" onClick={onClose}>
-              Abbrechen
+              {t.allgemein.abbrechen}
             </button>
             <button
               className="btn btn--primary"
@@ -71,28 +74,30 @@ export function DishForm({
                 })
               }
             >
-              Speichern
+              {t.allgemein.speichern}
             </button>
           </>
         }
       >
         <div style={{ height: 16 }} />
 
-        <Field label="Name" htmlFor="dish-name">
+        <Field label={t.ideeForm.name} htmlFor="dish-name">
           <input
             id="dish-name"
             className="input"
             value={draft.name}
-            placeholder="z. B. Skyr-Bowl mit Beeren"
+            placeholder={t.ideeForm.namePlatzhalter}
             onChange={(event) => set('name', event.target.value)}
             autoComplete="off"
           />
         </Field>
 
         <Field
-          label="Kategorie"
+          label={t.ideeForm.kategorie}
           htmlFor="dish-category"
-          hint={kategorieAuto && erkennung && erkannt ? `Automatisch erkannt: ${erkennung.grund}` : undefined}
+          hint={
+            kategorieAuto && erkennung && erkannt ? t.ideeForm.automatischErkannt(sprache === 'en' ? erkennung.grundEn : erkennung.grund) : undefined
+          }
         >
           <select
             id="dish-category"
@@ -114,11 +119,11 @@ export function DishForm({
         <hr className="divider" />
 
         <div className="detail__sectionhead">
-          <span className="detail__h">Zutaten</span>
-          <span className="row__note">Menge · Einheit · Zutat</span>
+          <span className="detail__h">{t.ideeForm.zutaten}</span>
+          <span className="row__note">{t.ideeForm.spalten}</span>
         </div>
         <p className="muted" style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
-          Kommt die Idee auf Cook Next, wandern diese Zutaten in Groceries.
+          {t.ideeForm.zutatenHinweis}
         </p>
 
         <IngredientEditor
@@ -128,12 +133,12 @@ export function DishForm({
 
         <hr className="divider" />
 
-        <Field label="Notiz" htmlFor="dish-notes">
+        <Field label={t.ideeForm.notiz} htmlFor="dish-notes">
           <textarea
             id="dish-notes"
             className="textarea"
             value={draft.notes}
-            placeholder="Optional: Idee, Beilage, Erinnerung"
+            placeholder={t.ideeForm.notizPlatzhalter}
             onChange={(event) => set('notes', event.target.value)}
           />
         </Field>
@@ -143,7 +148,7 @@ export function DishForm({
             <hr className="divider" />
             <button className="btn btn--danger btn--block" onClick={() => setConfirming(true)}>
               <IconTrash size={18} />
-              Idee löschen
+              {t.ideeForm.loeschen}
             </button>
             <div style={{ height: 8 }} />
           </>
@@ -152,9 +157,9 @@ export function DishForm({
 
       {confirming && onDelete ? (
         <ConfirmDialog
-          title="Idee löschen?"
-          text={`„${draft.name}“ wird auf allen Geräten entfernt.`}
-          confirmLabel="Löschen"
+          title={t.ideeForm.loeschenFrage}
+          text={t.ideeForm.loeschenText(draft.name)}
+          confirmLabel={t.allgemein.loeschen}
           onCancel={() => setConfirming(false)}
           onConfirm={() => {
             setConfirming(false);

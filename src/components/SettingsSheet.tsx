@@ -6,6 +6,7 @@ import { Sheet } from './ui';
 import { testAlarm } from '@/lib/audio';
 import { STANDARD_THEME, THEMES, applyTheme, readTheme } from '@/lib/theme';
 import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare, IconTimer } from './Icons';
+import { setzeSprache, useSprache, useT } from '@/lib/i18n';
 
 export function SettingsSheet({
   spaceId,
@@ -21,6 +22,8 @@ export function SettingsSheet({
   onClose: () => void;
 }) {
   const sync = useSync();
+  const t = useT().einstellungen;
+  const sprache = useSprache();
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState(STANDARD_THEME);
@@ -52,14 +55,38 @@ export function SettingsSheet({
   };
 
   return (
-    <Sheet title="Einstellungen & Sync" onClose={onClose}>
+    <Sheet title={t.titel} onClose={onClose}>
       <div style={{ height: 16 }} />
 
-      <div className="detail__h" id="design-heading">
-        Design
+      <div className="detail__h" id="sprache-heading">
+        {t.sprache}
       </div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Such dir eine Farbwelt aus – sie gilt sofort und bleibt auf diesem Gerät gespeichert.
+        {t.spracheText}
+      </p>
+      <div className="sprachwahl" role="radiogroup" aria-labelledby="sprache-heading">
+        {(['de', 'en'] as const).map((eintrag) => (
+          <button
+            key={eintrag}
+            role="radio"
+            aria-checked={sprache === eintrag}
+            className={`sprachwahl__knopf${sprache === eintrag ? ' sprachwahl__knopf--aktiv' : ''}`}
+            lang={eintrag}
+            onClick={() => setzeSprache(eintrag)}
+          >
+            {eintrag === 'de' ? t.deutsch : t.englisch}
+            {sprache === eintrag ? <IconCheck size={15} /> : null}
+          </button>
+        ))}
+      </div>
+
+      <hr className="divider" />
+
+      <div className="detail__h" id="design-heading">
+        {t.design}
+      </div>
+      <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
+        {t.designText}
       </p>
       <div className="themegrid" role="radiogroup" aria-labelledby="design-heading">
         {THEMES.map((entry) => {
@@ -84,10 +111,10 @@ export function SettingsSheet({
                 <span className="themecard__button" style={{ background: akzent }} />
               </span>
               <span className="themecard__name">
-                {entry.name}
+                {t.themes[entry.id]?.name ?? entry.name}
                 {aktiv ? <IconCheck size={15} /> : null}
               </span>
-              <span className="themecard__text">{entry.beschreibung}</span>
+              <span className="themecard__text">{t.themes[entry.id]?.beschreibung ?? entry.beschreibung}</span>
             </button>
           );
         })}
@@ -95,10 +122,9 @@ export function SettingsSheet({
 
       <hr className="divider" />
 
-      <div className="detail__h">Dein Link</div>
+      <div className="detail__h">{t.link}</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Öffne diesen Link auf iPhone, iPad und Computer. Alle Geräte mit diesem Link sehen
-        denselben Datenstand.
+        {t.linkText}
       </p>
       <div className="linkbox">
         <IconLink size={16} />
@@ -107,99 +133,91 @@ export function SettingsSheet({
       <div className="rowline" style={{ marginTop: 10 }}>
         <button className="btn btn--primary" onClick={share}>
           {copied ? <IconCheck size={18} /> : <IconShare size={18} />}
-          {copied ? 'Link kopiert' : 'Link teilen'}
+          {copied ? t.linkKopiert : t.linkTeilen}
         </button>
       </div>
 
       <hr className="divider" />
 
-      <div className="detail__h">Synchronisation</div>
+      <div className="detail__h">{t.sync}</div>
       <div className="notice" style={{ marginTop: 10 }}>
         <div className="rowline" style={{ marginBottom: 8 }}>
           <SyncBadge />
           <span className="spacer" />
           <button className="btn btn--ghost" style={{ minHeight: 38 }} onClick={onSyncNow}>
             <IconRefresh size={17} />
-            Jetzt abgleichen
+            {t.jetztAbgleichen}
           </button>
         </div>
         {sync.dbUnreachable ? (
           <p>
-            <strong>Die hinterlegte Datenbank antwortet nicht.</strong> Häufigste Ursache: eine
-            Umgebungsvariable mit einer Verbindung, die es nicht gibt – etwa ein Platzhalter aus
-            einer Beispieldatei. Unter <code>/api/status</code> steht, welche Variable genutzt wird
-            und woran die Verbindung scheitert.
+            <strong>{t.dbFehltTitel}</strong>
+            {t.dbFehltText1}
+            <code>/api/status</code>
+            {t.dbFehltText2}
             {sync.error ? (
               <>
                 {' '}
-                Meldung: <code>{sync.error}</code>
+                {t.meldung} <code>{sync.error}</code>
               </>
             ) : null}
           </p>
         ) : sync.cloud === false ? (
           <p>
-            <strong>Cloud-Datenbank nicht konfiguriert.</strong> Der Server speichert die Daten
-            momentan nur flüchtig. Für dauerhafte Synchronisation zwischen deinen Geräten muss die
-            Umgebungsvariable <code>DATABASE_URL</code> gesetzt sein – siehe README.
+            <strong>{t.keineCloudTitel}</strong>
+            {t.keineCloudText1}
+            <code>DATABASE_URL</code>
+            {t.keineCloudText2}
           </p>
         ) : sync.cloud === true ? (
-          <p>
-            Änderungen werden automatisch gespeichert und mit allen Geräten abgeglichen, die diesen
-            Link geöffnet haben.
-          </p>
+          <p>{t.cloudOk}</p>
         ) : (
-          <p>Verbindung zum Server wird geprüft…</p>
+          <p>{t.pruefen}</p>
         )}
         {sync.lastSyncedAt ? (
           <p className="row__note" style={{ marginTop: 8 }}>
-            Zuletzt abgeglichen: {new Date(sync.lastSyncedAt).toLocaleTimeString('de-CH')}
+            {t.zuletzt(new Date(sync.lastSyncedAt).toLocaleTimeString(t.zeitformat))}
           </p>
         ) : null}
       </div>
 
       <hr className="divider" />
 
-      <div className="detail__h">Zum Home-Bildschirm hinzufügen</div>
+      <div className="detail__h">{t.home}</div>
       <p className="muted" style={{ fontSize: 14.5, marginTop: 8 }}>
-        In Safari auf «Teilen» tippen und «Zum Home-Bildschirm» wählen. Danach startet Crave wie
-        eine App im Vollbild.
+        {t.homeText}
       </p>
 
       <hr className="divider" />
 
-      <div className="detail__h">Startinhalte</div>
+      <div className="detail__h">{t.start}</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Neue mitgelieferte Rezepte und Ideen erscheinen von selbst, sobald du die App
-        öffnest – Gelöschtes kommt dabei nicht zurück. Dieser Knopf ist für den Rest: wo einem
-        vorhandenen Rezept die Zubereitung oder die Zutaten ganz fehlen, werden sie ergänzt.
-        Eigenes bleibt unverändert.
+        {t.startText}
       </p>
       <button className="btn btn--ghost" onClick={onAddMissingRecipes}>
         <IconPlus size={18} />
-        Fehlende Rezepte und Ideen nachtragen
+        {t.nachtragen}
       </button>
 
       <hr className="divider" />
 
-      <div className="detail__h">Kochtimer</div>
+      <div className="detail__h">{t.timer}</div>
       <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        Läuft ein Schritt mit Timer ab, klingelt Crave und vibriert. Während des Kochens zählt
-        der Ton als Medienwiedergabe – er kommt also auch durch, wenn am iPhone der Schalter auf
-        lautlos steht. Hier lässt er sich vorher ausprobieren.
+        {t.timerText}
       </p>
       <button className="btn btn--ghost" onClick={() => testAlarm()}>
         <IconTimer size={18} />
-        Weckerton testen
+        {t.timerTesten}
       </button>
 
       <hr className="divider" />
 
-      <div className="detail__h">Gespeichert</div>
+      <div className="detail__h">{t.gespeichert}</div>
       <div className="rowline" style={{ marginTop: 10, gap: 8 }}>
-        <span className="tag">{counts.recipes} Rezepte</span>
-        <span className="tag">{counts.ideen} Ideen</span>
-        <span className="tag">{counts.shopping} in Groceries</span>
-        <span className="tag">{counts.pantry} Standard-Zutaten</span>
+        <span className="tag">{t.zaehlerRezepte(counts.recipes)}</span>
+        <span className="tag">{t.zaehlerIdeen(counts.ideen)}</span>
+        <span className="tag">{t.zaehlerEinkauf(counts.shopping)}</span>
+        <span className="tag">{t.zaehlerStandard(counts.pantry)}</span>
       </div>
       <div style={{ height: 16 }} />
     </Sheet>
@@ -209,14 +227,15 @@ export function SettingsSheet({
 /** Liest den Abgleich selbst – so zeichnet ein Wechsel nur diese Zeile neu. */
 export function SyncBadge() {
   const sync: SyncInfo = useSync();
+  const t = useT().einstellungen;
   const label =
     sync.state === 'offline'
-      ? 'Offline – Änderungen werden gespeichert'
+      ? t.offline
       : sync.state === 'syncing'
-        ? 'Wird abgeglichen…'
+        ? t.gleichtAb
         : sync.state === 'synced'
-          ? 'Alles synchronisiert'
-          : 'Bereit';
+          ? t.synchron
+          : t.bereit;
   const modifier =
     sync.state === 'offline' ? ' syncdot__led--offline' : sync.state === 'syncing' ? ' syncdot__led--syncing' : '';
 

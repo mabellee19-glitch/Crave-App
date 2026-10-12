@@ -3,7 +3,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { PantryItem, ShoppingItem } from '@/lib/types';
 import { PANTRY_CATEGORY_ORDER } from '@/lib/seed';
-import { formatQuantity, parseQuickAdd } from '@/lib/units';
+import { parseQuickAdd } from '@/lib/units';
+import { ABTEILUNGEN, Abteilung, abteilungVon, kenntZutat } from '@/lib/zutaten';
+import { gelernt, zutatLernen } from '@/lib/zutatKi';
+import { useT } from '@/lib/i18n';
+import { Inhalt, useInhalt } from '@/lib/inhalt';
 import { ConfirmDialog, EmptyState, NumberInput, Sheet } from './ui';
 import {
   IconCheck,
@@ -14,6 +18,25 @@ import {
   IconTrash,
 } from './Icons';
 
+/** Ein Listeneintrag beginnt gross – englische Zutaten stehen sonst klein da ("milk"). */
+const gross = (text: string) => (text ? text.charAt(0).toLocaleUpperCase() + text.slice(1) : text);
+
+/** Wo eine Zutat im Laden steht: erst das eigene Wissen, dann das der KI. */
+function abteilung(name: string): Abteilung {
+  const eigene = abteilungVon(name);
+  if (eigene !== 'weitere') return eigene;
+  return gelernt(name)?.abteilung ?? 'weitere';
+}
+
+/**
+ * Die Einkaufsliste – auf Deutsch "Beute", auf Englisch "Groceries".
+ *
+ * Oben steht, was offen ist und was geplant. Darunter die offenen Zutaten,
+ * nach Abteilungen geordnet in der Reihenfolge, in der man durch den Laden
+ * geht: erst Gemuese, dann Brot, Fleisch, Kuehlregal … Jede Zutat ist eine
+ * Kachel mit Haekchen, Name, Menge und dem Rezept, fuer das sie gebraucht
+ * wird. Ganz unten die Grundliste zum Antippen.
+ */
 export function ShoppingView({
   shopping,
   pantry,
@@ -51,6 +74,9 @@ export function ShoppingView({
   cookNext: { id: string; name: string; kind: 'recipe' | 'dish' }[];
   onOpenPlanned: (eintrag: { id: string; kind: 'recipe' | 'dish' }) => void;
 }) {
+  const texte = useT();
+  const t = texte.einkauf;
+  const inhalt = useInhalt();
   const [text, setText] = useState('');
   const [managing, setManaging] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -62,16 +88,61 @@ export function ShoppingView({
     setText('');
   };
 
+  // Was die App nicht kennt, fragt sie die KI – einmal, im Hintergrund. Die
+  // Antwort ordnet die Zutat ein und gibt ihr den englischen Namen.
+  const unbekannt = useMemo(
+    () => shopping.map((item) => item.name).filter((name) => !kenntZutat(name) && gelernt(name) === undefined),
+    [shopping],
+  );
+  useEffect(() => {
+    let vorbei = false;
+    void (async () => {
+      for (const name of unbekannt.slice(0, 12)) {
+        if (vorbei) return;
+        await zutatLernen(name);
+      }
+    })();
+    return () => {
+      vorbei = true;
+    };
+  }, [unbekannt]);
+
+  const gruppen = useMemo(() => {
+    const nachAbteilung = new Map<Abteilung, ShoppingItem[]>();
+    for (const item of shopping) {
+      const wo = abteilung(item.name);
+      const liste = nachAbteilung.get(wo);
+      if (liste) liste.push(item);
+      else nachAbteilung.set(wo, [item]);
+    }
+    return ABTEILUNGEN.filter((eintrag) => nachAbteilung.has(eintrag.id)).map((eintrag) => ({
+      ...eintrag,
+      items: [...nachAbteilung.get(eintrag.id)!].sort((a, b) =>
+        inhalt.zutat(a.name).localeCompare(inhalt.zutat(b.name), inhalt.sprache),
+      ),
+    }));
+    // inhalt aendert sich mit der Sprache und mit dem, was die KI dazulernt.
+  }, [shopping, inhalt]);
+
   return (
-    <section aria-labelledby="shopping-heading">
-      <h1 className="section-title" id="shopping-heading">
-        Groceries
-      </h1>
-      <p className="section-sub">
-        {shopping.length === 0
-          ? 'Nichts offen – tippe unten auf eine Standard-Zutat.'
-          : `${shopping.length} ${shopping.length === 1 ? 'Zutat' : 'Zutaten'} offen`}
-      </p>
+    <section aria-labelledby="shopping-heading" className="einkauf">
+      <div className="einkauf__kopf">
+        <div>
+          <h1 className="section-title" id="shopping-heading">
+            {texte.allgemein.bereichEinkauf}
+          </h1>
+          <p className="section-sub">
+            {t.offen(shopping.length)}
+            {shopping.length > 0 && cookNext.length > 0 ? ` · ${t.geplant(cookNext.length)}` : ''}
+          </p>
+        </div>
+        {shopping.length > 0 ? (
+          <button className="btn btn--quiet einkauf__fertig" onClick={() => setClearing(true)}>
+            <IconCheck size={17} />
+            {t.alleErledigt}
+          </button>
+        ) : null}
+      </div>
 
       {cookNext.length > 0 ? (
         <div className="plannedstrip">
@@ -86,7 +157,7 @@ export function ShoppingView({
                 className="chip chip--plan"
                 onClick={() => onOpenPlanned(eintrag)}
               >
-                {eintrag.name}
+                {inhalt.text(eintrag.name)}
               </button>
             ))}
           </div>
@@ -94,8 +165,7 @@ export function ShoppingView({
       ) : null}
 
       <form
-        className="inputrow"
-        style={{ marginBottom: 16 }}
+        className="inputrow einkauf__eingabe"
         onSubmit={(event) => {
           event.preventDefault();
           submit();
@@ -105,60 +175,44 @@ export function ShoppingView({
           className="input"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="z. B. 400 g Poulet"
-          aria-label="Zutat zu Groceries hinzufügen"
+          placeholder={t.eingabePlatzhalter}
+          aria-label={t.eingabe}
           autoComplete="off"
           enterKeyHint="done"
         />
-        <button className="btn btn--primary" type="submit" disabled={!text.trim()} aria-label="Hinzufügen">
+        <button className="btn btn--primary" type="submit" disabled={!text.trim()} aria-label={t.hinzufuegen}>
           <IconPlus size={19} />
         </button>
       </form>
 
-      <div className="panel">
-        <div className="panel__head">
-          <span className="panel__title">Aktive Liste</span>
-          <span className="panel__count">{shopping.length}</span>
-          <span className="spacer" />
-          {shopping.length > 0 ? (
-            <button className="btn btn--quiet" style={{ minHeight: 36 }} onClick={() => setClearing(true)}>
-              Alle erledigt
-            </button>
-          ) : null}
+      {shopping.length === 0 ? (
+        <div className="einkauf__leer">
+          <p>{t.leer}</p>
         </div>
+      ) : (
+        <div className="abteilungen">
+          {gruppen.map((gruppe) => (
+            <section className="abteilung" key={gruppe.id} data-abteilung={gruppe.id}>
+              <h2 className="abteilung__titel">
+                <span className="abteilung__punkt" aria-hidden="true" />
+                {inhalt.sprache === 'en' ? gruppe.en : gruppe.de}
+                <span className="abteilung__zahl">{gruppe.items.length}</span>
+              </h2>
+              <ul className="kacheln">
+                {gruppe.items.map((item) => (
+                  <li key={item.id}>
+                    <Kachel item={item} inhalt={inhalt} fuer={t.fuer} standard={t.standardKurz} onCheckOff={onCheckOff} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
 
-        {shopping.length === 0 ? (
-          <div style={{ padding: '4px 16px 20px' }}>
-            <p className="muted" style={{ fontSize: 14.5 }}>
-              Die Liste ist leer. Zutaten kommen hierher, wenn du sie oben eingibst, unten aus der
-              Grundliste antippst oder ein Rezept hinzufügst.
-            </p>
-          </div>
-        ) : (
-          <ul>
-            {shopping.map((item) => (
-              <li key={item.id}>
-                <button className="row" onClick={() => onCheckOff(item.id)}>
-                  <span className="checkbox" aria-hidden="true">
-                    <IconCheck size={16} />
-                  </span>
-                  <span className="row__main">
-                    <span className="row__name">{item.name}</span>
-                    {item.fromRecipe ? <span className="row__note">aus: {item.fromRecipe}</span> : null}
-                  </span>
-                  <span className="row__amount">{formatQuantity(item.amount, item.unit)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div style={{ height: 18 }} />
-
-      <div className="panel">
+      <div className="panel einkauf__grundliste">
         <div className="panel__head">
-          <span className="panel__title">Standard-Zutaten</span>
+          <span className="panel__title">{t.standard}</span>
           <span className="panel__count">{pantry.length}</span>
           <span className="spacer" />
           <button
@@ -167,21 +221,20 @@ export function ShoppingView({
             onClick={() => setManaging(true)}
           >
             <IconPencil size={17} />
-            Verwalten
+            {t.verwalten}
           </button>
         </div>
 
         {allPantry.length === 0 ? (
           <div style={{ padding: '4px 16px 20px' }}>
             <p className="muted" style={{ fontSize: 14.5 }}>
-              Lege Zutaten an, die du immer wieder kaufst. Ein Tipp darauf legt sie in
-              Groceries – nach dem Abhaken sind sie wieder hier.
+              {t.grundlisteHinweis}
             </p>
           </div>
         ) : pantry.length === 0 ? (
           <div style={{ padding: '4px 16px 20px' }}>
             <p className="muted" style={{ fontSize: 14.5 }}>
-              Alle Standard-Zutaten liegen gerade in Groceries.
+              {t.alleInListe}
             </p>
           </div>
         ) : (
@@ -192,11 +245,7 @@ export function ShoppingView({
       {shopping.length === 0 && allPantry.length === 0 ? (
         <>
           <div style={{ height: 18 }} />
-          <EmptyState
-            glyph="🛒"
-            title="Noch nichts eingerichtet"
-            text="Füge oben eine Zutat hinzu oder lege deine Standard-Zutaten an."
-          />
+          <EmptyState glyph="🛒" title={t.leerTitel} text={t.leerText} />
         </>
       ) : null}
 
@@ -213,9 +262,9 @@ export function ShoppingView({
 
       {clearing ? (
         <ConfirmDialog
-          title="Alles abhaken?"
-          text="Alle Zutaten der aktiven Liste werden als gekauft markiert. Standard-Zutaten wandern zurück in die Grundliste."
-          confirmLabel="Alle erledigt"
+          title={t.abhakenTitel}
+          text={t.abhakenText}
+          confirmLabel={t.alleErledigt}
           onCancel={() => setClearing(false)}
           onConfirm={() => {
             setClearing(false);
@@ -226,6 +275,42 @@ export function ShoppingView({
     </section>
   );
 }
+
+/**
+ * Eine Zutat auf der Liste. Antippen hakt sie ab. Gemerkt (memo): beim
+ * Tippen ins Eingabefeld oben zeichnet sonst jede Kachel neu.
+ */
+const Kachel = React.memo(function Kachel({
+  item,
+  inhalt,
+  fuer,
+  standard,
+  onCheckOff,
+}: {
+  item: ShoppingItem;
+  inhalt: Inhalt;
+  fuer: (namen: string) => string;
+  standard: string;
+  onCheckOff: (id: string) => void;
+}) {
+  const menge = inhalt.menge(item.amount, item.unit);
+  return (
+    <button className="row kachel" onClick={() => onCheckOff(item.id)}>
+      <span className="checkbox kachel__haken" aria-hidden="true">
+        <IconCheck size={16} />
+      </span>
+      <span className="row__main">
+        <span className="row__name kachel__name">{gross(inhalt.zutat(item.name, item.amount))}</span>
+        {item.fromRecipe ? (
+          <span className="row__note kachel__fuer">{fuer(inhalt.text(item.fromRecipe))}</span>
+        ) : item.pantryId ? (
+          <span className="row__note kachel__fuer kachel__fuer--standard">{standard}</span>
+        ) : null}
+      </span>
+      {menge ? <span className="row__amount kachel__menge">{menge}</span> : null}
+    </button>
+  );
+});
 
 /* -------------------------------------------------------------------------- */
 
@@ -258,6 +343,8 @@ function PantryGroups({
   items: PantryItem[];
   onPick: (id: string) => void;
 }) {
+  const t = useT().einkauf;
+  const inhalt = useInhalt();
   const groups = useMemo(() => groupPantry(items), [items]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -297,24 +384,27 @@ function PantryGroups({
               <span className={`pantrygroup__caret${isOpen ? ' pantrygroup__caret--open' : ''}`}>
                 <IconChevronDown size={18} />
               </span>
-              <span className="pantrygroup__title">{group.category}</span>
+              <span className="pantrygroup__title">{t.rubriken[group.category] ?? group.category}</span>
               <span className="panel__count">{group.items.length}</span>
             </button>
             {isOpen ? (
               <div className="pantrychips">
-                {group.items.map((item) => (
-                  <button
-                    key={item.id}
-                    className="pantrychip"
-                    onClick={() => onPick(item.id)}
-                    aria-label={`${item.name} in Groceries`}
-                  >
-                    {item.name}
-                    <span className="pantrychip__plus" aria-hidden="true">
-                      <IconPlus size={16} />
-                    </span>
-                  </button>
-                ))}
+                {group.items.map((item) => {
+                  const name = gross(inhalt.zutat(item.name));
+                  return (
+                    <button
+                      key={item.id}
+                      className="pantrychip"
+                      onClick={() => onPick(item.id)}
+                      aria-label={t.inListe(name)}
+                    >
+                      {name}
+                      <span className="pantrychip__plus" aria-hidden="true">
+                        <IconPlus size={16} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             ) : null}
           </section>
@@ -341,16 +431,17 @@ function PantrySheet({
   onDelete: (id: string) => void;
   onAddSuggestions: () => void;
 }) {
+  const t = useT().einkauf;
+  const hinzufuegen = useT().allgemein.hinzufuegen;
   const [text, setText] = useState('');
   const [category, setCategory] = useState('');
   const groups = useMemo(() => groupPantry(items), [items]);
 
   return (
-    <Sheet title="Grundliste verwalten" onClose={onClose}>
+    <Sheet title={t.verwaltenTitel} onClose={onClose}>
       <div style={{ height: 16 }} />
       <p className="muted" style={{ fontSize: 14.5, marginBottom: 14 }}>
-        Diese Zutaten bleiben dauerhaft gespeichert – unabhängig davon, was gerade in
-        Groceries steht.
+        {t.verwaltenHinweis}
       </p>
 
       <form
@@ -368,15 +459,15 @@ function PantrySheet({
             className="input"
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="Neue Standard-Zutat"
-            aria-label="Neue Standard-Zutat"
+            placeholder={t.neueStandard}
+            aria-label={t.neueStandard}
             autoComplete="off"
           />
           <button
             className="btn btn--primary"
             type="submit"
             disabled={!text.trim()}
-            aria-label="Hinzufügen"
+            aria-label={hinzufuegen}
           >
             <IconPlus size={19} />
           </button>
@@ -386,12 +477,12 @@ function PantrySheet({
           style={{ marginTop: 8 }}
           value={category}
           onChange={(event) => setCategory(event.target.value)}
-          aria-label="Rubrik für die neue Zutat"
+          aria-label={t.rubrikNeu}
         >
-          <option value="">Ohne Rubrik</option>
+          <option value="">{t.ohneRubrik}</option>
           {PANTRY_CATEGORY_ORDER.map((name) => (
             <option key={name} value={name}>
-              {name}
+              {t.rubriken[name] ?? name}
             </option>
           ))}
         </select>
@@ -399,24 +490,23 @@ function PantrySheet({
 
       <button className="btn btn--ghost btn--block" onClick={onAddSuggestions}>
         <IconPlus size={18} />
-        Vorschlagsliste ergänzen
+        {t.vorschlagsliste}
       </button>
       <p className="row__note" style={{ marginTop: 8 }}>
-        Trägt fehlende Standard-Zutaten nach und ordnet vorhandene ohne Rubrik ein. Was schon da
-        ist, bleibt unverändert.
+        {t.vorschlagslisteHinweis}
       </p>
 
       <hr className="divider" />
 
       {items.length === 0 ? (
         <p className="muted" style={{ fontSize: 14.5 }}>
-          Noch keine Standard-Zutaten.
+          {t.nochKeine}
         </p>
       ) : (
         groups.map((group) => (
           <div key={group.category} style={{ marginBottom: 22 }}>
             <div className="detail__h" style={{ marginBottom: 10 }}>
-              {group.category}
+              {t.rubriken[group.category] ?? group.category}
             </div>
             <div className="stack">
               {group.items.map((item) => (
@@ -444,6 +534,7 @@ const PantryRow = React.memo(function PantryRow({
   onSave: (item: PantryItem) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useT().einkauf;
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState<number | null>(item.amount);
   const [unit, setUnit] = useState(item.unit);
@@ -466,13 +557,13 @@ const PantryRow = React.memo(function PantryRow({
         onChange={setAmount}
         onBlur={commit}
         placeholder="—"
-        ariaLabel={`Menge für ${item.name}`}
+        ariaLabel={t.mengeVon(item.name)}
       />
       <input
         className="input editrow__unit"
         value={unit}
-        placeholder="Einheit"
-        aria-label={`Einheit für ${item.name}`}
+        placeholder={t.einheitPlatzhalter}
+        aria-label={t.einheitVon(item.name)}
         onChange={(event) => setUnit(event.target.value)}
         onBlur={commit}
         autoComplete="off"
@@ -480,7 +571,7 @@ const PantryRow = React.memo(function PantryRow({
       <input
         className="input editrow__grow"
         value={name}
-        aria-label={`Name von ${item.name}`}
+        aria-label={t.nameVon(item.name)}
         onChange={(event) => setName(event.target.value)}
         onBlur={commit}
         autoComplete="off"
@@ -488,13 +579,13 @@ const PantryRow = React.memo(function PantryRow({
       <select
         className="select editrow__unit"
         value={item.category ?? ''}
-        aria-label={`Rubrik von ${item.name}`}
+        aria-label={t.rubrikVon(item.name)}
         onChange={(event) => onSave({ ...item, category: event.target.value || undefined })}
       >
         <option value="">—</option>
         {PANTRY_CATEGORY_ORDER.map((entry) => (
           <option key={entry} value={entry}>
-            {entry}
+            {t.rubriken[entry] ?? entry}
           </option>
         ))}
         {item.category && !PANTRY_CATEGORY_ORDER.includes(item.category) ? (
@@ -504,7 +595,7 @@ const PantryRow = React.memo(function PantryRow({
       <button
         className="iconbtn iconbtn--plain"
         onClick={() => onDelete(item.id)}
-        aria-label={`${item.name} aus der Grundliste löschen`}
+        aria-label={t.loeschenAus(item.name)}
       >
         <IconTrash size={19} />
       </button>

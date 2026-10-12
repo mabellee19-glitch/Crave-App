@@ -7,6 +7,8 @@ import { kategorieErkennen } from '@/lib/category';
 import { vorbereitungAusText, vorbereitungVorschlagen } from '@/lib/prep';
 import { schritteKuerzen } from '@/lib/kuerzen';
 import { randomId } from '@/lib/id';
+import { useSprache, useT } from '@/lib/i18n';
+import type { Texte } from '@/lib/texte';
 import { Field, NumberInput, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconArrowUp, IconPlus, IconSpark, IconTrash } from './Icons';
@@ -14,75 +16,79 @@ import { IconArrowUp, IconPlus, IconSpark, IconTrash } from './Icons';
 const CATEGORY_SUGGESTIONS = ['High-Protein', 'Comfort', 'Vegi', 'Frühstück', 'Dessert', 'Snack'];
 
 /** Was die KI beim Lesen einer Seite verhindert hat – als halber Satz. */
-function kiGrund(ki: string): string {
+function kiGrund(t: Texte, ki: string): string {
+  const texte = t.rezeptForm.kiGrund;
   switch (ki) {
     case 'billing':
-      return 'Mit KI ginge es auch so – dafür fehlt beim Anbieter die Zahlungsangabe (Vercel → AI Gateway).';
+      return texte.billing;
     case 'no_key':
-      return 'Mit eingerichteter KI ginge es auch so.';
+      return texte.no_key;
     case 'not_found':
-      return 'Auch die KI hat darin kein Rezept gefunden.';
+      return texte.not_found;
     case 'rate_limit':
-      return 'Die KI ist gerade ausgelastet – gleich nochmal versuchen.';
+      return texte.rate_limit;
     default:
       return '';
   }
 }
 
 /** Warum ein englisches Rezept (noch) nicht uebersetzt ist. */
-function uebersetzenGrund(ki: string): string {
+function uebersetzenGrund(t: Texte, ki: string): string {
+  const texte = t.rezeptForm.uebersetzenGrund;
   switch (ki) {
     case 'billing':
-      return 'Dafür fehlt beim Anbieter noch die Zahlungsangabe (Vercel → AI Gateway).';
+      return texte.billing;
     case 'no_key':
-      return 'Dafür muss die KI eingerichtet sein.';
+      return texte.no_key;
     default:
       return '';
   }
 }
 
 /** Fehler der Import-Route in einen Satz uebersetzen, der weiterhilft. */
-function importMeldung(code: string, ki = '', ausText = false): string {
-  const einfuegen = 'Kopiere den Text des Rezepts und füge ihn unten ein.';
+function importMeldung(t: Texte, code: string, ki = '', ausText = false): string {
+  const texte = t.rezeptForm.importFehler;
+  const einfuegen = texte.einfuegen;
   switch (code) {
     case 'no_recipe':
       return ausText
-        ? `Im Text war kein Rezept zu erkennen – am besten mit den Überschriften «Zutaten» und «Zubereitung» einfügen. ${kiGrund(ki)}`.trim()
-        : `Auf dieser Seite steht das Rezept in keiner Form, die die App lesen kann. ${kiGrund(ki)} ${einfuegen}`.replace(/\s+/g, ' ');
+        ? texte.keinRezeptImText(kiGrund(t, ki)).trim()
+        : texte.keinRezeptAufSeite(kiGrund(t, ki), einfuegen).replace(/\s+/g, ' ');
     case 'not_found':
-      return 'Die Seite gibt es nicht (404). Stimmt die Adresse?';
+      return texte.nichtGefunden;
     case 'blocked_by_site':
-      return `Die Seite lässt keinen Abruf durch Apps zu. ${einfuegen}`;
+      return texte.gesperrt(einfuegen);
     case 'not_html':
-      return 'Das ist keine Webseite, sondern eine Datei.';
+      return texte.keineWebseite;
     case 'too_large':
-      return 'Die Seite ist zu gross.';
+      return texte.zuGross;
     case 'blocked_host':
     case 'unsupported_scheme':
     case 'unsupported_url':
-      return 'Diese Adresse lässt sich nicht abrufen.';
+      return texte.nichtAbrufbar;
     case 'missing_url':
-      return 'Bitte eine Adresse einfügen.';
+      return texte.adresseFehlt;
     default:
-      return `Die Seite liess sich nicht laden. Versuch es nochmal – oder ${einfuegen.charAt(0).toLowerCase()}${einfuegen.slice(1)}`;
+      return texte.nichtGeladen(`${einfuegen.charAt(0).toLowerCase()}${einfuegen.slice(1)}`);
   }
 }
 
 /** Warum das Vereinfachen nicht geklappt hat – das Rezept bleibt in jedem Fall stehen. */
-function kiMeldung(code: string): string {
+function kiMeldung(t: Texte, code: string): string {
+  const texte = t.rezeptForm.kiFehler;
   switch (code) {
     case 'no_key':
-      return 'Auf dem Server ist kein Zugang zum Modell eingerichtet.';
+      return texte.no_key;
     case 'billing':
-      return 'Beim Anbieter fehlt die Zahlungsangabe (Vercel → AI Gateway).';
+      return texte.billing;
     case 'auth':
-      return 'Der hinterlegte Schlüssel wird nicht akzeptiert.';
+      return texte.auth;
     case 'rate_limit':
-      return 'Gerade zu viele Anfragen. Kurz warten und nochmal versuchen.';
+      return texte.rate_limit;
     case 'too_large':
-      return 'Das Rezept ist zu lang zum Vereinfachen.';
+      return texte.too_large;
     default:
-      return 'Vereinfachen hat nicht geklappt.';
+      return texte.unbekannt;
   }
 }
 
@@ -131,6 +137,9 @@ export function RecipeForm({
   onSave: (recipe: Recipe) => void;
   onClose: () => void;
 }) {
+  const t = useT();
+  const sprache = useSprache();
+  const tf = t.rezeptForm;
   const [draft, setDraft] = useState<Recipe>(() => ({
     ...initial,
     ingredients: initial.ingredients.length ? initial.ingredients : [blankIngredient()],
@@ -182,7 +191,7 @@ export function RecipeForm({
       (aufgabe) => !vorhanden.some((alt) => alt.toLowerCase() === aufgabe.toLowerCase()),
     );
     if (neu.length === 0) {
-      setPrepHinweis('In den Schritten steht nichts, was vorher geschnitten werden müsste.');
+      setPrepHinweis(tf.vorbereitungNichts);
       return;
     }
     setPrepHinweis(null);
@@ -232,7 +241,7 @@ export function RecipeForm({
         setKi({
           phase: 'fehler',
           ort,
-          meldung: kiMeldung(code),
+          meldung: kiMeldung(t, code),
           nochmal: code !== 'no_key' && code !== 'too_large',
         });
         return;
@@ -246,7 +255,7 @@ export function RecipeForm({
         setKi({
           phase: 'fehler',
           ort,
-          meldung: 'Die Schritte wurden in der Zwischenzeit geändert – deshalb bleibt deine Fassung stehen.',
+          meldung: tf.kiFehler.geaendert,
           nochmal: true,
           vollstaendig: true,
         });
@@ -286,7 +295,7 @@ export function RecipeForm({
       setKi({
         phase: 'fehler',
         ort,
-        meldung: 'Keine Verbindung zum Server.',
+        meldung: tf.kiFehler.keineVerbindung,
         nochmal: true,
       });
     }
@@ -304,8 +313,8 @@ export function RecipeForm({
   /** Was mit den Schritten passiert, wenn die KI nicht helfen konnte. */
   const ohneKi =
     draft.kuerzung === 'regeln' && draft.vorKuerzen
-      ? 'Lange Schritte sind schon in kurze aufgeteilt. Umformuliert wird, sobald die KI erreichbar ist.'
-      : 'Die Schritte bleiben, wie sie sind.';
+      ? tf.ohneKiGeteilt
+      : tf.ohneKi;
 
   const kiHinweis = (ort: 'oben' | 'schritte') => {
     if (ki.phase === 'aus' || ki.ort !== ort) return null;
@@ -313,7 +322,7 @@ export function RecipeForm({
       return (
         <div className="notice notice--ki" role="status">
           <IconSpark size={17} />
-          <span>Die Schritte werden mit KI vereinfacht …</span>
+          <span>{tf.kiLaeuft}</span>
         </div>
       );
     }
@@ -325,7 +334,7 @@ export function RecipeForm({
             <>
               {' '}
               <button className="btn btn--quiet" onClick={() => void vereinfachen(ort)}>
-                Nochmal versuchen
+                {tf.nochmal}
               </button>
             </>
           ) : null}
@@ -336,19 +345,16 @@ export function RecipeForm({
       <div className={`notice notice--ki${ki.fehlend.length ? ' notice--warn' : ''}`} role="status">
         <IconSpark size={17} />
         <div>
-          <strong>Mit KI vereinfacht.</strong> Kürzere Schritte, das Schnibbeln steht jetzt in der
-          Vorbereitung. Zutaten, Mengen und Reihenfolge bleiben gleich.
+          <strong>{tf.kiFertig}</strong> {tf.kiFertigText}
           {ki.fehlend.length ? (
             <>
               {' '}
-              <strong>
-                Bitte kurz prüfen: im Original stand noch {ki.fehlend.join(', ')}.
-              </strong>
+              <strong>{tf.kiFehlend(ki.fehlend.join(', '))}</strong>
             </>
           ) : null}
           <div>
             <button className="btn btn--quiet" style={{ paddingInline: 0 }} onClick={zuruecknehmen}>
-              Original wiederherstellen
+              {tf.original}
             </button>
           </div>
         </div>
@@ -386,7 +392,7 @@ export function RecipeForm({
       const daten = await antwort.json();
       if (!antwort.ok || !daten.ok) {
         const code = String(daten?.error ?? 'unknown');
-        setImportFehler(importMeldung(code, String(daten?.ki ?? ''), art === 'text'));
+        setImportFehler(importMeldung(t, code, String(daten?.ki ?? ''), art === 'text'));
         // Wo der Link nicht weiterkommt, hilft der Text.
         if (art === 'link' && code !== 'not_found' && code !== 'missing_url') setTextModus(true);
         return;
@@ -446,25 +452,23 @@ export function RecipeForm({
       setTextModus(false);
       const hinweise: string[] = [];
       if (rezept.herkunft === 'ki') {
-        hinweise.push('Die KI hat das Rezept aus dem Text gelesen.');
+        hinweise.push(tf.importHinweis.vonKi);
       } else if (rezept.herkunft === 'seite') {
-        hinweise.push('Zutaten und Schritte sind aus dem Text gelesen, nicht aus Rezeptdaten.');
+        hinweise.push(tf.importHinweis.vonSeite);
       }
       if (rezept.uebersetztAus === 'en') {
-        hinweise.push('Aus dem Englischen übersetzt, Mengen in Gramm, Deziliter und Grad Celsius.');
+        hinweise.push(tf.importHinweis.uebersetzt);
       }
-      if (hinweise.length) hinweise.push('Bitte kurz prüfen, ob alles stimmt.');
+      if (hinweise.length) hinweise.push(tf.importHinweis.pruefen);
       if (rezept.sprache === 'en') {
-        hinweise.push(
-          `Das Rezept ist auf Englisch. Die App übersetzt es von selbst, sobald die KI erreichbar ist. ${uebersetzenGrund(rezept.kiFehler ?? '')}`.trim(),
-        );
+        hinweise.push(tf.importHinweis.aufEnglisch(uebersetzenGrund(t, rezept.kiFehler ?? '')).trim());
       }
       if (hinweise.length) setImportHinweis(hinweise.join(' '));
       if (rezept.steps.length) {
         void vereinfachen('oben', mitKurzenSchritten, vorbereitung.join('\n'), original);
       }
     } catch {
-      setImportFehler('Keine Verbindung zum Server. Prüfe die Verbindung.');
+      setImportFehler(tf.keineVerbindungImport);
     } finally {
       setLaedt(false);
     }
@@ -516,15 +520,15 @@ export function RecipeForm({
 
   return (
     <Sheet
-      title={isNew ? 'Neues Rezept' : 'Rezept bearbeiten'}
+      title={isNew ? tf.titelNeu : tf.titelBearbeiten}
       onClose={onClose}
       footer={
         <>
           <button className="btn btn--ghost" onClick={onClose}>
-            Abbrechen
+            {t.allgemein.abbrechen}
           </button>
           <button className="btn btn--primary" style={{ flex: 1 }} onClick={submit} disabled={!nameValid}>
-            Speichern
+            {t.allgemein.speichern}
           </button>
         </>
       }
@@ -534,9 +538,9 @@ export function RecipeForm({
       {isNew ? (
         <>
           <Field
-            label="Rezept über Link hinzufügen"
+            label={tf.linkLabel}
             htmlFor="recipe-url"
-            hint="Adresse einer Rezeptseite einfügen – Zutaten und Zubereitung werden übernommen, samt Timern. Danach lässt sich alles noch ändern."
+            hint={tf.linkHinweis}
           >
             <div className="inputrow">
               <input
@@ -563,7 +567,7 @@ export function RecipeForm({
                 onClick={() => void holen()}
                 disabled={!url.trim() || laedt}
               >
-                {laedt ? 'Lädt…' : 'Holen'}
+                {laedt ? tf.laedt : tf.holen}
               </button>
             </div>
           </Field>
@@ -576,16 +580,16 @@ export function RecipeForm({
 
           {textModus ? (
             <Field
-              label="Rezepttext einfügen"
+              label={tf.textLabel}
               htmlFor="recipe-text"
-              hint="Auf der Seite das Rezept markieren und kopieren – mit Zutaten und Zubereitung. Auch aus Nachrichten oder Notizen."
+              hint={tf.textHinweis}
             >
               <textarea
                 id="recipe-text"
                 className="textarea"
                 rows={6}
                 value={rezeptText}
-                placeholder={'Zutaten\n200 g Mehl\n…\n\nZubereitung\nMehl und …'}
+                placeholder={tf.textPlatzhalter}
                 onChange={(event) => setRezeptText(event.target.value)}
               />
               <div style={{ height: 8 }} />
@@ -594,7 +598,7 @@ export function RecipeForm({
                 onClick={() => void holen('text')}
                 disabled={!rezeptText.trim() || laedt}
               >
-                {laedt ? 'Liest…' : 'Text übernehmen'}
+                {laedt ? tf.liest : tf.textUebernehmen}
               </button>
             </Field>
           ) : (
@@ -603,7 +607,7 @@ export function RecipeForm({
               style={{ paddingInline: 0, marginTop: -6, marginBottom: 10 }}
               onClick={() => setTextModus(true)}
             >
-              Oder Rezepttext einfügen
+              {tf.oderText}
             </button>
           )}
 
@@ -619,23 +623,23 @@ export function RecipeForm({
         </>
       ) : null}
 
-      <Field label="Name" htmlFor="recipe-name">
+      <Field label={tf.name} htmlFor="recipe-name">
         <input
           id="recipe-name"
           className="input"
           value={draft.name}
-          placeholder="z. B. Poulet mit Brokkoli"
+          placeholder={tf.namePlatzhalter}
           onChange={(event) => set('name', event.target.value)}
           autoComplete="off"
         />
       </Field>
 
       <Field
-        label="Kategorie"
+        label={tf.kategorie}
         htmlFor="recipe-category"
         hint={
           kategorieAuto && erkennung ? (
-            <>Automatisch erkannt: {erkennung.grund}</>
+            tf.kategorieErkannt(sprache === 'en' ? erkennung.grundEn : erkennung.grund)
           ) : isNew && !kategorieAuto && erkennung && erkennung.kategorie !== kategorie ? (
             <button
               type="button"
@@ -643,7 +647,7 @@ export function RecipeForm({
               style={{ paddingInline: 0, minHeight: 32 }}
               onClick={() => setKategorieAuto(true)}
             >
-              Vorschlag aus den Zutaten: {erkennung.kategorie}
+              {tf.kategorieVorschlag(erkennung.kategorie)}
             </button>
           ) : undefined
         }
@@ -653,7 +657,7 @@ export function RecipeForm({
           className="input"
           list={listId}
           value={kategorie}
-          placeholder={isNew ? 'Wird aus den Zutaten erkannt' : 'z. B. High-Protein'}
+          placeholder={isNew ? tf.kategorieAutoPlatzhalter : tf.kategoriePlatzhalter}
           onChange={(event) => {
             setKategorieAuto(false);
             set('category', event.target.value);
@@ -669,7 +673,7 @@ export function RecipeForm({
 
       <div className="inputrow">
         <div style={{ flex: 1 }}>
-          <Field label="Portionen" htmlFor="recipe-servings">
+          <Field label={tf.portionen} htmlFor="recipe-servings">
             <NumberInput
               id="recipe-servings"
               value={draft.servings}
@@ -680,7 +684,7 @@ export function RecipeForm({
           </Field>
         </div>
         <div style={{ flex: 1 }}>
-          <Field label="Zubereitungszeit (Min)" htmlFor="recipe-time">
+          <Field label={tf.zeit} htmlFor="recipe-time">
             <NumberInput
               id="recipe-time"
               value={draft.timeMin}
@@ -694,8 +698,8 @@ export function RecipeForm({
       <hr className="divider" />
 
       <div className="detail__sectionhead">
-        <span className="detail__h">Zutaten</span>
-        <span className="row__note">Menge · Einheit · Zutat</span>
+        <span className="detail__h">{tf.zutaten}</span>
+        <span className="row__note">{tf.zutatenSpalten}</span>
       </div>
 
       <IngredientEditor
@@ -707,16 +711,16 @@ export function RecipeForm({
 
       <div className="detail__sectionhead">
         <label className="detail__h" htmlFor="recipe-prep">
-          Vorbereitung
+          {tf.vorbereitung}
         </label>
-        <span className="row__note">eine Aufgabe pro Zeile</span>
+        <span className="row__note">{tf.vorbereitungZeilen}</span>
       </div>
       <textarea
         id="recipe-prep"
         className="textarea"
         value={prepText}
         rows={Math.max(3, prepText.split('\n').length + 1)}
-        placeholder={'z. B. Zwiebel fein hacken\nZucchini würfeln\nCherrytomaten halbieren'}
+        placeholder={tf.vorbereitungPlatzhalter}
         onChange={(event) => {
           setPrepText(event.target.value);
           setPrepHinweis(null);
@@ -724,18 +728,17 @@ export function RecipeForm({
       />
       <div className="rowline" style={{ marginTop: 6, alignItems: 'flex-start' }}>
         <span className="row__note" style={{ flex: 1, minWidth: 180 }}>
-          {prepHinweis ??
-            'Was vor dem Kochen geschnitten und bereitgelegt wird. Das Abmessen der Zutaten kommt im Kochmodus von selbst dazu.'}
+          {prepHinweis ?? tf.vorbereitungErklaerung}
         </span>
         <button type="button" className="btn btn--quiet" onClick={vorschlagen}>
-          Aus den Schritten vorschlagen
+          {tf.vorschlagen}
         </button>
       </div>
 
       <hr className="divider" />
 
       <div className="detail__sectionhead">
-        <span className="detail__h">Zubereitung</span>
+        <span className="detail__h">{tf.zubereitung}</span>
         <button
           type="button"
           className="btn btn--quiet"
@@ -744,7 +747,7 @@ export function RecipeForm({
           disabled={ki.phase === 'laeuft' || !draft.steps.some((step) => step.text.trim())}
         >
           <IconSpark size={16} />
-          Mit KI vereinfachen
+          {tf.mitKiVereinfachen}
         </button>
       </div>
 
@@ -757,7 +760,7 @@ export function RecipeForm({
             <span className="spacer" />
             <button
               className="iconbtn iconbtn--plain"
-              aria-label={`Schritt ${index + 1} nach oben`}
+              aria-label={tf.schrittHoch(index + 1)}
               disabled={index === 0}
               onClick={() => set('steps', move(draft.steps, index, index - 1))}
             >
@@ -765,7 +768,7 @@ export function RecipeForm({
             </button>
             <button
               className="iconbtn iconbtn--plain"
-              aria-label={`Schritt ${index + 1} entfernen`}
+              aria-label={tf.schrittEntfernen(index + 1)}
               onClick={() =>
                 set(
                   'steps',
@@ -781,13 +784,13 @@ export function RecipeForm({
           <textarea
             className="textarea"
             value={step.text}
-            placeholder="Was ist in diesem Schritt zu tun?"
-            aria-label={`Text für Schritt ${index + 1}`}
+            placeholder={tf.schrittPlatzhalter}
+            aria-label={tf.schrittText(index + 1)}
             onChange={(event) => setStep(step.id, { text: event.target.value })}
           />
           <div className="rowline" style={{ marginTop: 8 }}>
             <span className="row__note" style={{ flex: 'none' }}>
-              Timer (Min)
+              {tf.timer}
             </span>
             <NumberInput
               className="input editrow__amount"
@@ -796,7 +799,7 @@ export function RecipeForm({
                 setStep(step.id, { durationSec: value == null ? null : Math.round(value * 60) })
               }
               placeholder="—"
-              ariaLabel={`Timer für Schritt ${index + 1} in Minuten`}
+              ariaLabel={tf.timerFuer(index + 1)}
             />
           </div>
         </div>
@@ -804,17 +807,17 @@ export function RecipeForm({
 
       <button className="btn btn--ghost btn--block" onClick={() => set('steps', [...draft.steps, blankStep()])}>
         <IconPlus size={18} />
-        Schritt hinzufügen
+        {tf.schrittHinzufuegen}
       </button>
 
       <hr className="divider" />
 
-      <Field label="Notiz" htmlFor="recipe-notes">
+      <Field label={tf.notiz} htmlFor="recipe-notes">
         <textarea
           id="recipe-notes"
           className="textarea"
           value={draft.notes}
-          placeholder="Optional: Hinweise, Beilagen, Varianten"
+          placeholder={tf.notizPlatzhalter}
           onChange={(event) => set('notes', event.target.value)}
         />
       </Field>

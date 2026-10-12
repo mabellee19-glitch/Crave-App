@@ -2,9 +2,11 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Recipe } from '@/lib/types';
-import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
+import { formatClock, scaleAmount } from '@/lib/units';
+import { useInhalt } from '@/lib/inhalt';
 import { zutatenProSchritt } from '@/lib/stepIngredients';
 import { playAlarm, setAlarmSession, stopAlarm } from '@/lib/audio';
+import { useT } from '@/lib/i18n';
 import { Portal, useBodyScrollLock, useVerdeckt } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconClose, IconKnife, IconTimer } from './Icons';
@@ -23,6 +25,8 @@ export function CookMode({
   servings: number;
   onClose: () => void;
 }) {
+  const t = useT();
+  const inhalt = useInhalt();
   /*
    * Das Rezept so, wie es beim Start war. Kuerzt die KI es im Hintergrund
    * oder kommt eine Aenderung von einem anderen Geraet, wechseln sonst Text
@@ -293,20 +297,18 @@ export function CookMode({
       <Portal>
         <div className="cook">
           <div className="cook__head">
-            <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
+            <button className="iconbtn" onClick={onClose} aria-label={t.kochen.beenden}>
               <IconClose />
             </button>
             <div className="cook__progress" />
           </div>
           <div className="cook__body">
-            <div className="cook__count">Kein Schritt hinterlegt</div>
-            <p className="cook__text">
-              Für dieses Rezept sind noch keine Zubereitungsschritte erfasst.
-            </p>
+            <div className="cook__count">{t.kochen.keinSchritt}</div>
+            <p className="cook__text">{t.kochen.keineSchritte}</p>
           </div>
           <div className="cook__foot">
             <button className="btn btn--primary btn--lg btn--block" onClick={onClose}>
-              Zurück zum Rezept
+              {t.kochen.zurueckZumRezept}
             </button>
           </div>
         </div>
@@ -321,13 +323,13 @@ export function CookMode({
     <Portal>
       <div className={`cook${verdeckt ? ' cook--verdeckt' : ''}`}>
         {intro ? (
-          <CookAnimation variante="start" title={recipe.name} onDone={introFertig} />
+          <CookAnimation variante="start" title={inhalt.text(recipe.name, recipe.en)} onDone={introFertig} />
         ) : null}
         {abschluss ? (
-          <CookAnimation variante="fertig" title="En Guete!" onDone={onClose} />
+          <CookAnimation variante="fertig" title={t.kochen.enGuete} onDone={onClose} />
         ) : null}
         <div className="cook__head">
-          <button className="iconbtn" onClick={onClose} aria-label="Kochmodus beenden">
+          <button className="iconbtn" onClick={onClose} aria-label={t.kochen.beenden}>
             <IconClose />
           </button>
           <div className="cook__progress">
@@ -345,11 +347,13 @@ export function CookMode({
                 key={entry.id}
                 className={`cook__timerchip${state!.ringing ? ' cook__timerchip--ringing' : ''}`}
                 onClick={() => setIndex(position + offset)}
-                aria-label={`Zu Schritt ${position + 1} mit laufendem Timer`}
+                aria-label={t.kochen.zuSchrittMitTimer(position + 1)}
               >
                 <IconTimer size={15} />
-                Schritt {position + 1}
-                <strong>{state!.ringing ? 'fertig' : formatClock(remainingSeconds(state!))}</strong>
+                {t.kochen.schritt(position + 1)}
+                <strong>
+                  {state!.ringing ? t.kochen.timerFertig : formatClock(remainingSeconds(state!))}
+                </strong>
               </button>
             ))}
           </div>
@@ -362,14 +366,12 @@ export function CookMode({
         */}
         {istVorbereitung ? (
           <div className="cook__body" key="vorbereitung">
-            <div className="cook__count">Vorbereitung</div>
-            <p className="cook__text cook__text--klein">
-              Erst schnibbeln und abmessen – dann geht’s am Herd ohne Hektik.
-            </p>
+            <div className="cook__count">{t.kochen.vorbereitung}</div>
+            <p className="cook__text cook__text--klein">{t.kochen.vorbereitungText}</p>
 
             {prep.length > 0 ? (
               <section>
-                <div className="cook__subhead">Schneiden &amp; bereitlegen</div>
+                <div className="cook__subhead">{t.kochen.schneiden}</div>
                 <ul className="checklist">
                   {prep.map((task, position) => {
                     const key = `p${position}`;
@@ -384,7 +386,7 @@ export function CookMode({
                           <span className={`checkbox${fertig ? ' checkbox--on' : ''}`}>
                             <IconCheck size={16} />
                           </span>
-                          <span>{task}</span>
+                          <span>{inhalt.text(task, recipe.en)}</span>
                         </button>
                       </li>
                     );
@@ -395,15 +397,13 @@ export function CookMode({
 
             {ingredients.length > 0 ? (
               <section>
-                <div className="cook__subhead">Abmessen</div>
+                <div className="cook__subhead">{t.kochen.abmessen}</div>
                 <ul className="checklist">
                   {ingredients.map((ingredient) => {
                     const key = `z${ingredient.id}`;
                     const fertig = erledigt.has(key);
-                    const quantity = formatQuantity(
-                      scaleAmount(ingredient.amount, factor, ingredient.noScale),
-                      ingredient.unit,
-                    );
+                    const menge = scaleAmount(ingredient.amount, factor, ingredient.noScale);
+                    const quantity = inhalt.menge(menge, ingredient.unit);
                     return (
                       <li key={key}>
                         <button
@@ -416,7 +416,7 @@ export function CookMode({
                           </span>
                           <span>
                             {quantity ? <strong>{quantity} </strong> : null}
-                            {ingredient.name}
+                            {inhalt.zutat(ingredient.name, menge, recipe.en)}
                           </span>
                         </button>
                       </li>
@@ -428,10 +428,8 @@ export function CookMode({
           </div>
         ) : (
           <div className="cook__body" key={step.id}>
-            <div className="cook__count">
-              Schritt {stepIndex + 1} von {total}
-            </div>
-            <p className="cook__text">{step.text}</p>
+            <div className="cook__count">{t.kochen.schrittVon(stepIndex + 1, total)}</div>
+            <p className="cook__text">{inhalt.text(step.text, recipe.en)}</p>
 
             {step.durationSec ? (
               <Timer
@@ -445,18 +443,16 @@ export function CookMode({
             ) : null}
 
             {schrittZutaten[stepIndex]?.length ? (
-              <section className="cook__zutaten" aria-label="Zutaten für diesen Schritt">
-                <div className="cook__subhead">Dafür brauchst du</div>
+              <section className="cook__zutaten" aria-label={t.kochen.zutatenSchritt}>
+                <div className="cook__subhead">{t.kochen.dafuer}</div>
                 <ul className="zutatenliste">
                   {schrittZutaten[stepIndex].map((ingredient) => {
-                    const quantity = formatQuantity(
-                      scaleAmount(ingredient.amount, factor, ingredient.noScale),
-                      ingredient.unit,
-                    );
+                    const menge = scaleAmount(ingredient.amount, factor, ingredient.noScale);
+                    const quantity = inhalt.menge(menge, ingredient.unit);
                     return (
                       <li key={ingredient.id}>
                         {quantity ? <strong>{quantity}</strong> : null}
-                        <span>{ingredient.name}</span>
+                        <span>{inhalt.zutat(ingredient.name, menge, recipe.en)}</span>
                       </li>
                     );
                   })}
@@ -473,7 +469,7 @@ export function CookMode({
             disabled={index === 0}
           >
             <IconChevronLeft size={18} />
-            Zurück
+            {t.kochen.zurueck}
           </button>
           {isLast ? (
             <button
@@ -482,7 +478,7 @@ export function CookMode({
               onClick={beenden}
               disabled={kurzGesperrt}
             >
-              Fertig gekocht
+              {t.kochen.fertigGekocht}
             </button>
           ) : (
             <button
@@ -491,7 +487,7 @@ export function CookMode({
               onClick={() => setIndex((i) => Math.min(i + 1, screens - 1))}
               disabled={kurzGesperrt && index === 0}
             >
-              {istVorbereitung ? 'Los geht’s' : 'Weiter'}
+              {istVorbereitung ? t.kochen.losGehts : t.kochen.weiter}
               <IconChevronRight size={18} />
             </button>
           )}

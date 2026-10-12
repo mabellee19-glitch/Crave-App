@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@/lib/i18n';
 import { IconClose, IconSearch } from './Icons';
 
 export function SearchBar({
@@ -14,6 +15,7 @@ export function SearchBar({
   placeholder: string;
   label: string;
 }) {
+  const t = useT();
   return (
     <div className="search">
       <span className="search__icon">
@@ -31,7 +33,7 @@ export function SearchBar({
         enterKeyHint="search"
       />
       {value ? (
-        <button className="search__clear" onClick={() => onChange('')} aria-label="Suche löschen">
+        <button className="search__clear" onClick={() => onChange('')} aria-label={t.ui.sucheLoeschen}>
           <IconClose size={17} />
         </button>
       ) : null}

@@ -2111,6 +2111,224 @@ ol {
   }
 }
 
+/* Sprache: zwei Knoepfe in den Einstellungen, ein kleiner im Kopf. */
+.sprachwahl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sprachwahl__knopf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border-radius: var(--radius-md, 14px);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  font: inherit;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.sprachwahl__knopf--aktiv {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.sprachknopf {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* Auf sehr schmalen Bildschirmen reicht der Platz im Kopf nicht – die
+   Sprache steht dann in den Einstellungen. */
+@media (max-width: 359px) {
+  .sprachknopf {
+    display: none;
+  }
+}
+
+/* Einkaufsliste (Beute / Groceries) -------------------------------------- */
+
+.einkauf__kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.einkauf__fertig {
+  margin-top: 22px;
+  min-height: 40px;
+  flex: none;
+}
+
+@media (min-width: 900px) {
+  .einkauf__fertig {
+    margin-top: 34px;
+  }
+}
+
+.einkauf__eingabe {
+  margin-bottom: 18px;
+}
+
+.einkauf__leer {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px;
+  margin-bottom: 18px;
+  color: var(--ink-muted);
+  font-size: 14.5px;
+}
+
+.einkauf__leer p {
+  margin: 0;
+}
+
+.einkauf__grundliste {
+  margin-top: 6px;
+}
+
+/* Die offenen Zutaten, eine Karte je Abteilung des Ladens. */
+.abteilungen {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (min-width: 900px) {
+  .abteilungen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.abteilung {
+  --abteilung: var(--ink-muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.abteilung[data-abteilung='gemuese'] { --abteilung: var(--sage); }
+.abteilung[data-abteilung='brot'] { --abteilung: var(--plan); }
+.abteilung[data-abteilung='fleisch'] { --abteilung: var(--accent); }
+.abteilung[data-abteilung='kuehl'] { --abteilung: var(--link); }
+.abteilung[data-abteilung='vorrat'] { --abteilung: var(--cat-high-protein); }
+.abteilung[data-abteilung='gewuerze'] { --abteilung: var(--accent-strong); }
+.abteilung[data-abteilung='suesses'] { --abteilung: var(--cat-dessert); }
+.abteilung[data-abteilung='getraenke'] { --abteilung: var(--link); }
+.abteilung[data-abteilung='tiefkuehl'] { --abteilung: var(--link); }
+
+.abteilung__titel {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 13px 16px 11px;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--abteilung);
+  background: color-mix(in srgb, var(--abteilung) 7%, var(--surface));
+  border-bottom: 1px solid var(--line);
+}
+
+.abteilung__punkt {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--abteilung);
+  flex: none;
+}
+
+.abteilung__zahl {
+  margin-left: auto;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--abteilung);
+  background: color-mix(in srgb, var(--abteilung) 13%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.kacheln {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kacheln li + li .kachel {
+  border-top: 1px solid var(--line);
+}
+
+.kachel.row {
+  border-top: none;
+  min-height: 60px;
+  padding: 10px 14px 10px 16px;
+  transition: background 0.14s ease;
+}
+
+.kachel:active {
+  background: var(--surface-sunken);
+}
+
+.kachel:active .kachel__haken {
+  background: var(--sage);
+  border-color: var(--sage);
+  color: #fff;
+}
+
+.kachel__haken {
+  border-radius: 50%;
+}
+
+.kachel__name {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.kachel__fuer {
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--plan);
+  /* Lange Rezeptnamen auf einer Zeile – sonst wird jede Kachel dreizeilig. */
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kachel__fuer--standard {
+  color: var(--ink-muted);
+  font-weight: 550;
+}
+
+.kachel__menge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
 /* Vorschau ueber Groceries: was in den naechsten Tagen gekocht wird. */
 .plannedstrip {
   display: flex;
@@ -2572,6 +2790,53 @@ ol {
 }
 
 /* Editorzeilen ------------------------------------------------------------ */
+
+/* Eine Zutat im Formular: die Zeile und darunter die vorgeschlagenen Mengen. */
+.zutatzeile {
+  margin-bottom: 8px;
+}
+
+.zutatzeile .editrow {
+  margin-bottom: 0;
+}
+
+.mengenwahl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+  padding-left: 2px;
+}
+
+.mengenwahl__chip {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.mengenwahl__chip--aktiv {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
+.mengenwahl__ki {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
 
 .editrow {
   display: flex;

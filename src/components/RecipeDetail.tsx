@@ -2,10 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Recipe, matchDishCategory } from '@/lib/types';
-import { formatQuantity, scaleAmount } from '@/lib/units';
-import { ABMESSEN } from '@/lib/prep';
+import { scaleAmount } from '@/lib/units';
+import { useInhalt } from '@/lib/inhalt';
 import { zutatenProSchritt } from '@/lib/stepIngredients';
 import { istEnglisch, rezeptTexte } from '@/lib/sprache';
+import { useT } from '@/lib/i18n';
 import { Sheet, ConfirmDialog } from './ui';
 import { TimerHint } from './Timer';
 import { Notiz } from './Notiz';
@@ -45,6 +46,9 @@ export function RecipeDetail({
   /** Gekuerzte Schritte auf den Stand davor zuruecksetzen. */
   onRestoreOriginal: () => void;
 }) {
+  const t = useT();
+  const inhalt = useInhalt();
+  const name = inhalt.text(recipe.name, recipe.en);
   const base = recipe.servings > 0 ? recipe.servings : 1;
   const [servings, setServings] = useState(base);
   const [confirming, setConfirming] = useState(false);
@@ -73,7 +77,7 @@ export function RecipeDetail({
   return (
     <>
       <Sheet
-        title={recipe.name || 'Rezept'}
+        title={name || t.rezept.rezept}
         onClose={onClose}
         footer={
           <button
@@ -82,7 +86,7 @@ export function RecipeDetail({
             disabled={steps.length === 0}
           >
             <IconFlame size={19} />
-            Start Cooking
+            {t.rezept.startCooking}
           </button>
         }
         actions={
@@ -91,63 +95,67 @@ export function RecipeDetail({
               className={`iconbtn iconbtn--plain${recipe.cookNext ? ' iconbtn--active' : ''}`}
               onClick={() => onToggleCookNext(servings)}
               aria-label={
-                recipe.cookNext ? 'Aus Cook Next entfernen' : 'Zu Cook Next hinzufügen'
+                recipe.cookNext ? t.rezept.ausCookNextEntfernen : t.rezept.zuCookNextHinzufuegen
               }
               aria-pressed={recipe.cookNext}
             >
               <IconCookNext filled={recipe.cookNext} />
             </button>
-            <button className="iconbtn iconbtn--plain" onClick={onEdit} aria-label="Rezept bearbeiten">
+            <button
+              className="iconbtn iconbtn--plain"
+              onClick={onEdit}
+              aria-label={t.rezept.bearbeiten}
+            >
               <IconPencil />
             </button>
           </>
         }
       >
-        <h1 className="detail__title">{recipe.name || 'Ohne Namen'}</h1>
+        <h1 className="detail__title">{name || t.rezept.ohneNamen}</h1>
 
         <div className="detail__meta">
           {recipe.category ? (
             <span className={`tag${categoryTag(recipe.category)}`}>
               <IconFlame size={13} />
-              {recipe.category}
+              {inhalt.kategorie(recipe.category)}
             </span>
           ) : null}
           {recipe.timeMin ? (
             <span className="tag">
               <IconClock size={13} />
-              {recipe.timeMin} Min
+              {recipe.timeMin} {t.allgemein.minuten}
             </span>
           ) : null}
           <span className="tag">
             <IconServings size={13} />
-            Basis: {base} {base === 1 ? 'Portion' : 'Portionen'}
+            {t.rezept.basis(base)}
           </span>
         </div>
 
         {recipe.notes ? (
-          <Notiz className="muted detail__notiz" text={recipe.notes} />
+          <Notiz className="muted detail__notiz" text={inhalt.text(recipe.notes, recipe.en)} />
         ) : null}
 
         <div className="detail__section">
           <div className="detail__sectionhead">
-            <span className="detail__h">Zutaten</span>
+            <span className="detail__h">{t.rezept.zutaten}</span>
             <div className="stepper">
               <button
                 className="stepper__btn"
                 onClick={() => setServings((s) => Math.max(1, s - 1))}
                 disabled={servings <= 1}
-                aria-label="Eine Portion weniger"
+                aria-label={t.rezept.portionWeniger}
               >
                 <IconMinus size={18} />
               </button>
               <span className="stepper__value" aria-live="polite">
-                {servings} {servings === 1 ? 'Portion' : 'Portionen'}
+                {servings} {t.allgemein.portionen(servings)}
               </span>
               <button
                 className="stepper__btn"
                 onClick={() => setServings((s) => Math.min(50, s + 1))}
                 disabled={servings >= 50}
-                aria-label="Eine Portion mehr"
+                aria-label={t.rezept.portionMehr}
               >
                 <IconPlus size={18} />
               </button>
@@ -156,19 +164,25 @@ export function RecipeDetail({
 
           {ingredients.length === 0 ? (
             <p className="muted" style={{ fontSize: 14.5 }}>
-              Noch keine Zutaten erfasst.
+              {t.rezept.keineZutaten}
             </p>
           ) : (
             <ul className="ingredients">
               {ingredients.map((ingredient) => (
                 <li className="ingredient" key={ingredient.id}>
                   <span className="ingredient__amount">
-                    {formatQuantity(
+                    {inhalt.menge(
                       scaleAmount(ingredient.amount, factor, ingredient.noScale),
                       ingredient.unit,
                     )}
                   </span>
-                  <span>{ingredient.name}</span>
+                  <span>
+                    {inhalt.zutat(
+                      ingredient.name,
+                      scaleAmount(ingredient.amount, factor, ingredient.noScale),
+                      recipe.en,
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -177,7 +191,7 @@ export function RecipeDetail({
           {recipe.cookNext ? (
             <p className="detail__planhint">
               <IconCookNext size={15} filled />
-              Für die nächsten Tage geplant – die Zutaten stehen in Groceries.
+              {t.rezept.geplant}
             </p>
           ) : null}
 
@@ -188,16 +202,16 @@ export function RecipeDetail({
             disabled={ingredients.length === 0}
           >
             <IconCart size={18} />
-            Zu Groceries hinzufügen
+            {t.rezept.zumEinkauf}
           </button>
         </div>
 
         <div className="detail__section">
           <div className="detail__sectionhead">
-            <span className="detail__h">Zubereitung</span>
+            <span className="detail__h">{t.rezept.zubereitung}</span>
             <span className="row__note">
-              {hatVorbereitung ? 'Vorbereitung + ' : ''}
-              {steps.length} {steps.length === 1 ? 'Schritt' : 'Schritte'}
+              {hatVorbereitung ? t.rezept.vorbereitungPlus : ''}
+              {steps.length} {t.allgemein.schritte(steps.length)}
             </span>
           </div>
           {hatVorbereitung ? (
@@ -206,26 +220,25 @@ export function RecipeDetail({
                 <IconKnife size={15} />
               </span>
               <div>
-                <div className="step__title">Vorbereitung</div>
+                <div className="step__title">{t.rezept.vorbereitung}</div>
                 <ul className="preplist">
                   {prep.map((task, index) => (
-                    <li key={`${index}-${task}`}>{task}</li>
+                    <li key={`${index}-${task}`}>{inhalt.text(task, recipe.en)}</li>
                   ))}
-                  {ingredients.length > 0 ? <li>{ABMESSEN}</li> : null}
+                  {ingredients.length > 0 ? <li>{t.rezept.abmessen}</li> : null}
                 </ul>
               </div>
             </div>
           ) : null}
           {steps.length === 0 ? (
             <div className="notice">
-              <strong>Noch keine Zubereitungsschritte erfasst.</strong> Deshalb lässt sich der
-              Kochmodus nicht starten. Für die mitgelieferten Rezepte sind Zubereitung und
-              Zutaten hinterlegt – was hier fehlt, lässt sich daraus nachtragen. Eigenes bleibt
-              unverändert; sonst über <em>Bearbeiten</em> selbst eintragen.
+              <strong>{t.rezept.keineSchritte}</strong> {t.rezept.keineSchritteText}{' '}
+              <em>{t.rezept.keineSchritteKnopf}</em>
+              {t.rezept.keineSchritteSchluss}
               <div style={{ height: 10 }} />
               <button className="btn btn--ghost" onClick={onFillSteps}>
                 <IconPlus size={18} />
-                Aus der Vorlage nachtragen
+                {t.rezept.ausVorlage}
               </button>
             </div>
           ) : (
@@ -234,16 +247,15 @@ export function RecipeDetail({
                 <li className="step" key={step.id}>
                   <span className="step__num">{index + 1}</span>
                   <div>
-                    <div className="step__text">{step.text}</div>
+                    <div className="step__text">{inhalt.text(step.text, recipe.en)}</div>
                     {schrittZutaten[index].length ? (
                       <div className="step__zutaten">
                         {schrittZutaten[index]
                           .map((ingredient) => {
-                            const quantity = formatQuantity(
-                              scaleAmount(ingredient.amount, factor, ingredient.noScale),
-                              ingredient.unit,
-                            );
-                            return quantity ? `${quantity} ${ingredient.name}` : ingredient.name;
+                            const menge = scaleAmount(ingredient.amount, factor, ingredient.noScale);
+                            const quantity = inhalt.menge(menge, ingredient.unit);
+                            const zutat = inhalt.zutat(ingredient.name, menge, recipe.en);
+                            return quantity ? `${quantity} ${zutat}` : zutat;
                           })
                           .join(' · ')}
                       </div>
@@ -254,24 +266,22 @@ export function RecipeDetail({
               ))}
             </ol>
           )}
-          {recipe.uebersetztAus === 'en' ? (
-            <p className="kuerzung">Aus dem Englischen übersetzt.</p>
+          {inhalt.sprache === 'en' ? null : recipe.uebersetztAus === 'en' ? (
+            <p className="kuerzung">{t.rezept.uebersetzt}</p>
           ) : nochEnglisch ? (
             <p className="kuerzung">
               {recipe.uebersetzungVersuch
-                ? 'Dieses Rezept ist auf Englisch. Die KI konnte es nicht übersetzen.'
-                : 'Dieses Rezept ist auf Englisch. Die App übersetzt es von selbst, sobald die KI erreichbar ist.'}
+                ? t.rezept.englischNichtUebersetzt
+                : t.rezept.englischWirdUebersetzt}
             </p>
           ) : null}
           {steps.length > 0 &&
           recipe.vorKuerzen &&
           (recipe.kuerzung === 'regeln' || recipe.kuerzung === 'ki') ? (
             <p className="kuerzung">
-              {recipe.kuerzung === 'ki'
-                ? 'Die Schritte wurden mit KI gekürzt.'
-                : 'Lange Schritte wurden in kurze aufgeteilt.'}{' '}
+              {recipe.kuerzung === 'ki' ? t.rezept.gekuerztKi : t.rezept.gekuerztRegeln}{' '}
               <button className="btn btn--quiet kuerzung__zurueck" onClick={onRestoreOriginal}>
-                Original wiederherstellen
+                {t.rezept.originalWiederherstellen}
               </button>
             </p>
           ) : null}
@@ -281,7 +291,7 @@ export function RecipeDetail({
 
         <button className="btn btn--danger btn--block" onClick={() => setConfirming(true)}>
           <IconTrash size={18} />
-          Rezept löschen
+          {t.rezept.loeschen}
         </button>
 
         <div style={{ height: 8 }} />
@@ -289,9 +299,9 @@ export function RecipeDetail({
 
       {confirming ? (
         <ConfirmDialog
-          title="Rezept löschen?"
-          text={`„${recipe.name}“ wird auf allen Geräten entfernt. Das lässt sich nicht rückgängig machen.`}
-          confirmLabel="Löschen"
+          title={t.rezept.loeschenFrage}
+          text={t.rezept.loeschenText(name)}
+          confirmLabel={t.allgemein.loeschen}
           onCancel={() => setConfirming(false)}
           onConfirm={() => {
             setConfirming(false);

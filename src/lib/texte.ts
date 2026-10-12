@@ -27,6 +27,7 @@ import { kochAnimation } from './texte/kochAnimation';
 import { rezept } from './texte/rezept';
 import { kochen } from './texte/kochen';
 import { essen } from './texte/essen';
+import { autocomplete } from './texte/autocomplete';
 
 export const TEXTE = {
   de: {
@@ -48,6 +49,7 @@ export const TEXTE = {
     rezept: rezept.de,
     kochen: kochen.de,
     essen: essen.de,
+    autocomplete: autocomplete.de,
   },
   en: {
     allgemein: allgemein.en,
@@ -68,6 +70,7 @@ export const TEXTE = {
     rezept: rezept.en,
     kochen: kochen.en,
     essen: essen.en,
+    autocomplete: autocomplete.en,
   },
 };
 

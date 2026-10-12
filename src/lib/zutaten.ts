@@ -610,3 +610,8 @@ export function englischerName(name: string): ZutatWissen | null {
   const kern = norm(kernVon(name)).trim();
   return eintrag.en.some((form) => norm(form).trim() === kern) ? eintrag : null;
 }
+
+/** Alle bekannten Zutaten – fuer die Vorschlagsliste beim Tippen. */
+export function alleZutaten(): readonly ZutatWissen[] {
+  return WISSEN;
+}

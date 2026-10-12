@@ -9,6 +9,7 @@ import { gelernt, zutatLernen } from '@/lib/zutatKi';
 import { useT } from '@/lib/i18n';
 import { useInhalt } from '@/lib/inhalt';
 import { NumberInput } from './ui';
+import { ZutatenFeld } from './ZutatenFeld';
 import { IconPlus, IconSpark, IconTrash } from './Icons';
 
 /** So lange nach dem letzten Buchstaben, bis die KI gefragt wird. */
@@ -160,14 +161,13 @@ export function IngredientEditor({
                 }}
                 autoComplete="off"
               />
-              <input
-                className="input editrow__grow"
+              <ZutatenFeld
+                wrapperClassName="editrow__grow"
                 value={ingredient.name}
                 placeholder={t.platzhalterName}
-                aria-label={t.name(index + 1)}
-                onChange={(event) => nameAendern(ingredient.id, event.target.value)}
+                ariaLabel={t.name(index + 1)}
+                onChange={(name) => nameAendern(ingredient.id, name)}
                 onFocus={() => setAktiv(ingredient.id)}
-                autoComplete="off"
               />
               <button
                 className="iconbtn iconbtn--plain"

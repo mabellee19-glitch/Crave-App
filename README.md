@@ -19,6 +19,7 @@ Zwei Bereiche, auf Deutsch und auf Englisch:
 | Überall | Deutsch oder Englisch auf Knopfdruck (`DE`/`EN` oben) – die ganze App samt aller Rezepte |
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
 | Rezepte | Beim Eintippen einer Zutat schlägt die App Menge und Einheit vor: Basilikum «1 Bund», Tomatensauce «1 Dose» oder «1 Glas» |
+| Rezepte, Beute | Vorschläge beim Tippen: «bas» bietet Basilikum an – aus dem Zutatenwissen und allem, was du schon verwendet hast |
 | Rezepte | `Rezept über Link hinzufügen`: Adresse einfügen, Zutaten und Zubereitung kommen mit – samt Timern |
 | Rezepte | Übernommene Schritte werden mit KI kürzer und einfacher – Zutaten, Mengen und Reihenfolge bleiben, das Original lässt sich zurückholen |
 | Rezepte | Englische Rezepte kommen auf Deutsch an, mit Gramm, Deziliter und Grad Celsius |
@@ -84,6 +85,17 @@ Schlüsselwörtern auf Deutsch und Englisch, üblichen Mengen, der Abteilung im
 Laden und dem englischen Namen. Kennt die App eine Zutat nicht, fragt sie
 nach einer kurzen Pause die KI (`/api/einheiten`) und merkt sich die Antwort
 auf dem Gerät – dieselbe Zutat kostet nur einmal eine Anfrage.
+
+### Vorschläge beim Tippen
+
+In der Beute und im Rezept bietet das Zutatenfeld schon nach zwei Buchstaben
+passende Namen an: «bas» → Basilikum, «rue» → Rüebli (`src/lib/autocomplete.ts`).
+Vorgeschlagen wird, was in den eigenen Rezepten, Ideen und Listen schon
+vorkommt, und was das Zutatenwissen kennt – in der gewählten Sprache. Zuerst
+kommt, was mit dem Getippten beginnt; was oft gebraucht wird, steht weiter
+oben. In der Beute gilt die Suche nur dem Namen: «2 Bund bas» wird
+«2 Bund Basilikum». Pfeiltasten wählen, Enter oder Tippen übernimmt, Escape
+schliesst die Liste. Im Rezept kommt mit dem Namen gleich die übliche Menge.
 
 ## Beute: die Einkaufsliste
 
@@ -525,6 +537,7 @@ src/
     useKiEnglisch.ts          Englische Fassung eigener Rezepte im Hintergrund
     zutaten.ts                Zutatenwissen: Mengen, Einheiten, Abteilung, englischer Name
     zutatKi.ts                Was die KI zu unbekannten Zutaten gesagt hat (auf dem Gerät)
+    autocomplete.ts           Vorschläge beim Tippen eines Zutatennamens
     uebersetzen.ts            Englische Rezepte: Auftrag an die KI, Antwort ans Rezept
     sprache.ts                Ist ein Rezept englisch?
     aufraeumen.ts             Eszett zu ss, Adressen ohne Werbeparameter

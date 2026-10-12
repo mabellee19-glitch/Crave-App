@@ -1300,6 +1300,10 @@ ol {
   align-items: flex-start;
 }
 
+.inputrow__feld {
+  flex: 1;
+}
+
 .inputrow .input {
   min-width: 0;
 }
@@ -2791,9 +2795,90 @@ ol {
 
 /* Editorzeilen ------------------------------------------------------------ */
 
+/* Zutatenfeld mit Vorschlaegen beim Tippen ("bas" → Basilikum). */
+.zutatenfeld {
+  position: relative;
+  min-width: 0;
+}
+
+.zutatenfeld > .input {
+  width: 100%;
+}
+
+.zutatenfeld__liste {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 220px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-lg);
+  max-height: 290px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.zutatenfeld__liste--oben {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.zutatenfeld__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 15.5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zutatenfeld__option:hover,
+.zutatenfeld__option--aktiv {
+  background: var(--surface-sunken);
+}
+
+.zutatenfeld__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.zutatenfeld__name strong {
+  font-weight: 750;
+  color: var(--accent);
+}
+
+.zutatenfeld__menge {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Eine Zutat im Formular: die Zeile und darunter die vorgeschlagenen Mengen. */
 .zutatzeile {
   margin-bottom: 8px;
+  /* Die Vorschlagsliste richtet sich nach der ganzen Zeile, nicht nach dem
+     schmalen Namensfeld – sonst ragte sie rechts aus dem Blatt. */
+  position: relative;
+}
+
+.zutatzeile .zutatenfeld {
+  position: static;
+}
+
+.zutatzeile .zutatenfeld__liste {
+  min-width: 0;
 }
 
 .zutatzeile .editrow {

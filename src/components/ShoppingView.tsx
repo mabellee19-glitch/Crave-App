@@ -9,6 +9,7 @@ import { gelernt, zutatLernen } from '@/lib/zutatKi';
 import { useT } from '@/lib/i18n';
 import { Inhalt, useInhalt } from '@/lib/inhalt';
 import { ConfirmDialog, EmptyState, NumberInput, Sheet } from './ui';
+import { ZutatenFeld } from './ZutatenFeld';
 import {
   IconCheck,
   IconChevronDown,
@@ -171,13 +172,13 @@ export function ShoppingView({
           submit();
         }}
       >
-        <input
-          className="input"
+        <ZutatenFeld
+          schnell
+          wrapperClassName="inputrow__feld"
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={setText}
           placeholder={t.eingabePlatzhalter}
-          aria-label={t.eingabe}
-          autoComplete="off"
+          ariaLabel={t.eingabe}
           enterKeyHint="done"
         />
         <button className="btn btn--primary" type="submit" disabled={!text.trim()} aria-label={t.hinzufuegen}>
@@ -455,13 +456,13 @@ function PantrySheet({
         }}
       >
         <div className="inputrow">
-          <input
-            className="input"
+          <ZutatenFeld
+            schnell
+            wrapperClassName="inputrow__feld"
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={setText}
             placeholder={t.neueStandard}
-            aria-label={t.neueStandard}
-            autoComplete="off"
+            ariaLabel={t.neueStandard}
           />
           <button
             className="btn btn--primary"

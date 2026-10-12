@@ -31,6 +31,12 @@ export function useKiEnglisch(): void {
   const ersterAbgleich = useSync().lastSyncedAt;
   const laeuft = useRef(false);
   const gesperrt = useRef(false);
+  /*
+   * Was in dieser Sitzung schon gefragt wurde. Kommt gleich nach dem
+   * Uebernehmen ein Abgleich herein, laeuft der Durchgang neu, bevor die App
+   * die Uebersetzung gezeichnet hat – und saehe das Rezept noch ohne sie.
+   */
+  const gefragt = useRef(new Set<string>());
   const vorbei = useRef(false);
 
   useEffect(
@@ -62,6 +68,9 @@ export function useKiEnglisch(): void {
               : aktuell.current.dishes.find((dish) => dish.id === id);
           if (!eintrag || !brauchtEnglisch(eintrag)) continue;
           const texte = fehlendeTexte(eintrag);
+          const schluessel = `${sammlung}:${id}:${texte.join('\u0001')}`;
+          if (gefragt.current.has(schluessel)) continue;
+          gefragt.current.add(schluessel);
 
           let antwort: Response;
           let daten: { ok?: boolean; error?: string; texte?: string[] } | null;

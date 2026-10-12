@@ -323,8 +323,13 @@ export function CookMode({
           </div>
         ) : null}
 
+        {/*
+          Jeder Bildschirm bekommt eine eigene Flaeche (key): sonst behielte
+          Schritt 1 die Scrollposition der langen Vorbereitung, und der Text
+          stuende oben ausserhalb des Bildes.
+        */}
         {istVorbereitung ? (
-          <div className="cook__body">
+          <div className="cook__body" key="vorbereitung">
             <div className="cook__count">Vorbereitung</div>
             <p className="cook__text cook__text--klein">
               Erst schnibbeln und abmessen – dann geht’s am Herd ohne Hektik.
@@ -390,7 +395,7 @@ export function CookMode({
             ) : null}
           </div>
         ) : (
-          <div className="cook__body">
+          <div className="cook__body" key={step.id}>
             <div className="cook__count">
               Schritt {stepIndex + 1} von {total}
             </div>

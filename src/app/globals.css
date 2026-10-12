@@ -403,9 +403,9 @@ ol {
   top: 0;
   z-index: 30;
   padding-top: var(--safe-top);
-  background: color-mix(in srgb, var(--cream) 92%, transparent);
-  backdrop-filter: saturate(180%) blur(18px);
-  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  /* Deckend statt weichgezeichnet: eine Unschaerfe unter der Leiste muss
+     Safari bei jedem Scrollbild neu rechnen – auf dem iPad sichtbares Ruckeln. */
+  background: var(--cream);
   border-bottom: 1px solid transparent;
   transition: border-color 0.2s ease;
 }
@@ -1266,9 +1266,9 @@ ol {
   z-index: 60;
   display: flex;
   flex-direction: column;
-  background: color-mix(in srgb, var(--ink) 42%, transparent);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  /* Nur abgedunkelt, nicht weichgezeichnet: die Unschaerfe ueber den ganzen
+     Bildschirm kostete beim Oeffnen und beim Scrollen im Blatt jedes Bild. */
+  background: color-mix(in srgb, var(--ink) 48%, transparent);
   animation: fade-in 0.18s ease;
 }
 
@@ -1751,7 +1751,9 @@ ol {
   justify-content: center;
   gap: 18px;
   background: var(--cream);
-  animation: cookanim-aus 0.26s ease-in 1.14s forwards;
+  /* Tipps gehen hindurch – die Animation haelt nie etwas auf. */
+  pointer-events: none;
+  animation: cookanim-aus 0.24s ease-in 0.86s forwards;
 }
 
 .cookanim__topf {

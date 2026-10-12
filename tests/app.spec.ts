@@ -146,8 +146,24 @@ test.describe('Rezepte', () => {
       await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
 
-      await page.locator('.cookanim').click();
+      await expect(page.locator('.cookanim')).toBeVisible();
+      await page.mouse.click(40, 300);
       await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 1000 });
+    });
+
+    test('der Vorspann hält keinen Tipp auf', async ({ page }) => {
+      await openSpace(page, newSpace('vorspanndurch'));
+
+      await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+      await expect(page.locator('.cookanim')).toBeVisible();
+
+      // Wer schon während des Vorspanns auf "Los geht's" tippt, ist sofort bei Schritt 1.
+      const los = page.getByRole('button', { name: 'Los geht’s' });
+      const box = (await los.boundingBox())!;
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page.getByText('Schritt 1 von 5')).toBeVisible({ timeout: 1000 });
+      await expect(page.locator('.cookanim')).toHaveCount(0);
     });
 
     test('zum Start wird geruehrt, am Schluss hebt sich der Deckel', async ({ page }) => {

@@ -13,7 +13,7 @@ import React, { useEffect } from 'react';
  * Die Animation legt sich über den Kochmodus, der darunter schon steht. So
  * gibt es keine zweite Ansicht, die den Verlauf oder die Timer betrifft.
  */
-const DAUER_MS = 1400;
+const DAUER_MS = 1100;
 
 export function CookAnimation({
   variante,
@@ -24,14 +24,24 @@ export function CookAnimation({
   title: string;
   onDone: () => void;
 }) {
+  /*
+   * Antippen ueberspringt – niemand will auf eine Animation warten. Der Tipp
+   * geht dabei durch die Animation hindurch an sein Ziel: wer schon auf
+   * "Los geht's" tippt, ist auch gleich dort. Vorher fing die Flaeche jeden
+   * Tipp ab, und der Kochmodus wirkte eine Sekunde lang eingefroren.
+   */
   useEffect(() => {
     const handle = setTimeout(onDone, DAUER_MS);
-    return () => clearTimeout(handle);
+    const weiter = () => onDone();
+    window.addEventListener('pointerdown', weiter, { capture: true });
+    return () => {
+      clearTimeout(handle);
+      window.removeEventListener('pointerdown', weiter, { capture: true });
+    };
   }, [onDone]);
 
-  // Antippen überspringt – niemand will auf eine Animation warten.
   return (
-    <div className={`cookanim cookanim--${variante}`} onClick={onDone} role="presentation">
+    <div className={`cookanim cookanim--${variante}`} aria-hidden="true">
       {variante === 'start' ? <TopfOffen /> : <TopfMitDeckel />}
       <p className="cookanim__titel">{title}</p>
     </div>

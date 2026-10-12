@@ -76,7 +76,7 @@ test.describe('Rezepte', () => {
 
     // Kochmodus: zuerst die Vorbereitung, abgemessen fuer drei Portionen.
     await dialog.getByRole('button', { name: 'Start Cooking' }).click();
-    await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
+    await expect(page.locator('.cook').getByText('Vorbereitung', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Knoblauch fein hacken' })).toBeVisible();
     await expect(page.getByRole('button', { name: '600 g Poulet' })).toBeVisible();
 
@@ -96,7 +96,7 @@ test.describe('Rezepte', () => {
 
     // Zurueck bis vor Schritt 1 fuehrt in die Vorbereitung.
     await page.getByRole('button', { name: 'Zurück', exact: true }).click();
-    await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
+    await expect(page.locator('.cook').getByText('Vorbereitung', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Kochmodus beenden' }).click();
     await expect(page.locator('.cook')).toHaveCount(0);
@@ -110,9 +110,9 @@ test.describe('Rezepte', () => {
     await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
 
     // Schritt 1 hat einen 15-Minuten-Timer.
-    await expect(page.getByText('15:00')).toBeVisible();
+    await expect(page.locator('.cook').getByText('15:00')).toBeVisible();
     await page.getByRole('button', { name: 'Timer starten' }).click();
-    await expect(page.getByText('14:5', { exact: false })).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.cook').getByText('14:5', { exact: false })).toBeVisible({ timeout: 5000 });
 
     await page.getByRole('button', { name: 'Timer pausieren' }).click();
     const paused = await page.locator('.timer__clock').textContent();
@@ -120,7 +120,7 @@ test.describe('Rezepte', () => {
     expect(await page.locator('.timer__clock').textContent()).toBe(paused);
 
     await page.getByRole('button', { name: 'Timer zurücksetzen' }).click();
-    await expect(page.getByText('15:00')).toBeVisible();
+    await expect(page.locator('.cook').getByText('15:00')).toBeVisible();
   });
 
   test.describe('Vorspann und Abschluss', () => {
@@ -159,6 +159,9 @@ test.describe('Rezepte', () => {
       await expect(page.locator('.cookanim')).toBeVisible();
 
       // Wer schon während des Vorspanns auf "Los geht's" tippt, ist sofort bei Schritt 1.
+      // (Nicht im allerersten Moment – da faengt der Knopf noch Doppeltipps ab.)
+      await page.waitForTimeout(450);
+      await expect(page.locator('.cookanim')).toBeVisible();
       const los = page.getByRole('button', { name: 'Los geht’s' });
       const box = (await los.boundingBox())!;
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -252,7 +255,7 @@ test.describe('Rezepte', () => {
     await karte.click();
     await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
     // Die Vorbereitung mit dreizehn Zutaten ist lang genug zum Scrollen.
-    await expect(page.getByText('Vorbereitung', { exact: true })).toBeVisible();
+    await expect(page.locator('.cook').getByText('Vorbereitung', { exact: true })).toBeVisible();
 
     // Im Kochmodus scrollt nur der Schritt selbst, nie die Seite dahinter.
     await page.mouse.move(180, 320);
@@ -508,7 +511,7 @@ test.describe('Rezept über Link', () => {
     await startCooking(page);
     await expect(page.getByText('Schritt 1 von 2')).toBeVisible();
     await page.getByRole('button', { name: 'Weiter' }).click();
-    await expect(page.getByText('02:00')).toBeVisible();
+    await expect(page.locator('.cook').getByText('02:00')).toBeVisible();
   });
 
   test('eine Seite ohne Rezept wird erklaert, nicht verschluckt', async ({ page }) => {

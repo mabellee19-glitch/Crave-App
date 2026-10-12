@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Activity, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
@@ -19,7 +19,7 @@ import { CookMode } from './CookMode';
 import { SettingsSheet, SyncBadge } from './SettingsSheet';
 import { FridgeSheet } from './FridgeSheet';
 import { CloudNotice } from './CloudNotice';
-import { Toast, ToastMessage } from './ui';
+import { Toast, ToastMessage, VerdecktKontext } from './ui';
 import { IconBook, IconCamera, IconCart, IconPlus, IconSettings } from './Icons';
 
 /*
@@ -99,6 +99,14 @@ export function AppShell() {
     const onPop = (event: PopStateEvent) => {
       const roh = typeof event.state?.crave === 'number' ? event.state.crave : 0;
       const tiefe = Math.max(0, roh - grundtiefe.current);
+      const offen = stackRef.current.length;
+      // Vorwaerts in einen Eintrag, zu dem kein Overlay mehr gehoert (Safari
+      // im Browser: zurueck, dann vor): gleich wieder dorthin, wo der Stapel
+      // steht. Sonst schloss das naechste "Schliessen" nichts.
+      if (tiefe > offen) {
+        window.history.go(offen - tiefe);
+        return;
+      }
       setStack((current) => (current.length > tiefe ? current.slice(0, tiefe) : current));
     };
     window.addEventListener('popstate', onPop);
@@ -150,7 +158,6 @@ export function AppShell() {
     setToast({ id: Date.now(), text, actionLabel, onAction });
   }, []);
 
-  const top = stack[stack.length - 1] ?? null;
 
   /**
    * Namen fuer eine Meldung kuerzen. Zutaten heissen auch mal "Tomaten,
@@ -160,21 +167,30 @@ export function AppShell() {
   const kurz = (name: string, max = 28) =>
     name.length > max ? `${name.slice(0, max - 1).trimEnd()}…` : name;
 
-  const openRecipe = useCallback(
-    (id: string) => {
-      setTab('essen');
-      openOverlay({ kind: 'recipe', id });
-    },
-    [openOverlay],
-  );
+  /*
+   * Jeder Bereich merkt sich, wie weit er gescrollt war. Vorher behielt der
+   * neue Bereich die Position des alten – die Einkaufsliste oeffnete mitten
+   * in der Liste, Ueberschrift und Eingabefeld ausserhalb des Bildes. Ein
+   * Tipp auf den Bereich, in dem man schon ist, fuehrt nach oben.
+   */
+  const scrollProTab = useRef<Record<Tab, number>>({ essen: 0, shopping: 0 });
+  const waehleTab = (ziel: Tab) => {
+    if (ziel === tab) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    scrollProTab.current[tab] = window.scrollY;
+    setTab(ziel);
+  };
+  useLayoutEffect(() => {
+    window.scrollTo(0, scrollProTab.current[tab]);
+  }, [tab]);
 
-  const openIdea = useCallback(
-    (id: string) => {
-      setTab('essen');
-      openOverlay({ kind: 'idea', id });
-    },
-    [openOverlay],
-  );
+  // Ohne Tabwechsel: wer ein Rezept aus der Einkaufsliste oeffnet, will
+  // beim Schliessen wieder dort sein – an derselben Stelle.
+  const openRecipe = useCallback((id: string) => openOverlay({ kind: 'recipe', id }), [openOverlay]);
+
+  const openIdea = useCallback((id: string) => openOverlay({ kind: 'idea', id }), [openOverlay]);
 
   /** Die Gerichte, die als eigene Idee in der Liste stehen. */
   const ideen = useMemo(() => ideenAus(store.recipes, store.dishes), [store.recipes, store.dishes]);
@@ -249,7 +265,7 @@ export function AppShell() {
               <button
                 key={item.id}
                 className={`desknav__item${tab === item.id ? ' desknav__item--active' : ''}`}
-                onClick={() => setTab(item.id)}
+                onClick={() => waehleTab(item.id)}
                 aria-current={tab === item.id ? 'page' : undefined}
               >
                 {item.label}
@@ -304,53 +320,62 @@ export function AppShell() {
               <div className="skeleton__card" key={index} />
             ))}
           </div>
-        ) : tab === 'essen' ? (
-          <EssenView
-            recipes={store.recipes}
-            ideen={ideen}
-            onOpenRecipe={openRecipe}
-            onOpenIdea={openIdea}
-            onNew={() => openOverlay({ kind: 'new' })}
-            onToggleRecipeCookNext={store.toggleRecipeCookNext}
-            onToggleIdeaCookNext={store.toggleDishCookNext}
-          />
         ) : (
-          <ShoppingView
-            shopping={store.shopping}
-            pantry={store.pantry}
-            allPantry={allPantry}
-            onAdd={(input) => {
-              store.addShoppingItem(input);
-              showToast(`${kurz(input.name)} hinzugefügt`);
-            }}
-            onCheckOff={(id) => {
-              const item = store.shopping.find((entry) => entry.id === id);
-              store.checkOffShoppingItem(id);
-              showToast(
-                `${kurz(item?.name ?? 'Zutat')} erledigt`,
-                'Rückgängig',
-                () => storeRef.current.undo?.(),
-              );
-            }}
-            onClear={store.clearShoppingList}
-            onMovePantryToCart={store.movePantryItemToCart}
-            onAddPantryItem={store.addPantryItem}
-            onSavePantryItem={store.savePantryItem}
-            onDeletePantryItem={store.deletePantryItem}
-            cookNext={geplant}
-            onOpenPlanned={(eintrag) =>
-              eintrag.kind === 'recipe' ? openRecipe(eintrag.id) : openIdea(eintrag.id)
-            }
-            onAddSuggestions={() => {
-              const { added, categorised } = store.addPantrySuggestions();
-              showToast(
-                added === 0 && categorised === 0
-                  ? 'Alles schon vorhanden'
-                  : `${added} ${added === 1 ? 'Zutat' : 'Zutaten'} ergänzt` +
-                      (categorised > 0 ? `, ${categorised} eingeordnet` : ''),
-              );
-            }}
-          />
+          /*
+            Beide Bereiche bleiben stehen; der verborgene ruht. So bleiben
+            Suche und Filter beim Wechsel erhalten, und nichts wird neu gebaut.
+          */
+          <>
+            <Activity mode={tab === 'essen' ? 'visible' : 'hidden'}>
+              <EssenView
+                recipes={store.recipes}
+                ideen={ideen}
+                onOpenRecipe={openRecipe}
+                onOpenIdea={openIdea}
+                onNew={() => openOverlay({ kind: 'new' })}
+                onToggleRecipeCookNext={store.toggleRecipeCookNext}
+                onToggleIdeaCookNext={store.toggleDishCookNext}
+              />
+            </Activity>
+            <Activity mode={tab === 'shopping' ? 'visible' : 'hidden'}>
+              <ShoppingView
+                shopping={store.shopping}
+                pantry={store.pantry}
+                allPantry={allPantry}
+                onAdd={(input) => {
+                  store.addShoppingItem(input);
+                  showToast(`${kurz(input.name)} hinzugefügt`);
+                }}
+                onCheckOff={(id) => {
+                  const item = store.shopping.find((entry) => entry.id === id);
+                  store.checkOffShoppingItem(id);
+                  showToast(
+                    `${kurz(item?.name ?? 'Zutat')} erledigt`,
+                    'Rückgängig',
+                    () => storeRef.current.undo?.(),
+                  );
+                }}
+                onClear={store.clearShoppingList}
+                onMovePantryToCart={store.movePantryItemToCart}
+                onAddPantryItem={store.addPantryItem}
+                onSavePantryItem={store.savePantryItem}
+                onDeletePantryItem={store.deletePantryItem}
+                cookNext={geplant}
+                onOpenPlanned={(eintrag) =>
+                  eintrag.kind === 'recipe' ? openRecipe(eintrag.id) : openIdea(eintrag.id)
+                }
+                onAddSuggestions={() => {
+                  const { added, categorised } = store.addPantrySuggestions();
+                  showToast(
+                    added === 0 && categorised === 0
+                      ? 'Alles schon vorhanden'
+                      : `${added} ${added === 1 ? 'Zutat' : 'Zutaten'} ergänzt` +
+                          (categorised > 0 ? `, ${categorised} eingeordnet` : ''),
+                  );
+                }}
+              />
+            </Activity>
+          </>
         )}
 
         <div style={{ height: 26 }} />
@@ -364,7 +389,7 @@ export function AppShell() {
           <button
             key={item.id}
             className={`tabbar__item${tab === item.id ? ' tabbar__item--active' : ''}`}
-            onClick={() => setTab(item.id)}
+            onClick={() => waehleTab(item.id)}
             aria-current={tab === item.id ? 'page' : undefined}
           >
             <span className="tabbar__iconwrap">
@@ -380,7 +405,15 @@ export function AppShell() {
 
       {/* ------------------------------ Overlays ------------------------------ */}
 
-      {top ? renderOverlay(top) : null}
+      {/*
+        Alle Ebenen bleiben stehen, nur die oberste ist zu sehen. Der Index
+        als Schluessel genuegt: der Stapel waechst und schrumpft nur oben.
+      */}
+      {stack.map((overlay, ebene) => (
+        <VerdecktKontext.Provider key={ebene} value={ebene < stack.length - 1}>
+          {renderOverlay(overlay)}
+        </VerdecktKontext.Provider>
+      ))}
 
       {toast ? <Toast toast={toast} onDismiss={() => setToast(null)} /> : null}
     </div>
@@ -504,8 +537,10 @@ export function AppShell() {
           pantry={allPantry.map((item) => item.name)}
           onClose={closeTop}
           onOpenRecipe={(id) => {
-            closeTop();
-            openRecipe(id);
+            // Das Foto-Blatt durch das Rezept ersetzen, ohne den Verlauf
+            // anzufassen. closeTop() und gleich danach openRecipe() liefen
+            // gegeneinander: das spaete Zurueck schloss das Rezept wieder.
+            setStack((current) => [...current.slice(0, -1), { kind: 'recipe', id }]);
           }}
           onSaveIdea={(recipe) => {
             store.saveRecipe(recipe);

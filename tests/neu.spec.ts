@@ -398,8 +398,8 @@ test.describe('Rezept über Link mit KI', () => {
     await form.getByRole('button', { name: 'Speichern' }).click();
     await page.getByRole('button', { name: 'Rezept Pasta mit Zitrone öffnen' }).click();
     await startCooking(page);
-    await expect(page.getByText('Spaghetti in reichlich Salzwasser 9 Minuten al dente kochen.')).toBeVisible();
-    await expect(page.getByText('09:00')).toBeVisible();
+    await expect(page.locator('.cook').getByText('Spaghetti in reichlich Salzwasser 9 Minuten al dente kochen.')).toBeVisible();
+    await expect(page.locator('.cook').getByText('09:00')).toBeVisible();
   });
 
   test('fehlt eine Zahl aus dem Original, sagt die App das', async ({ page }) => {

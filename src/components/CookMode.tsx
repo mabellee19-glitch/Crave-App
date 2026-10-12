@@ -5,7 +5,7 @@ import { Recipe } from '@/lib/types';
 import { formatClock, formatQuantity, scaleAmount } from '@/lib/units';
 import { zutatenProSchritt } from '@/lib/stepIngredients';
 import { playAlarm, setAlarmSession, stopAlarm } from '@/lib/audio';
-import { Portal, useBodyScrollLock } from './ui';
+import { Portal, useBodyScrollLock, useVerdeckt } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconClose, IconKnife, IconTimer } from './Icons';
 import { CookAnimation, animationErwuenscht } from './CookAnimation';
@@ -15,7 +15,7 @@ import { CookAnimation, animationErwuenscht } from './CookAnimation';
  * Das Display bleibt waehrend des Kochens nach Moeglichkeit an.
  */
 export function CookMode({
-  recipe,
+  recipe: rezeptJetzt,
   servings,
   onClose,
 }: {
@@ -23,6 +23,13 @@ export function CookMode({
   servings: number;
   onClose: () => void;
 }) {
+  /*
+   * Das Rezept so, wie es beim Start war. Kuerzt die KI es im Hintergrund
+   * oder kommt eine Aenderung von einem anderen Geraet, wechseln sonst Text
+   * und Schritte unter den Haenden – und ein laufender Timer haengt an einem
+   * Schritt, den es nicht mehr gibt, und klingelt ohne Knopf zum Abstellen.
+   */
+  const [recipe] = useState(rezeptJetzt);
   const steps = useMemo(
     () => recipe.steps.filter((step) => step.text.trim().length > 0),
     [recipe.steps],
@@ -68,6 +75,28 @@ export function CookMode({
   const screens = total + offset;
 
   const [index, setIndex] = useState(0);
+
+  /*
+   * Der Knopf unten rechts wechselt seine Bedeutung an derselben Stelle:
+   * "Start Cooking" wird zu "Los geht's", "Weiter" zu "Fertig gekocht". Ein
+   * schneller Doppeltipp uebersprang so die Vorbereitung oder beendete das
+   * Kochen samt Timern. Nach jedem solchen Wechsel nimmt er deshalb einen
+   * Moment lang nichts an.
+   */
+  const letzterBildschirm = index >= screens - 1;
+  const [kurzGesperrt, setKurzGesperrt] = useState(true);
+  // Noch im selben Render sperren, nicht erst danach: ein schneller zweiter
+  // Tipp kaeme sonst durch, bevor ein Effekt laeuft.
+  const [bisherLetzter, setBisherLetzter] = useState(letzterBildschirm);
+  if (bisherLetzter !== letzterBildschirm) {
+    setBisherLetzter(letzterBildschirm);
+    setKurzGesperrt(true);
+  }
+  useEffect(() => {
+    if (!kurzGesperrt) return;
+    const handle = setTimeout(() => setKurzGesperrt(false), 350);
+    return () => clearTimeout(handle);
+  }, [kurzGesperrt, letzterBildschirm]);
   const istVorbereitung = hatVorbereitung && index === 0;
   const stepIndex = Math.min(Math.max(index - offset, 0), Math.max(total - 1, 0));
   const step = steps[stepIndex];
@@ -245,8 +274,11 @@ export function CookMode({
     };
   }, []);
 
+  const verdeckt = useVerdeckt();
+
   // Pfeiltasten auf dem iPad mit Tastatur / Desktop.
   useEffect(() => {
+    if (verdeckt) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'ArrowRight') setIndex((i) => Math.min(i + 1, screens - 1));
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(i - 1, 0));
@@ -254,7 +286,7 @@ export function CookMode({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [screens, onClose]);
+  }, [screens, onClose, verdeckt]);
 
   if (total === 0) {
     return (
@@ -287,7 +319,7 @@ export function CookMode({
 
   return (
     <Portal>
-      <div className="cook">
+      <div className={`cook${verdeckt ? ' cook--verdeckt' : ''}`}>
         {intro ? (
           <CookAnimation variante="start" title={recipe.name} onDone={introFertig} />
         ) : null}
@@ -444,14 +476,20 @@ export function CookMode({
             Zurück
           </button>
           {isLast ? (
-            <button className="btn btn--primary btn--lg" style={{ flex: 1 }} onClick={beenden}>
+            <button
+              className="btn btn--primary btn--lg btn--ruhig"
+              style={{ flex: 1 }}
+              onClick={beenden}
+              disabled={kurzGesperrt}
+            >
               Fertig gekocht
             </button>
           ) : (
             <button
-              className="btn btn--primary btn--lg"
+              className="btn btn--primary btn--lg btn--ruhig"
               style={{ flex: 1 }}
               onClick={() => setIndex((i) => Math.min(i + 1, screens - 1))}
+              disabled={kurzGesperrt && index === 0}
             >
               {istVorbereitung ? 'Los geht’s' : 'Weiter'}
               <IconChevronRight size={18} />

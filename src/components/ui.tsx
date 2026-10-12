@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { IconClose } from './Icons';
 
@@ -65,13 +65,27 @@ export function useBodyScrollLock(active: boolean) {
         // er jeden Sprung auf diese kleinere Höhe – und wie viele Bilder das
         // dauert, ist nicht vorhersagbar. Deshalb wird so lange nachgefasst,
         // bis die Position sitzt, höchstens aber ein paar Bilder lang.
+        // Nachgefasst wird nur, bis jemand selbst scrollt – sonst riss das
+        // Nachfassen den ersten Wisch nach dem Schliessen zurueck. Und nie
+        // ueber das Ende hinaus: ist die Seite inzwischen kuerzer (Eintrag
+        // geloescht), lief die Schleife sonst alle Bilder lang ins Leere.
         let versuche = 0;
+        let vomNutzer = false;
+        const halt = () => {
+          vomNutzer = true;
+        };
+        window.addEventListener('touchstart', halt, { once: true, passive: true });
+        window.addEventListener('wheel', halt, { once: true, passive: true });
         const zurueck = () => {
-          window.scrollTo(0, scrollY);
-          if (window.scrollY !== scrollY && versuche < 12) {
+          const ziel = Math.min(scrollY, document.documentElement.scrollHeight - window.innerHeight);
+          if (!vomNutzer) window.scrollTo(0, Math.max(0, ziel));
+          if (!vomNutzer && Math.abs(window.scrollY - ziel) > 1 && versuche < 12) {
             versuche += 1;
             requestAnimationFrame(zurueck);
+            return;
           }
+          window.removeEventListener('touchstart', halt);
+          window.removeEventListener('wheel', halt);
         };
         zurueck();
       };
@@ -88,11 +102,34 @@ export function useBodyScrollLock(active: boolean) {
   }, [active]);
 }
 
+const ohneAbo = () => () => {};
+
+/**
+ * In den <body> rendern. Beim Hydrieren gibt es noch kein Dokument zu
+ * vergleichen; danach – und Overlays entstehen immer erst danach – steht der
+ * Inhalt schon im ersten Bild. Vorher kam er einen Render spaeter, und das
+ * Einfahren eines Blattes begann mit einem leeren Bild.
+ */
 export function Portal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+  const imBrowser = useSyncExternalStore(
+    ohneAbo,
+    () => true,
+    () => false,
+  );
+  if (!imBrowser) return null;
   return createPortal(children, document.body);
+}
+
+/**
+ * Ob ein Overlay gerade von einem weiteren verdeckt wird. Alle Ebenen bleiben
+ * stehen – wer aus dem Bearbeiten zum Rezept zurueckkommt, findet es so vor,
+ * wie er es verlassen hat: gleiche Portionen, gleiche Scrollposition, ohne
+ * dass es neu einfaehrt.
+ */
+export const VerdecktKontext = createContext(false);
+
+export function useVerdeckt(): boolean {
+  return useContext(VerdecktKontext);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -114,25 +151,40 @@ export function Sheet({
 }) {
   useBodyScrollLock(true);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const verdeckt = useVerdeckt();
+  // Nur ein Tipp, der auf dem Hintergrund beginnt und endet, schliesst – wer
+  // im Blatt Text markiert und daneben loslaesst, verliert nichts.
+  const aufHintergrund = useRef(false);
 
+  // Escape schliesst nur die oberste Ebene.
   useEffect(() => {
+    if (verdeckt) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, verdeckt]);
 
   return (
     <Portal>
       <div
-        className="overlay"
+        className={`overlay${verdeckt ? ' overlay--verdeckt' : ''}`}
         ref={overlayRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        onMouseDown={(event) => {
-          if (event.target === overlayRef.current) onClose();
+        /*
+          iOS schickt Klicks nur an Elemente, die sich als anklickbar zu
+          erkennen geben (cursor: pointer in .overlay). Vorher hing das
+          Schliessen an mousedown – das kam auf iPhone und iPad nie an, ein
+          Tipp neben das Blatt tat nichts.
+        */
+        onPointerDown={(event) => {
+          aufHintergrund.current = event.target === overlayRef.current;
+        }}
+        onClick={(event) => {
+          if (aufHintergrund.current && event.target === overlayRef.current) onClose();
         }}
       >
         <div className="sheet">
@@ -216,10 +268,14 @@ export interface ToastMessage {
 }
 
 export function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => void }) {
+  // Die Frist gilt pro Meldung. Haengt sie an onDismiss, beginnt sie bei
+  // jedem Neuzeichnen von vorn, und die Meldung bleibt liegen.
+  const schliessen = useRef(onDismiss);
+  schliessen.current = onDismiss;
   useEffect(() => {
-    const handle = setTimeout(onDismiss, 5200);
+    const handle = setTimeout(() => schliessen.current(), 5200);
     return () => clearTimeout(handle);
-  }, [toast.id, onDismiss]);
+  }, [toast.id]);
 
   return (
     <Portal>

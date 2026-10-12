@@ -624,6 +624,11 @@ ol {
   border-color: var(--line-strong);
 }
 
+/* Kurz gesperrt gegen Doppeltipps – soll dabei nicht grau aufblitzen. */
+.btn--ruhig:disabled {
+  opacity: 1;
+}
+
 .btn--quiet {
   background: transparent;
   color: var(--accent);
@@ -1264,6 +1269,9 @@ ol {
   position: fixed;
   inset: 0;
   z-index: 60;
+  /* Macht den Hintergrund fuer iOS antippbar (schliesst das Blatt). */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   display: flex;
   flex-direction: column;
   /* Nur abgedunkelt, nicht weichgezeichnet: die Unschaerfe ueber den ganzen
@@ -1272,7 +1280,17 @@ ol {
   animation: fade-in 0.18s ease;
 }
 
+/* Eine Ebene unter einer anderen: bleibt stehen, mit allem Zustand, ist
+   aber weder zu sehen noch anzutippen. Kommt sie wieder nach oben, steht sie
+   ohne neues Einfahren da – die Animation bleibt deshalb unangetastet; nur
+   ein Wechsel der Eigenschaft wuerde sie neu starten. */
+.overlay--verdeckt,
+.cook--verdeckt {
+  visibility: hidden;
+}
+
 .sheet {
+  cursor: auto;
   margin-top: auto;
   background: var(--cream);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -2103,6 +2121,10 @@ ol {
   transform: translateX(-50%);
   bottom: calc(var(--nav-height) + var(--safe-bottom) + 14px);
   z-index: 90;
+  /* Die Meldung liegt ueber allem – Tipps gehen hindurch, nur der Knopf
+     darin faengt sie. Sonst landete ein Tipp auf die Liste darunter im
+     Nichts oder ausgerechnet auf "Rückgängig". */
+  pointer-events: none;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2151,6 +2173,7 @@ ol {
 }
 
 .toast__action {
+  pointer-events: auto;
   flex: none;
   white-space: nowrap;
   color: var(--accent);

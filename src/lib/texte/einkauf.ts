@@ -12,6 +12,8 @@ const de = {
   leer: 'Die Liste ist leer. Zutaten kommen hierher, wenn du sie oben eingibst, unten aus der Grundliste antippst oder ein Rezept hinzufügst.',
   fuer: (namen: string) => `für ${namen}`,
   standard: 'Standard-Zutaten',
+  standardSub: (n: number) =>
+    n === 0 ? 'Alle liegen gerade in der Beute' : `${n} bereit – ein Tipp legt sie in die Beute`,
   standardKurz: 'Standard',
   verwalten: 'Verwalten',
   grundlisteHinweis:
@@ -34,6 +36,12 @@ const de = {
     'Trägt fehlende Standard-Zutaten nach und ordnet vorhandene ohne Rubrik ein. Was schon da ist, bleibt unverändert.',
   nochKeine: 'Noch keine Standard-Zutaten.',
   einheitPlatzhalter: 'Einheit',
+  menge: 'Menge',
+  name: 'Name',
+  rubrik: 'Rubrik',
+  loeschen: 'Löschen',
+  fertig: 'Fertig',
+  bearbeiten: (name: string) => `${name} bearbeiten`,
   mengeVon: (name: string) => `Menge für ${name}`,
   einheitVon: (name: string) => `Einheit für ${name}`,
   nameVon: (name: string) => `Name von ${name}`,
@@ -54,6 +62,8 @@ const en: Form<typeof de> = {
   leer: 'Your list is empty. Items land here when you type them above, tap a staple below or add a recipe.',
   fuer: (namen: string) => `for ${namen}`,
   standard: 'Staples',
+  standardSub: (n: number) =>
+    n === 0 ? 'All of them are on Groceries right now' : `${n} ready – tap one to add it to Groceries`,
   standardKurz: 'Staple',
   verwalten: 'Manage',
   grundlisteHinweis:
@@ -74,6 +84,12 @@ const en: Form<typeof de> = {
     'Adds missing suggested staples and sorts existing ones without a section. Nothing you have is changed.',
   nochKeine: 'No staples yet.',
   einheitPlatzhalter: 'Unit',
+  menge: 'Amount',
+  name: 'Name',
+  rubrik: 'Section',
+  loeschen: 'Delete',
+  fertig: 'Done',
+  bearbeiten: (name: string) => `Edit ${name}`,
   mengeVon: (name: string) => `Amount for ${name}`,
   einheitVon: (name: string) => `Unit for ${name}`,
   nameVon: (name: string) => `Name of ${name}`,

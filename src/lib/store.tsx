@@ -25,6 +25,7 @@ import { randomId } from './id';
 import {
   PANTRY_CATALOGUE,
   PANTRY_CATEGORY_RENAMES,
+  PANTRY_NAME_RENAMES,
   SCHRITTE_VOR_DEM_KUERZEN,
   SCHRITTE_VOR_DER_VORBEREITUNG,
   buildSeedData,
@@ -194,24 +195,46 @@ function stamp(): number {
 }
 
 /**
- * Rubriken der Grundliste auf ihre heutigen Namen bringen.
+ * Rubriken und Standard-Zutaten der Grundliste auf ihre heutigen Namen
+ * bringen – "Red Beans" heisst jetzt "Rote Bohnen". Eine Zutat, die gerade in
+ * der Beute liegt, wird dort mit umbenannt.
  *
  * Gibt `null` zurück, wenn nichts anzupassen war – dann bleibt der Stand
  * unberührt und es wird auch nichts zum Server geschickt.
  */
 function renameCategories(data: AppData, now: number): AppData | null {
   const updated: Record<string, PantryItem> = {};
+  const umbenannt = new Map<string, { alt: string; neu: string }>();
+  // Gibt es den neuen Namen schon, bleibt der alte: sonst stuende er doppelt da.
+  const vorhanden = Object.values(data.pantry).filter((item) => !item.deleted);
   let changed = false;
   for (const [id, item] of Object.entries(data.pantry)) {
-    const neu = item.category ? PANTRY_CATEGORY_RENAMES[item.category] : undefined;
-    if (neu) {
-      updated[id] = { ...item, category: neu, updatedAt: now };
+    const rubrik = item.category ? PANTRY_CATEGORY_RENAMES[item.category] : undefined;
+    const ziel = item.deleted ? undefined : PANTRY_NAME_RENAMES[item.name];
+    const name = ziel && !vorhanden.some((anderer) => sameIngredient(anderer.name, ziel)) ? ziel : undefined;
+    if (rubrik || name) {
+      updated[id] = {
+        ...item,
+        ...(rubrik ? { category: rubrik } : {}),
+        ...(name ? { name } : {}),
+        updatedAt: now,
+      };
+      if (name) umbenannt.set(id, { alt: item.name, neu: name });
       changed = true;
     } else {
       updated[id] = item;
     }
   }
-  return changed ? { ...data, pantry: updated } : null;
+  if (!changed) return null;
+
+  let shopping = data.shopping;
+  for (const [id, item] of Object.entries(data.shopping)) {
+    const wechsel = item.pantryId ? umbenannt.get(item.pantryId) : undefined;
+    if (!wechsel || item.deleted || item.name !== wechsel.alt) continue;
+    if (shopping === data.shopping) shopping = { ...data.shopping };
+    shopping[id] = { ...item, name: wechsel.neu, updatedAt: now };
+  }
+  return { ...data, pantry: updated, shopping };
 }
 
 /**

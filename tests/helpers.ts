@@ -38,8 +38,9 @@ function alsRegex(text: string): string {
 
 /** Eine Zeile der aktiven Einkaufsliste, exakt ueber den Zutatennamen. */
 export function shoppingRow(page: Page, name: string) {
+  // Die Kacheln der Standard-Zutaten sind gleich gebaut, gehoeren aber nicht dazu.
   return page
-    .locator('.row')
+    .locator('.row:not(.kachel--standard):not(.kachel--verwalten)')
     .filter({ has: page.locator('.row__name', { hasText: new RegExp(`^${alsRegex(name)}$`) }) });
 }
 

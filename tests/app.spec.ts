@@ -1076,10 +1076,12 @@ test.describe('Einkaufsliste und Grundliste', () => {
     const sheet = page.getByRole('dialog');
     await sheet.getByLabel('Neue Standard-Zutat').fill('Quinoa');
     await sheet.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
-    await expect(sheet.getByLabel('Name von Quinoa')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Quinoa bearbeiten' })).toBeVisible();
 
+    // Ein Tipp auf die Zutat klappt ihre Bearbeitung auf.
+    await sheet.getByRole('button', { name: 'Honig bearbeiten' }).click();
     await sheet.getByRole('button', { name: 'Honig aus der Grundliste löschen' }).click();
-    await expect(sheet.getByLabel('Name von Honig')).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Honig bearbeiten' })).toHaveCount(0);
 
     await sheet.getByRole('button', { name: 'Schliessen' }).click();
     // Ohne Rubrik angelegt, also unter "Weitere".
@@ -1276,7 +1278,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.goto(`/s/${space}`);
     await goToTab(page, 'Beute');
     // Vorher gibt es nur die eine Rubrik "Weitere".
-    await expect(page.locator('.pantrygroup__title')).toHaveText(['Weitere']);
+    await expect(page.locator('.rubrik__name')).toHaveText(['Weitere']);
 
     await page.getByRole('button', { name: 'Verwalten' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Vorschlagsliste ergänzen' }).click();
@@ -1284,7 +1286,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
 
     // Alle Rubriken stehen da, "Weitere" ist verschwunden: Olivenöl wurde einsortiert.
-    await expect(page.locator('.pantrygroup__title')).toHaveText([
+    await expect(page.locator('.rubrik__name')).toHaveText([
       'Protein',
       'Frisches Gemüse/Früchte',
       'Dosenware',
@@ -1337,7 +1339,7 @@ test.describe('Nachtragen in einen bestehenden Datenraum', () => {
     await goToTab(page, 'Beute');
 
     // Keine zweite Gruppe mit dem alten Namen, die Zutat steckt in der neuen.
-    await expect(page.locator('.pantrygroup__title')).toHaveText(['Frisches Gemüse/Früchte']);
+    await expect(page.locator('.rubrik__name')).toHaveText(['Frisches Gemüse/Früchte']);
     await openPantryGroup(page, 'Frisches Gemüse/Früchte');
     await expect(pantryChip(page, 'Rüebli')).toHaveCount(1);
   });

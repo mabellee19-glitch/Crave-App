@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { goToTab, neuesRezept, newSpace, openSpace, shoppingRow } from './helpers';
+import {
+  goToTab,
+  neuesRezept,
+  newSpace,
+  openPantryGroup,
+  openSpace,
+  pantryChip,
+  shoppingRow,
+  waitForSync,
+} from './helpers';
 import {
   abteilungVon,
   einheitIn,
@@ -8,7 +17,7 @@ import {
   zutatenName,
 } from '../src/lib/zutaten';
 import { textIn, zutatIn } from '../src/lib/inhalt';
-import { buildSeedData } from '../src/lib/seed';
+import { PANTRY_NAME_RENAMES, buildSeedData } from '../src/lib/seed';
 import { fehlendeTexte } from '../src/lib/englisch';
 import type { Recipe } from '../src/lib/types';
 
@@ -255,7 +264,8 @@ test.describe('Beute nach Abteilungen', () => {
       await feld.fill(zutat);
       await feld.press('Enter');
     }
-    const abteilungen = page.locator('.abteilung');
+    // Die Rubriken der Standard-Zutaten darunter sind gleich gebaut, zaehlen hier aber nicht.
+    const abteilungen = page.locator('.abteilung:not(.rubrik)');
     await expect(abteilungen).toHaveCount(3);
     await expect(abteilungen.nth(0).locator('.abteilung__titel')).toContainText('Gemüse & Früchte');
     await expect(abteilungen.nth(1).locator('.abteilung__titel')).toContainText('Fleisch & Fisch');
@@ -264,5 +274,136 @@ test.describe('Beute nach Abteilungen', () => {
     // Englisch eingetippt, deutsch gezeigt.
     await expect(abteilungen.nth(0)).toContainText('Basilikum');
     await expect(shoppingRow(page, 'Poulet')).toContainText('500 g');
+  });
+});
+
+test.describe('Standard-Zutaten in einer Sprache', () => {
+  test('halb englische Namen sind deutsch gespeichert und englisch gezeigt', () => {
+    const namen = Object.values(buildSeedData().pantry).map((item) => item.name);
+    for (const alt of Object.keys(PANTRY_NAME_RENAMES)) expect(namen).not.toContain(alt);
+    expect(zutatIn('en', 'Protein-Joghurt')).toBe('high-protein yogurt');
+    expect(zutatIn('en', 'Mageres Hackfleisch')).toBe('lean ground beef');
+    expect(zutatIn('en', 'Rote Bohnen')).toBe('red beans');
+    expect(zutatIn('en', 'Süsskartoffel-Pommes (selber machen)')).toBe('sweet potato fries (homemade)');
+    // Englisch eingetippt, deutsch gezeigt.
+    expect(zutatIn('de', 'High-Protein Yogurt')).toBe('Protein-Joghurt');
+    expect(zutatIn('de', 'chicken jerky')).toBe('Poulet-Jerky');
+    expect(zutatIn('de', 'black lentils')).toBe('Schwarze Linsen');
+    expect(abteilungVon('Protein-Pasta')).toBe('vorrat');
+    expect(abteilungVon('Süsskartoffel-Pommes (selber machen)')).toBe('tiefkuehl');
+  });
+
+  test('bestehende Einträge bekommen den deutschen Namen – auch in der Beute', async ({ page, request }) => {
+    const space = newSpace('grundnamen');
+    const now = Date.now();
+    const vorrat = (id: string, name: string, category: string, inCart = false) => ({
+      id,
+      name,
+      amount: null,
+      unit: '',
+      category,
+      inCart,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await request.post(`/api/space/${space}`, {
+      data: {
+        data: {
+          recipes: {},
+          dishes: {},
+          shopping: {
+            s1: {
+              id: 's1',
+              name: 'Lean Hackfleisch',
+              amount: 500,
+              unit: 'g',
+              pantryId: 'p1',
+              fromRecipe: null,
+              manual: true,
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          pantry: {
+            p1: vorrat('p1', 'Lean Hackfleisch', 'Protein', true),
+            p2: vorrat('p2', 'Red Beans', 'Dosenware'),
+            // Selbst umbenannt: bleibt gespeichert, wie es ist.
+            p3: vorrat('p3', 'Black Lentils (Beluga)', 'Dosenware'),
+          },
+        },
+      },
+    });
+
+    await page.goto(`/s/${space}`);
+    await goToTab(page, 'Beute');
+    await expect(shoppingRow(page, 'Mageres Hackfleisch')).toContainText('500 g');
+    await openPantryGroup(page, 'Dosenware');
+    await expect(pantryChip(page, 'Rote Bohnen')).toBeVisible();
+    // Gezeigt wird es trotzdem deutsch: die App kennt "black lentils".
+    await expect(pantryChip(page, 'Schwarze Linsen (Beluga)')).toBeVisible();
+
+    await waitForSync(page);
+    const gespeichert = await (await request.get(`/api/space/${space}`)).json();
+    expect(gespeichert.data.pantry.p1.name).toBe('Mageres Hackfleisch');
+    expect(gespeichert.data.pantry.p2.name).toBe('Rote Bohnen');
+    expect(gespeichert.data.pantry.p3.name).toBe('Black Lentils (Beluga)');
+    expect(gespeichert.data.shopping.s1.name).toBe('Mageres Hackfleisch');
+
+    // Auf Englisch steht alles englisch da, auch die Rubrik.
+    await page.getByRole('button', { name: 'Sprache: Deutsch – auf Englisch umschalten' }).click();
+    await expect(page.getByRole('heading', { name: 'Groceries', level: 1 })).toBeVisible();
+    await expect(shoppingRow(page, 'Lean ground beef')).toBeVisible();
+    await expect(page.locator('.rubrik__name')).toHaveText(['Canned']);
+    await expect(page.getByRole('button', { name: 'Add Red beans to Groceries' })).toBeVisible();
+  });
+
+  test('Standard-Zutaten stehen in Karten je Rubrik, wie die Beute', async ({ page }) => {
+    await openSpace(page, newSpace('rubriken'));
+    await goToTab(page, 'Beute');
+    await expect(page.getByRole('heading', { name: 'Standard-Zutaten', level: 2 })).toBeVisible();
+    await expect(page.getByText('51 bereit – ein Tipp legt sie in die Beute')).toBeVisible();
+
+    // Zugeklappt zeigt die Karte, was drin ist.
+    const carbs = page.locator('.rubrik', { has: page.getByRole('button', { name: /^Carbs/ }) });
+    await expect(carbs.locator('.rubrik__vorschau')).toHaveText(
+      'Couscous · Kartoffeln · Orzo · Protein-Pasta · Reis · Spaghetti',
+    );
+    await openPantryGroup(page, 'Carbs');
+    await expect(carbs.locator('.kachel__name')).toHaveText([
+      'Couscous',
+      'Kartoffeln',
+      'Orzo',
+      'Protein-Pasta',
+      'Reis',
+      'Spaghetti',
+    ]);
+    await pantryChip(page, 'Reis').click();
+    await expect(shoppingRow(page, 'Reis')).toBeVisible();
+    await expect(page.getByText('50 bereit – ein Tipp legt sie in die Beute')).toBeVisible();
+  });
+
+  test('verwalten auf Englisch ändert die Menge, der Name bleibt deutsch gespeichert', async ({ page }) => {
+    await openSpace(page, newSpace('verwalten'));
+    await page.getByRole('button', { name: 'Sprache: Deutsch – auf Englisch umschalten' }).click();
+    const haupt = page.getByRole('navigation', { name: 'Main navigation' });
+    if (await haupt.isVisible()) await haupt.getByRole('button', { name: 'Groceries' }).click();
+    else await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: 'Groceries' }).click();
+
+    await page.getByRole('button', { name: 'Manage' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Edit High-protein yogurt' }).click();
+    await expect(sheet.getByLabel('Name of High-protein yogurt')).toHaveValue('High-protein yogurt');
+    await sheet.getByLabel('Amount for High-protein yogurt').fill('2');
+    await sheet.getByLabel('Unit for High-protein yogurt').fill('tubs');
+    await sheet.getByRole('button', { name: 'Done' }).click();
+    await expect(sheet.getByRole('button', { name: 'Edit High-protein yogurt' })).toContainText('2 tubs');
+
+    // Zurueck auf Deutsch: derselbe Eintrag, deutsch – mit der neuen Menge.
+    await sheet.getByRole('button', { name: 'Close' }).click();
+    await page.getByRole('button', { name: 'Language: English – switch to German' }).click();
+    await page.getByRole('button', { name: 'Verwalten' }).click();
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Protein-Joghurt bearbeiten' })).toContainText(
+      '2 Becher',
+    );
   });
 });

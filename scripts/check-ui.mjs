@@ -180,10 +180,19 @@ async function durchlauf(browser, geraet, theme) {
   await p.getByRole('button', { name: 'Beute' }).first().click();
   await p.waitForTimeout(400);
   await pruefeSeite(p, `${wo0}/Groceries`);
-  const gruppe = p.locator('.pantrygroup__title').first();
-  console.log('   Grundlisten-Rubriken:', await p.locator('.pantrygroup__title').count());
+  const gruppe = p.locator('.rubrik__kopf').first();
+  console.log('   Grundlisten-Rubriken:', await p.locator('.rubrik__kopf').count());
   if (await gruppe.count()) { await gruppe.click(); await p.waitForTimeout(300); }
   await pruefeSeite(p, `${wo0}/Grundliste-offen`);
+
+  // Grundliste verwalten, mit einer aufgeklappten Zutat
+  await p.getByRole('button', { name: 'Verwalten' }).click();
+  await p.waitForTimeout(400);
+  const zutat = p.getByRole('dialog').locator('.kachel--verwalten').first();
+  if (await zutat.count()) { await zutat.click(); await p.waitForTimeout(300); }
+  await pruefeSeite(p, `${wo0}/Grundliste-verwalten`);
+  await p.getByRole('dialog').getByRole('button', { name: 'Schliessen' }).click();
+  await p.waitForTimeout(300);
 
   // Formulare
   await p.getByRole('button', { name: 'Hinzufügen', exact: false }).first().click().catch(() => {});

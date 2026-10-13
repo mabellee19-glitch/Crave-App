@@ -106,6 +106,27 @@ Kachel mit Häkchen, Menge und dem Rezept, für das sie gebraucht wird. Was die
 App nicht einordnen kann, lässt sie im Hintergrund von der KI einordnen; bis
 dahin steht es unter «Weitere».
 
+### Standard-Zutaten
+
+Darunter stehen die Standard-Zutaten, gebaut wie die Abteilungen: eine
+farbige Karte je Rubrik (Protein, Frisches Gemüse/Früchte, Dosenware, Im Glas,
+Zmorge, Einfrieren, Carbs, Vorrat). Zugeklappt zeigt die Karte in einer Zeile,
+was drin ist; aufgeklappt ist jede Zutat eine Kachel mit Plus und Menge, und
+ein Tipp legt sie in die Beute. Welche Karten offen sind, merkt sich jedes
+Gerät.
+
+`Verwalten` zeigt dieselben Karten. Ein Tipp auf eine Zutat klappt ihre
+Bearbeitung auf: Name, Menge, Einheit, Rubrik, Löschen.
+
+Die Namen stehen in einer Sprache – auf Deutsch «Rote Bohnen», «Mageres
+Hackfleisch», «Protein-Joghurt», auf Englisch «Red beans», «Lean ground
+beef», «High-protein yogurt». Die Vorschlagsliste trug anfangs halb englische
+Namen; bestehende Einträge mit genau diesem Namen bekommen beim Öffnen den
+deutschen (`PANTRY_NAME_RENAMES` in `src/lib/seed.ts`), auch wenn sie gerade
+in der Beute liegen. Wer auf Englisch eine Menge ändert, ändert nur die
+Menge – gespeichert bleibt der deutsche Name. Eigene Standard-Zutaten, die
+die App nicht kennt, lässt sie wie die Beute von der KI übersetzen.
+
 ## Rezepte und Ideen
 
 Früher gab es zwei Bereiche, Rezepte und Gerichte, und fast jedes Gericht

@@ -719,8 +719,8 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
       { name: 'Hüttenkäse' },
       { name: 'Gekochte Eier' },
       { name: 'Poulet' },
-      { name: 'Lean Hackfleisch' },
-      { name: 'Chicken Jerky' },
+      { name: 'Mageres Hackfleisch' },
+      { name: 'Poulet-Jerky' },
       { name: 'Hummus' },
     ],
   },
@@ -742,9 +742,9 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
     category: 'Dosenware',
     items: [
       { name: 'Mais' },
-      { name: 'Red Beans' },
-      { name: 'Black Lentils' },
-      { name: 'White Beans' },
+      { name: 'Rote Bohnen' },
+      { name: 'Schwarze Linsen' },
+      { name: 'Weisse Bohnen' },
       { name: 'Apfelmus' },
       { name: 'Tomatensauce Pizza' },
     ],
@@ -761,7 +761,7 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
   {
     category: 'Zmorge',
     items: [
-      { name: 'High-Protein Yogurt' },
+      { name: 'Protein-Joghurt' },
       { name: 'Haferflocken' },
       { name: 'Chia-Samen' },
       { name: 'Datteln' },
@@ -771,9 +771,9 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
   {
     category: 'Einfrieren',
     items: [
-      { name: 'Burger Patties' },
+      { name: 'Burger-Patties' },
       { name: 'Gefrorenes Gemüse' },
-      { name: 'Sweet Potato Fries (selber machen)' },
+      { name: 'Süsskartoffel-Pommes (selber machen)' },
       { name: 'Spinat' },
       { name: 'Gyozas' },
       { name: 'Fischstäbli' },
@@ -783,12 +783,12 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
   {
     category: 'Carbs',
     items: [
-      { name: 'Protein Pasta' },
+      { name: 'Protein-Pasta' },
       { name: 'Reis' },
       { name: 'Kartoffeln' },
       { name: 'Orzo' },
       { name: 'Spaghetti' },
-      { name: 'Cous Cous' },
+      { name: 'Couscous' },
     ],
   },
   {
@@ -815,6 +815,27 @@ export const PANTRY_CATALOGUE: PantryGroup[] = [
  */
 export const PANTRY_CATEGORY_RENAMES: Record<string, string> = {
   'Frisches Gemüse': 'Frisches Gemüse/Früchte',
+};
+
+/**
+ * Umbenannte Standard-Zutaten: alter Name -> heutiger Name.
+ *
+ * Die Vorschlagsliste trug anfangs halb englische Namen ("Red Beans", "Lean
+ * Hackfleisch"). Gespeichert wird aber auf Deutsch; die englische Ansicht
+ * uebersetzt beim Zeigen. Bestehende Eintraege mit genau dem alten Namen
+ * bekommen den neuen – selbst Umbenanntes bleibt, wie es ist.
+ */
+export const PANTRY_NAME_RENAMES: Record<string, string> = {
+  'Lean Hackfleisch': 'Mageres Hackfleisch',
+  'Chicken Jerky': 'Poulet-Jerky',
+  'Red Beans': 'Rote Bohnen',
+  'Black Lentils': 'Schwarze Linsen',
+  'White Beans': 'Weisse Bohnen',
+  'High-Protein Yogurt': 'Protein-Joghurt',
+  'Burger Patties': 'Burger-Patties',
+  'Sweet Potato Fries (selber machen)': 'Süsskartoffel-Pommes (selber machen)',
+  'Protein Pasta': 'Protein-Pasta',
+  'Cous Cous': 'Couscous',
 };
 
 /** Reihenfolge der Rubriken in der Anzeige. */

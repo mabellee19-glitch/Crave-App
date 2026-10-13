@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { PantryItem, ShoppingItem } from '@/lib/types';
 import { PANTRY_CATEGORY_ORDER } from '@/lib/seed';
 import { parseQuickAdd } from '@/lib/units';
-import { ABTEILUNGEN, Abteilung, abteilungVon, kenntZutat } from '@/lib/zutaten';
+import { ABTEILUNGEN, Abteilung, abteilungVon, einheitIn, kenntZutat } from '@/lib/zutaten';
 import { gelernt, zutatLernen } from '@/lib/zutatKi';
 import { useT } from '@/lib/i18n';
 import { Inhalt, useInhalt } from '@/lib/inhalt';
@@ -92,8 +92,11 @@ export function ShoppingView({
   // Was die App nicht kennt, fragt sie die KI – einmal, im Hintergrund. Die
   // Antwort ordnet die Zutat ein und gibt ihr den englischen Namen.
   const unbekannt = useMemo(
-    () => shopping.map((item) => item.name).filter((name) => !kenntZutat(name) && gelernt(name) === undefined),
-    [shopping],
+    () =>
+      [...new Set([...shopping, ...allPantry].map((item) => item.name))].filter(
+        (name) => !kenntZutat(name) && gelernt(name) === undefined,
+      ),
+    [shopping, allPantry],
   );
   useEffect(() => {
     let vorbei = false;
@@ -211,37 +214,28 @@ export function ShoppingView({
         </div>
       )}
 
-      <div className="panel einkauf__grundliste">
-        <div className="panel__head">
-          <span className="panel__title">{t.standard}</span>
-          <span className="panel__count">{pantry.length}</span>
-          <span className="spacer" />
-          <button
-            className="btn btn--quiet"
-            style={{ minHeight: 36 }}
-            onClick={() => setManaging(true)}
-          >
+      <section className="vorrat" aria-labelledby="vorrat-titel">
+        <div className="vorrat__kopf">
+          <div>
+            <h2 className="vorrat__titel" id="vorrat-titel">
+              {t.standard}
+            </h2>
+            {allPantry.length > 0 ? <p className="vorrat__sub">{t.standardSub(pantry.length)}</p> : null}
+          </div>
+          <button className="btn btn--quiet vorrat__verwalten" onClick={() => setManaging(true)}>
             <IconPencil size={17} />
             {t.verwalten}
           </button>
         </div>
 
         {allPantry.length === 0 ? (
-          <div style={{ padding: '4px 16px 20px' }}>
-            <p className="muted" style={{ fontSize: 14.5 }}>
-              {t.grundlisteHinweis}
-            </p>
-          </div>
+          <p className="vorrat__hinweis">{t.grundlisteHinweis}</p>
         ) : pantry.length === 0 ? (
-          <div style={{ padding: '4px 16px 20px' }}>
-            <p className="muted" style={{ fontSize: 14.5 }}>
-              {t.alleInListe}
-            </p>
-          </div>
+          <p className="vorrat__hinweis">{t.alleInListe}</p>
         ) : (
           <PantryGroups items={pantry} onPick={onMovePantryToCart} />
         )}
-      </div>
+      </section>
 
       {shopping.length === 0 && allPantry.length === 0 ? (
         <>
@@ -314,11 +308,31 @@ const Kachel = React.memo(function Kachel({
 });
 
 /* -------------------------------------------------------------------------- */
+/* Standard-Zutaten                                                           */
+/* -------------------------------------------------------------------------- */
 
 const OPEN_KEY = 'crave:pantry-open';
 
-/** Rubriken in der Reihenfolge der Vorschlagsliste, Unbekanntes am Ende. */
-function groupPantry(items: PantryItem[]): Array<{ category: string; items: PantryItem[] }> {
+/** Jede Rubrik hat ihre Farbe, wie die Abteilungen der Beute (siehe globals.css). */
+const RUBRIK_FARBE: Record<string, string> = {
+  Protein: 'protein',
+  'Frisches Gemüse/Früchte': 'frisch',
+  Dosenware: 'dose',
+  'Im Glas': 'glas',
+  Zmorge: 'zmorge',
+  Einfrieren: 'einfrieren',
+  Carbs: 'carbs',
+  Vorrat: 'vorrat',
+};
+
+/**
+ * Rubriken in der Reihenfolge der Vorschlagsliste, Unbekanntes am Ende.
+ * Innerhalb einer Rubrik nach dem Namen, wie er gerade dasteht.
+ */
+function groupPantry(
+  items: PantryItem[],
+  inhalt: Inhalt,
+): Array<{ category: string; items: PantryItem[] }> {
   const buckets = new Map<string, PantryItem[]>();
   for (const item of items) {
     const key = item.category?.trim() || 'Weitere';
@@ -331,12 +345,21 @@ function groupPantry(items: PantryItem[]): Array<{ category: string; items: Pant
     const index = PANTRY_CATEGORY_ORDER.indexOf(category);
     return index === -1 ? PANTRY_CATEGORY_ORDER.length + 1 : index;
   };
+  const anzeige = (item: PantryItem) => inhalt.zutat(item.name);
 
   return [...buckets.entries()]
-    .map(([category, entries]) => ({ category, items: entries }))
+    .map(([category, entries]) => ({
+      category,
+      items: [...entries].sort((a, b) => anzeige(a).localeCompare(anzeige(b), inhalt.sprache)),
+    }))
     .sort((a, b) => rank(a.category) - rank(b.category) || a.category.localeCompare(b.category, 'de'));
 }
 
+/**
+ * Die Standard-Zutaten auf der Hauptseite: eine Karte je Rubrik, gebaut wie
+ * die Abteilungen der Beute. Zugeklappt zeigt eine Karte, was drin ist;
+ * aufgeklappt ist jede Zutat eine Kachel, die ein Tipp in die Beute legt.
+ */
 function PantryGroups({
   items,
   onPick,
@@ -346,7 +369,7 @@ function PantryGroups({
 }) {
   const t = useT().einkauf;
   const inhalt = useInhalt();
-  const groups = useMemo(() => groupPantry(items), [items]);
+  const groups = useMemo(() => groupPantry(items, inhalt), [items, inhalt]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   // Welche Rubriken offen sind, ist eine reine Bequemlichkeit dieses Geräts.
@@ -372,42 +395,46 @@ function PantryGroups({
   };
 
   return (
-    <div className="pantrygroups">
+    <div className="abteilungen rubriken">
       {groups.map((group) => {
         const isOpen = open[group.category] ?? false;
+        const titel = t.rubriken[group.category] ?? group.category;
+        const listId = `rubrik-${RUBRIK_FARBE[group.category] ?? group.category.replace(/\W+/g, '-')}`;
         return (
-          <section className="pantrygroup" key={group.category}>
-            <button
-              className="pantrygroup__head"
-              onClick={() => toggle(group.category)}
-              aria-expanded={isOpen}
-            >
-              <span className={`pantrygroup__caret${isOpen ? ' pantrygroup__caret--open' : ''}`}>
-                <IconChevronDown size={18} />
-              </span>
-              <span className="pantrygroup__title">{t.rubriken[group.category] ?? group.category}</span>
-              <span className="panel__count">{group.items.length}</span>
-            </button>
+          <section
+            className={`abteilung rubrik${isOpen ? ' rubrik--offen' : ''}`}
+            key={group.category}
+            data-rubrik={RUBRIK_FARBE[group.category] ?? 'weitere'}
+          >
+            <h3 className="abteilung__titel rubrik__titel">
+              <button
+                className="rubrik__kopf"
+                onClick={() => toggle(group.category)}
+                aria-expanded={isOpen}
+                aria-controls={listId}
+              >
+                <span className="abteilung__punkt" aria-hidden="true" />
+                <span className="rubrik__name">{titel}</span>
+                <span className="abteilung__zahl">{group.items.length}</span>
+                <span className="rubrik__pfeil" aria-hidden="true">
+                  <IconChevronDown size={18} />
+                </span>
+              </button>
+            </h3>
             {isOpen ? (
-              <div className="pantrychips">
-                {group.items.map((item) => {
-                  const name = gross(inhalt.zutat(item.name));
-                  return (
-                    <button
-                      key={item.id}
-                      className="pantrychip"
-                      onClick={() => onPick(item.id)}
-                      aria-label={t.inListe(name)}
-                    >
-                      {name}
-                      <span className="pantrychip__plus" aria-hidden="true">
-                        <IconPlus size={16} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
+              <ul className="kacheln" id={listId}>
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <StandardKachel item={item} inhalt={inhalt} label={t.inListe} onPick={onPick} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              // Die Vorschau gehoert zum Knopf darueber; ein Tipp klappt auch hier auf.
+              <p className="rubrik__vorschau" aria-hidden="true" onClick={() => toggle(group.category)}>
+                {group.items.map((item) => gross(inhalt.zutat(item.name))).join(' · ')}
+              </p>
+            )}
           </section>
         );
       })}
@@ -415,8 +442,40 @@ function PantryGroups({
   );
 }
 
+/** Eine Standard-Zutat: Plus, Name, Menge. Ein Tipp legt sie in die Beute. */
+const StandardKachel = React.memo(function StandardKachel({
+  item,
+  inhalt,
+  label,
+  onPick,
+}: {
+  item: PantryItem;
+  inhalt: Inhalt;
+  label: (name: string) => string;
+  onPick: (id: string) => void;
+}) {
+  const name = gross(inhalt.zutat(item.name, item.amount));
+  const menge = inhalt.menge(item.amount, item.unit);
+  return (
+    <button className="row kachel kachel--standard" onClick={() => onPick(item.id)} aria-label={label(name)}>
+      <span className="kachel__plus" aria-hidden="true">
+        <IconPlus size={16} />
+      </span>
+      <span className="row__main">
+        <span className="row__name kachel__name">{name}</span>
+      </span>
+      {menge ? <span className="row__amount kachel__menge">{menge}</span> : null}
+    </button>
+  );
+});
+
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Die Grundliste verwalten: oben eine neue Standard-Zutat anlegen, darunter
+ * dieselben Rubrik-Karten wie auf der Hauptseite. Eine Zutat antippen klappt
+ * ihre Bearbeitung auf – Menge, Einheit, Name, Rubrik, Löschen.
+ */
 function PantrySheet({
   items,
   onClose,
@@ -434,9 +493,11 @@ function PantrySheet({
 }) {
   const t = useT().einkauf;
   const hinzufuegen = useT().allgemein.hinzufuegen;
+  const inhalt = useInhalt();
   const [text, setText] = useState('');
   const [category, setCategory] = useState('');
-  const groups = useMemo(() => groupPantry(items), [items]);
+  const [offen, setOffen] = useState<string | null>(null);
+  const groups = useMemo(() => groupPantry(items, inhalt), [items, inhalt]);
 
   return (
     <Sheet title={t.verwaltenTitel} onClose={onClose}>
@@ -446,12 +507,17 @@ function PantrySheet({
       </p>
 
       <form
-        style={{ marginBottom: 18 }}
+        className="vorratneu"
         onSubmit={(event) => {
           event.preventDefault();
           const parsed = parseQuickAdd(text);
           if (!parsed.name) return;
-          onAdd({ ...parsed, category: category || undefined });
+          onAdd({
+            ...parsed,
+            // Gespeichert wird die deutsche Einheit: "tbsp" wird "EL".
+            unit: inhalt.sprache === 'en' ? einheitIn(parsed.unit, 'de') : parsed.unit,
+            category: category || undefined,
+          });
           setText('');
         }}
       >
@@ -473,20 +539,13 @@ function PantrySheet({
             <IconPlus size={19} />
           </button>
         </div>
-        <select
-          className="select"
-          style={{ marginTop: 8 }}
+        <RubrikWahl
+          className="select vorratneu__rubrik"
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
-          aria-label={t.rubrikNeu}
-        >
-          <option value="">{t.ohneRubrik}</option>
-          {PANTRY_CATEGORY_ORDER.map((name) => (
-            <option key={name} value={name}>
-              {t.rubriken[name] ?? name}
-            </option>
-          ))}
-        </select>
+          onChange={setCategory}
+          ariaLabel={t.rubrikNeu}
+          leer={t.ohneRubrik}
+        />
       </form>
 
       <button className="btn btn--ghost btn--block" onClick={onAddSuggestions}>
@@ -504,21 +563,71 @@ function PantrySheet({
           {t.nochKeine}
         </p>
       ) : (
-        groups.map((group) => (
-          <div key={group.category} style={{ marginBottom: 22 }}>
-            <div className="detail__h" style={{ marginBottom: 10 }}>
-              {t.rubriken[group.category] ?? group.category}
-            </div>
-            <div className="stack">
-              {group.items.map((item) => (
-                <PantryRow key={item.id} item={item} onSave={onSave} onDelete={onDelete} />
-              ))}
-            </div>
-          </div>
-        ))
+        <div className="rubriken rubriken--verwalten">
+          {groups.map((group) => (
+            <section
+              className="abteilung rubrik"
+              key={group.category}
+              data-rubrik={RUBRIK_FARBE[group.category] ?? 'weitere'}
+            >
+              <h3 className="abteilung__titel">
+                <span className="abteilung__punkt" aria-hidden="true" />
+                {t.rubriken[group.category] ?? group.category}
+                <span className="abteilung__zahl">{group.items.length}</span>
+              </h3>
+              <ul className="kacheln">
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <PantryRow
+                      item={item}
+                      inhalt={inhalt}
+                      offen={offen === item.id}
+                      onToggle={(id) => setOffen((wer) => (wer === id ? null : id))}
+                      onSave={onSave}
+                      onDelete={onDelete}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
       <div style={{ height: 12 }} />
     </Sheet>
+  );
+}
+
+/** Die Rubriken zur Auswahl, in der gewaehlten Sprache. */
+function RubrikWahl({
+  value,
+  onChange,
+  ariaLabel,
+  leer,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+  leer: string;
+  className: string;
+}) {
+  const t = useT().einkauf;
+  return (
+    <select
+      className={className}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label={ariaLabel}
+    >
+      <option value="">{leer}</option>
+      {PANTRY_CATEGORY_ORDER.map((name) => (
+        <option key={name} value={name}>
+          {t.rubriken[name] ?? name}
+        </option>
+      ))}
+      {value && !PANTRY_CATEGORY_ORDER.includes(value) ? <option value={value}>{value}</option> : null}
+    </select>
   );
 }
 
@@ -528,78 +637,137 @@ function PantrySheet({
  */
 const PantryRow = React.memo(function PantryRow({
   item,
+  inhalt,
+  offen,
+  onToggle,
   onSave,
   onDelete,
 }: {
   item: PantryItem;
+  inhalt: Inhalt;
+  offen: boolean;
+  onToggle: (id: string) => void;
   onSave: (item: PantryItem) => void;
   onDelete: (id: string) => void;
 }) {
   const t = useT().einkauf;
-  const [name, setName] = useState(item.name);
+  // Name und Einheit stehen in der gewaehlten Sprache da. Bleiben sie, wie
+  // sie waren, bleibt auch das Gespeicherte – deutsch.
+  const anzeigeName = gross(inhalt.zutat(item.name, item.amount));
+  const anzeigeEinheit = inhalt.einheit(item.unit, item.amount);
+  const [name, setName] = useState(anzeigeName);
   const [amount, setAmount] = useState<number | null>(item.amount);
-  const [unit, setUnit] = useState(item.unit);
+  const [unit, setUnit] = useState(anzeigeEinheit);
+  const menge = inhalt.menge(item.amount, item.unit);
+
+  // Beim Aufklappen mit dem aktuellen Stand beginnen.
+  useEffect(() => {
+    if (!offen) return;
+    setName(anzeigeName);
+    setAmount(item.amount);
+    setUnit(anzeigeEinheit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offen]);
 
   const commit = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setName(item.name);
+      setName(anzeigeName);
       return;
     }
-    if (trimmed === item.name && amount === item.amount && unit.trim() === item.unit) return;
-    onSave({ ...item, name: trimmed, amount, unit: unit.trim() });
+    const neuerName = trimmed === anzeigeName ? item.name : trimmed;
+    const neueEinheit =
+      unit.trim() === anzeigeEinheit
+        ? item.unit
+        : inhalt.sprache === 'en'
+          ? einheitIn(unit.trim(), 'de')
+          : unit.trim();
+    if (neuerName === item.name && amount === item.amount && neueEinheit === item.unit) return;
+    onSave({ ...item, name: neuerName, amount, unit: neueEinheit });
   };
 
   return (
-    <div className="editrow" style={{ marginBottom: 0 }}>
-      <NumberInput
-        className="input editrow__amount"
-        value={amount}
-        onChange={setAmount}
-        onBlur={commit}
-        placeholder="—"
-        ariaLabel={t.mengeVon(item.name)}
-      />
-      <input
-        className="input editrow__unit"
-        value={unit}
-        placeholder={t.einheitPlatzhalter}
-        aria-label={t.einheitVon(item.name)}
-        onChange={(event) => setUnit(event.target.value)}
-        onBlur={commit}
-        autoComplete="off"
-      />
-      <input
-        className="input editrow__grow"
-        value={name}
-        aria-label={t.nameVon(item.name)}
-        onChange={(event) => setName(event.target.value)}
-        onBlur={commit}
-        autoComplete="off"
-      />
-      <select
-        className="select editrow__unit"
-        value={item.category ?? ''}
-        aria-label={t.rubrikVon(item.name)}
-        onChange={(event) => onSave({ ...item, category: event.target.value || undefined })}
-      >
-        <option value="">—</option>
-        {PANTRY_CATEGORY_ORDER.map((entry) => (
-          <option key={entry} value={entry}>
-            {t.rubriken[entry] ?? entry}
-          </option>
-        ))}
-        {item.category && !PANTRY_CATEGORY_ORDER.includes(item.category) ? (
-          <option value={item.category}>{item.category}</option>
-        ) : null}
-      </select>
+    <div className={`vorratzeile${offen ? ' vorratzeile--offen' : ''}`}>
       <button
-        className="iconbtn iconbtn--plain"
-        onClick={() => onDelete(item.id)}
-        aria-label={t.loeschenAus(item.name)}
+        className="row kachel kachel--verwalten"
+        onClick={() => onToggle(item.id)}
+        aria-expanded={offen}
+        aria-label={t.bearbeiten(anzeigeName)}
       >
-        <IconTrash size={19} />
+        <span className="row__main">
+          <span className="row__name kachel__name">{anzeigeName}</span>
+        </span>
+        {menge ? <span className="row__amount kachel__menge">{menge}</span> : null}
+        <span className="kachel__stift" aria-hidden="true">
+          {offen ? <IconChevronDown size={18} /> : <IconPencil size={16} />}
+        </span>
       </button>
+      {offen ? (
+        <div className="vorratedit">
+          <div className="vorratedit__felder">
+            <label className="vorratedit__feld vorratedit__feld--menge">
+              <span>{t.menge}</span>
+              <NumberInput
+                className="input"
+                value={amount}
+                onChange={setAmount}
+                onBlur={commit}
+                placeholder="—"
+                ariaLabel={t.mengeVon(anzeigeName)}
+              />
+            </label>
+            <label className="vorratedit__feld vorratedit__feld--einheit">
+              <span>{t.einheitPlatzhalter}</span>
+              <input
+                className="input"
+                value={unit}
+                placeholder="—"
+                aria-label={t.einheitVon(anzeigeName)}
+                onChange={(event) => setUnit(event.target.value)}
+                onBlur={commit}
+                autoComplete="off"
+              />
+            </label>
+            <label className="vorratedit__feld vorratedit__feld--name">
+              <span>{t.name}</span>
+              <input
+                className="input"
+                value={name}
+                aria-label={t.nameVon(anzeigeName)}
+                onChange={(event) => setName(event.target.value)}
+                onBlur={commit}
+                autoComplete="off"
+              />
+            </label>
+            <label className="vorratedit__feld vorratedit__feld--rubrik">
+              <span>{t.rubrik}</span>
+              <RubrikWahl
+                className="select"
+                value={item.category ?? ''}
+                onChange={(category) => onSave({ ...item, category: category || undefined })}
+                ariaLabel={t.rubrikVon(anzeigeName)}
+                leer="—"
+              />
+            </label>
+          </div>
+          <div className="vorratedit__knoepfe">
+            <button className="btn btn--quiet vorratedit__loeschen" onClick={() => onDelete(item.id)} aria-label={t.loeschenAus(anzeigeName)}>
+              <IconTrash size={17} />
+              {t.loeschen}
+            </button>
+            <button
+              className="btn btn--ghost"
+              onClick={() => {
+                commit();
+                onToggle(item.id);
+              }}
+            >
+              <IconCheck size={17} />
+              {t.fertig}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 });

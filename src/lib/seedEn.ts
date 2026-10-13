@@ -315,6 +315,13 @@ export const SEED_EN: Record<string, string> = {
   'Crispy One-Blech-Gnocchi mit Ofengemüse': 'Crispy Sheet-Pan Gnocchi with Roasted Vegetables',
 
   /* ------------------------------- Grundliste --------------------------------- */
+  'Tomatensauce Pizza': 'pizza sauce',
+  'Tomatensauce Pasta': 'pasta sauce',
+  'Eingelegte Tomaten': 'pickled tomatoes',
+  'Rote Bohnen': 'red beans',
+  'Süsskartoffel-Pommes (selber machen)': 'sweet potato fries (homemade)',
+  // Die alten, halb englischen Namen – bis jedes Geraet umbenannt hat
+  // (PANTRY_NAME_RENAMES in lib/seed).
   'Lean Hackfleisch': 'lean ground beef',
   'High-Protein Yogurt': 'high-protein yogurt',
   'Red Beans': 'red beans',
@@ -322,9 +329,6 @@ export const SEED_EN: Record<string, string> = {
   'White Beans': 'white beans',
   'Sweet Potato Fries (selber machen)': 'sweet potato fries (homemade)',
   'Protein Pasta': 'protein pasta',
-  'Tomatensauce Pizza': 'pizza sauce',
-  'Tomatensauce Pasta': 'pasta sauce',
-  'Eingelegte Tomaten': 'pickled tomatoes',
 
   /* ------------------------------- Kuehlschrank -------------------------------- */
   'Vorschlag aus einem Kühlschrankfoto.': 'Suggested from a fridge photo.',

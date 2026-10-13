@@ -1165,45 +1165,6 @@ ol {
   color: #fff;
 }
 
-.pantrygroups {
-  padding: 4px 0 6px;
-}
-
-.pantrygroup {
-  border-top: 1px solid var(--line);
-}
-
-.pantrygroup:first-child {
-  border-top: none;
-}
-
-.pantrygroup__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  padding: 0 16px;
-  text-align: left;
-}
-
-.pantrygroup__title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 650;
-}
-
-.pantrygroup__caret {
-  display: grid;
-  place-items: center;
-  color: var(--ink-muted);
-  transition: transform 0.18s ease;
-}
-
-.pantrygroup__caret--open {
-  transform: rotate(180deg);
-}
-
 .pantrychips {
   display: flex;
   flex-wrap: wrap;
@@ -2194,10 +2155,6 @@ ol {
   margin: 0;
 }
 
-.einkauf__grundliste {
-  margin-top: 6px;
-}
-
 /* Die offenen Zutaten, eine Karte je Abteilung des Ladens. */
 .abteilungen {
   display: grid;
@@ -2331,6 +2288,222 @@ ol {
   font-weight: 650;
   color: var(--ink-soft);
   white-space: nowrap;
+}
+
+/*
+ * Standard-Zutaten: dieselben Karten wie die Abteilungen der Beute, eine je
+ * Rubrik. Zugeklappt steht eine Zeile Vorschau da, aufgeklappt die Kacheln.
+ */
+.vorrat {
+  margin-top: 28px;
+}
+
+.vorrat__kopf {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.vorrat__titel {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: var(--display-weight, 600);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.vorrat__sub {
+  margin: 2px 0 0;
+  color: var(--ink-muted);
+  font-size: 13.5px;
+}
+
+.vorrat__verwalten {
+  min-height: 38px;
+  flex: none;
+}
+
+.vorrat__hinweis {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 14.5px;
+}
+
+.rubrik[data-rubrik='protein'] { --abteilung: var(--accent); }
+.rubrik[data-rubrik='frisch'] { --abteilung: var(--sage); }
+.rubrik[data-rubrik='dose'] { --abteilung: var(--cat-high-protein); }
+.rubrik[data-rubrik='glas'] { --abteilung: var(--cat-vegi); }
+.rubrik[data-rubrik='zmorge'] { --abteilung: var(--plan); }
+.rubrik[data-rubrik='einfrieren'] { --abteilung: var(--link); }
+.rubrik[data-rubrik='carbs'] { --abteilung: var(--cat-dessert); }
+.rubrik[data-rubrik='vorrat'] { --abteilung: var(--accent-strong); }
+
+/* Der Titel ist hier ein Knopf: die ganze Zeile klappt auf und zu. */
+.rubrik__titel {
+  padding: 0;
+}
+
+.rubrik__kopf {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 12px 9px 16px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.rubrik__name {
+  flex: 1;
+  min-width: 0;
+}
+
+.rubrik__kopf .abteilung__zahl {
+  margin-left: 0;
+}
+
+.rubrik__pfeil {
+  display: grid;
+  place-items: center;
+  color: var(--abteilung);
+  transition: transform 0.18s ease;
+}
+
+.rubrik--offen .rubrik__pfeil {
+  transform: rotate(180deg);
+}
+
+/* Zugeklappt: kein Strich unter dem Titel, dafuer die Vorschau. */
+.rubrik:not(.rubrik--offen) .rubrik__titel {
+  border-bottom: none;
+}
+
+.rubrik__vorschau {
+  margin: 0;
+  padding: 2px 16px 13px 34px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--abteilung) 7%, var(--surface));
+  cursor: pointer;
+}
+
+.kachel--standard.row,
+.kachel--verwalten.row {
+  min-height: 54px;
+}
+
+.kachel__plus {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--abteilung);
+  border: 2px solid color-mix(in srgb, var(--abteilung) 45%, transparent);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.kachel--standard:hover .kachel__plus {
+  border-color: var(--abteilung);
+}
+
+.kachel--standard:active .kachel__plus {
+  background: var(--abteilung);
+  border-color: var(--abteilung);
+  color: #fff;
+}
+
+.kachel__stift {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  color: var(--ink-muted);
+}
+
+/* Verwalten: die Kachel klappt ihre Bearbeitung auf. */
+.rubriken--verwalten {
+  display: grid;
+  gap: 14px;
+}
+
+.vorratneu {
+  margin-bottom: 18px;
+}
+
+.vorratneu__rubrik {
+  margin-top: 8px;
+}
+
+.vorratzeile--offen {
+  background: var(--surface-sunken);
+}
+
+.vorratzeile--offen .kachel__stift {
+  color: var(--abteilung);
+}
+
+.vorratedit {
+  padding: 2px 14px 14px 16px;
+}
+
+.vorratedit__felder {
+  display: grid;
+  grid-template-columns: 84px 110px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.vorratedit__feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vorratedit__feld > span {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.vorratedit__feld--name {
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+.vorratedit__feld--rubrik {
+  min-width: 0;
+}
+
+.vorratedit__knoepfe {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vorratedit__knoepfe .btn {
+  min-height: 40px;
+}
+
+.vorratedit__loeschen {
+  color: var(--accent-strong);
 }
 
 /* Vorschau ueber Groceries: was in den naechsten Tagen gekocht wird. */

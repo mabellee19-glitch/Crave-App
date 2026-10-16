@@ -303,6 +303,40 @@ export const SEED_EN: Record<string, string> = {
   'Erst ganz am Schluss abschmecken – Bouillon und Feta sind beide salzig. Reste halten sich 3–4 Tage im Kühlschrank; beim Aufwärmen einen Schuss Wasser oder Bouillon zugeben, weil der Orzo weiter Flüssigkeit zieht. Eine 400-g-Dose Bohnen ergibt abgetropft rund 240 g.':
     'Only season at the very end – the stock and feta are both salty. Leftovers keep for 3–4 days in the fridge; add a splash of water or stock when reheating, as the orzo keeps soaking up liquid. A 400 g can of beans gives about 240 g drained.',
 
+  /* --------------------------- Lasagne-Röllchen ------------------------------ */
+  'Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce':
+    'Light Lasagna Roll-Ups with Spinach and Lentil Tomato Sauce',
+  Lasagneblätter: 'lasagna sheets',
+  'Gehackte Tomaten (Dose)': 'chopped tomatoes (canned)',
+  'Frischer Blattspinat (oder TK, aufgetaut)': 'fresh spinach (or frozen, thawed)',
+  'Mozzarella light': 'light mozzarella',
+  'Pfeffer und Muskat': 'pepper and nutmeg',
+  'Zucchini grob raspeln und in einem Tuch gut ausdrücken': 'Coarsely grate the zucchini and squeeze it well in a towel',
+  'TK-Spinat auftauen lassen, falls kein frischer da ist': 'Thaw the frozen spinach if you have no fresh',
+  'Mozzarella zerzupfen': 'Tear the mozzarella into pieces',
+  'Olivenöl in einer Pfanne erhitzen. Zwiebel und Knoblauch darin glasig dünsten.':
+    'Heat the olive oil in a pan. Cook the onion and garlic until translucent.',
+  'Rote Linsen, gehackte Tomaten, Wasser, Oregano und die Hälfte vom Salz dazugeben. Zugedeckt köcheln, bis die Linsen weich sind.':
+    'Add the red lentils, chopped tomatoes, water, oregano and half the salt. Cover and simmer until the lentils are soft.',
+  'Inzwischen den Ofen auf 200 °C vorheizen.': 'Meanwhile, preheat the oven to 200 °C.',
+  'Lasagneblätter einzeln al dente kochen (Packungsangabe beachten).':
+    'Cook the lasagna sheets one at a time until al dente (see the packet).',
+  'Die Blätter nebeneinander auf ein geöltes Brett oder Backpapier legen, damit sie nicht kleben.':
+    'Lay the sheets side by side on an oiled board or baking paper so they don’t stick.',
+  'Spinat in einer trockenen Pfanne kurz zusammenfallen lassen, gut ausdrücken und hacken.':
+    'Briefly wilt the spinach in a dry pan, squeeze it well and chop it.',
+  'Zucchini und Spinat mit Hüttenkäse, Ei, Parmesan, dem restlichen Salz sowie Pfeffer und Muskat vermengen.':
+    'Mix the zucchini and spinach with the cottage cheese, egg, Parmesan, the rest of the salt and the pepper and nutmeg.',
+  'Die Hälfte der Sauce in eine Auflaufform geben.': 'Spread half the sauce in a baking dish.',
+  'Jedes Lasagneblatt mit Füllung bestreichen, von der kurzen Seite her aufrollen und mit der Naht nach unten in die Sauce setzen.':
+    'Spread filling on each sheet, roll it up from the short side and set it seam side down in the sauce.',
+  'Restliche Sauce über die Röllchen verteilen.': 'Spread the rest of the sauce over the roll-ups.',
+  'Form mit Alufolie oder einem Deckel abdecken und im Ofen backen.': 'Cover the dish with foil or a lid and bake.',
+  'Abdeckung entfernen, Mozzarella darüber verteilen und offen weiterbacken, bis er leicht gebräunt ist.':
+    'Remove the cover, scatter the mozzarella on top and bake uncovered until it is lightly browned.',
+  'Mit Hüttenkäse statt Béchamel, viel Gemüse und roten Linsen für extra Protein. Gut fürs Meal-Prep: je 2 Röllchen mit Sauce in eine Box geben – sie halten im Kühlschrank 3–4 Tage und lassen sich gut aufwärmen. Mit Hüttenkäse statt Ricotta und Béchamel sparst du Fett und bekommst mehr Protein; die Linsen machen die Sauce sättigender. Dazu passt ein grüner Salat.':
+    'Made with cottage cheese instead of béchamel, plenty of vegetables and red lentils for extra protein. Great for meal prep: put 2 roll-ups with sauce in each container – they keep for 3–4 days in the fridge and reheat well. Using cottage cheese instead of ricotta and béchamel saves fat and adds protein; the lentils make the sauce more filling. A green salad goes well with it.',
+
   /* ---------------------------------- Ideen ----------------------------------- */
   'Skyr-Bowl mit Beeren': 'Skyr Bowl with Berries',
   'Ofenkartoffeln mit Kräuterquark': 'Baked Potatoes with Herb Quark',

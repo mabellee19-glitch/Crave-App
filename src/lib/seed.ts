@@ -556,6 +556,63 @@ const RECIPE_SEEDS: RecipeSeed[] = [
       step('Restlichen Feta und die Kräuter darüberstreuen und 2 Minuten ruhen lassen.', 2 * 60),
     ],
   },
+  {
+    key: 'lasagne-roellchen',
+    name: 'Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce',
+    // So ordnet die App selbst ein: Lasagne ist Comfort, Fleisch ist keines drin.
+    category: 'Comfort',
+    servings: 4,
+    timeMin: 65,
+    ingredients: [
+      ing('Lasagneblätter', 8, 'Stück'),
+      ing('Olivenöl', 1, 'EL'),
+      ing('Zwiebel', 1, 'Stück'),
+      ing('Knoblauch', 2, 'Zehen'),
+      ing('Rote Linsen', 80, 'g'),
+      ing('Gehackte Tomaten (Dose)', 400, 'g'),
+      ing('Wasser', 200, 'ml'),
+      ing('Oregano getrocknet', 1, 'TL'),
+      ing('Zucchini', 1, 'Stück'),
+      ing('Frischer Blattspinat (oder TK, aufgetaut)', 200, 'g'),
+      ing('Hüttenkäse', 250, 'g'),
+      ing('Ei', 1, 'Stück'),
+      ing('Parmesan, gerieben', 30, 'g'),
+      ing('Mozzarella light', 125, 'g'),
+      ing('Salz', 1, 'TL'),
+      ing('Pfeffer und Muskat', 0.5, 'TL'),
+    ],
+    prep: [
+      'Zwiebel und Knoblauch fein hacken',
+      'Zucchini grob raspeln und in einem Tuch gut ausdrücken',
+      'TK-Spinat auftauen lassen, falls kein frischer da ist',
+      'Mozzarella zerzupfen',
+    ],
+    steps: [
+      step('Olivenöl in einer Pfanne erhitzen. Zwiebel und Knoblauch darin glasig dünsten.'),
+      step(
+        'Rote Linsen, gehackte Tomaten, Wasser, Oregano und die Hälfte vom Salz dazugeben. Zugedeckt köcheln, bis die Linsen weich sind.',
+        15 * 60,
+      ),
+      step('Inzwischen den Ofen auf 200 °C vorheizen.'),
+      // Ohne "Salzwasser": sonst stuenden Salz und Wasser der Sauce unter diesem Schritt.
+      step('Lasagneblätter einzeln al dente kochen (Packungsangabe beachten).', 8 * 60),
+      step('Die Blätter nebeneinander auf ein geöltes Brett oder Backpapier legen, damit sie nicht kleben.'),
+      step('Spinat in einer trockenen Pfanne kurz zusammenfallen lassen, gut ausdrücken und hacken.'),
+      step(
+        'Zucchini und Spinat mit Hüttenkäse, Ei, Parmesan, dem restlichen Salz sowie Pfeffer und Muskat vermengen.',
+      ),
+      step('Die Hälfte der Sauce in eine Auflaufform geben.'),
+      step(
+        'Jedes Lasagneblatt mit Füllung bestreichen, von der kurzen Seite her aufrollen und mit der Naht nach unten in die Sauce setzen.',
+      ),
+      step('Restliche Sauce über die Röllchen verteilen.'),
+      step('Form mit Alufolie oder einem Deckel abdecken und im Ofen backen.', 20 * 60),
+      step(
+        'Abdeckung entfernen, Mozzarella darüber verteilen und offen weiterbacken, bis er leicht gebräunt ist.',
+        10 * 60,
+      ),
+    ],
+  },
 ];
 
 /**
@@ -598,6 +655,8 @@ export const SCHRITTE_VOR_DEM_KUERZEN: Record<string, string[]> = {
 
 /** Zusatzhinweise, die nicht in einen Zubereitungsschritt gehoeren. */
 const RECIPE_NOTES: Record<string, string> = {
+  'lasagne-roellchen':
+    'Mit Hüttenkäse statt Béchamel, viel Gemüse und roten Linsen für extra Protein. Gut fürs Meal-Prep: je 2 Röllchen mit Sauce in eine Box geben – sie halten im Kühlschrank 3–4 Tage und lassen sich gut aufwärmen. Mit Hüttenkäse statt Ricotta und Béchamel sparst du Fett und bekommst mehr Protein; die Linsen machen die Sauce sättigender. Dazu passt ein grüner Salat.',
   'one-pot-orzo':
     'Erst ganz am Schluss abschmecken – Bouillon und Feta sind beide salzig. Reste halten sich 3–4 Tage im Kühlschrank; beim Aufwärmen einen Schuss Wasser oder Bouillon zugeben, weil der Orzo weiter Flüssigkeit zieht. Eine 400-g-Dose Bohnen ergibt abgetropft rund 240 g.',
   'thunfisch-pasta':
@@ -622,6 +681,7 @@ export const LATER_RECIPE_KEYS = [
   'halloumiburger',
   'thunfisch-pasta',
   'one-pot-orzo',
+  'lasagne-roellchen',
 ];
 
 interface DishSeed {

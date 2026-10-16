@@ -33,7 +33,7 @@ Zwei Bereiche, auf Deutsch und auf Englisch:
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
 | Gelüste | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
-| Gelüste | Das Plus fragt: Rezept über Link, Rezept selbst schreiben oder nur eine Idee |
+| Gelüste | Das Plus fragt: Rezept über Link, Rezept aus Text (z. B. aus Claude), Rezept selbst schreiben oder nur eine Idee |
 | Ideen | Auf Cook Next setzen – ihre Zutaten kommen in die Beute |
 | Ideen | `Rezept daraus machen`: Name und Zutaten sind schon eingetragen, es bleibt ein Eintrag |
 | Beute | Offene Zutaten nach Abteilung: Gemüse & Früchte, Brot, Fleisch & Fisch, Kühlregal … |
@@ -267,6 +267,32 @@ liest daraus Zutaten und Schritte – über die Überschriften, sonst über die
 Mengen vorne –, mit KI auch aus Fliesstext oder einer Nachricht. Schlägt der
 Link fehl, öffnet sich das Feld von selbst, und die Meldung sagt, woran es lag.
 Was nicht aus Rezeptdaten stammt, kommt mit dem Hinweis, kurz zu prüfen.
+
+### Rezept aus Text
+
+Im Plus gibt es dafür einen eigenen Weg: `Rezept aus Text`. Dort steht gleich
+ein grosses Textfeld – für ein Rezept aus Claude, ChatGPT, einer Nachricht,
+einer Notiz oder dem Export einer Rezept-App. `In Rezept umwandeln` füllt das
+Formular, gespeichert wird erst nach einem Blick darauf.
+
+Gelesen wird ohne KI, also auch, solange sie nicht erreichbar ist:
+
+- **Überschriften** auf Deutsch und Englisch, auch in Markdown: «Zutaten» /
+  «Ingredients», «Zubereitung» / «Steps» / «Directions», «Tipps» / «Notes».
+  Zutatengruppen wie «**Für die Sauce:**» bleiben Gruppen.
+- **Titel, Portionen, Zeit**: «# Titel» oder die erste Zeile, «Serves 4» oder
+  «Für 4 Personen», «Zeit: 65 Min». Fehlt die Zeit, zählen die Timer.
+- **Einleitung und Tipps** werden zur Notiz. «Guten Appetit» und
+  Kommentare fallen weg.
+- **Schritte mit Titel und Dauer**, wie Rezept-Apps sie exportieren
+  («1. Sauce ansetzen», darunter «15m», darunter der Text): der Titel fällt
+  weg, die Dauer wird zum Timer. «**Anbraten:** Öl erhitzen …» wird zu «Öl
+  erhitzen …».
+- **Einheiten**: «grams» wird g, «millilitres» ml, «tablespoons» EL. Rechnet
+  eine App Löffel in Milliliter um (14.79 ml, 4.93 ml), werden es wieder
+  Löffel: 1 EL, 1 TL, ½ TL – auch im Schritttext. 200 ml Wasser bleiben.
+
+Lange Schritte werden danach wie beim Link an den Satzgrenzen geteilt.
 
 ### Englische Rezepte auf Deutsch
 

@@ -11,6 +11,35 @@ import { zutatenFuerSchritt } from '../src/lib/stepIngredients';
 import { istPrivateAdresse } from '../src/lib/safeFetch';
 import { neuesRezept, newSpace, openSpace } from './helpers';
 
+/** So exportiert eine Rezept-App ein deutsches Rezept – gekuerzt. */
+const LASAGNE = `Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce
+
+Serves 4
+
+Mit Hüttenkäse statt Béchamel und roten Linsen für extra Protein
+
+Ingredients
+• 8 Lasagneblätter
+• 14.79 millilitres Olivenöl
+• 1 Zwiebel, fein gehackt
+• 80 grams rote Linsen
+• 200 millilitres Wasser
+• 4.93 millilitres getrockneter Oregano
+• 2.46 millilitres Pfeffer und Muskat
+
+Steps
+1. Sauce ansetzen
+    15m
+    14.79 millilitres Olivenöl in einer Pfanne erhitzen, 1 Zwiebel, fein gehackt darin glasig dünsten. 80 grams rote Linsen, 200 millilitres Wasser und 4.93 millilitres getrockneter Oregano dazugeben und zugedeckt köcheln lassen, bis die Linsen weich sind.
+2. Rollen
+    Die Hälfte der Sauce in eine Auflaufform geben. 2.46 millilitres Pfeffer und Muskat darüberstreuen.
+3. Zugedeckt backen
+    20m
+    Form abdecken und im Ofen backen.
+
+Notes
+Gut fürs Meal-Prep: hält 3–4 Tage im Kühlschrank.`;
+
 /**
  * Der Import holt eine Adresse, die von aussen kommt. Die Adresspruefung ist
  * damit der sicherheitskritische Teil und wird hier direkt geprueft – nicht
@@ -378,6 +407,77 @@ Salz
   test('ohne Rezept darin: nichts', () => {
     expect(ausEingefuegtemText('Hallo\nwie geht es dir?\nBis bald')).toBeNull();
   });
+
+  test('aus einer Rezept-App: englische Überschriften, Milliliter statt Löffel, Titel und Dauer über dem Schritt', () => {
+    const rezept = ausEingefuegtemText(LASAGNE)!;
+    expect(rezept.name).toBe('Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce');
+    expect(rezept.servings).toBe(4);
+    expect(rezept.herkunft).toBe('text');
+    expect(rezept.ingredients.map((zutat) => [zutat.amount, zutat.unit, zutat.name])).toEqual([
+      [8, '', 'Lasagneblätter'],
+      [1, 'EL', 'Olivenöl'],
+      [1, '', 'Zwiebel, fein gehackt'],
+      [80, 'g', 'rote Linsen'],
+      [200, 'ml', 'Wasser'],
+      [1, 'TL', 'getrockneter Oregano'],
+      [0.5, 'TL', 'Pfeffer und Muskat'],
+    ]);
+    // Der Titel "Sauce ansetzen" faellt weg, die Dauer darunter wird zum Timer.
+    expect(rezept.steps.map((schritt) => [schritt.durationSec, schritt.text])).toEqual([
+      [
+        900,
+        '1 EL Olivenöl in einer Pfanne erhitzen, 1 Zwiebel, fein gehackt darin glasig dünsten. 80 g rote Linsen, 200 ml Wasser und 1 TL getrockneter Oregano dazugeben und zugedeckt köcheln lassen, bis die Linsen weich sind.',
+      ],
+      [null, 'Die Hälfte der Sauce in eine Auflaufform geben. ½ TL Pfeffer und Muskat darüberstreuen.'],
+      [1200, 'Form abdecken und im Ofen backen.'],
+    ]);
+    // Einleitung und Notes werden zur Notiz; ohne Zeitangabe zaehlen die Timer.
+    expect(rezept.notes).toBe(
+      'Mit Hüttenkäse statt Béchamel und roten Linsen für extra Protein. Gut fürs Meal-Prep: hält 3–4 Tage im Kühlschrank.',
+    );
+    expect(rezept.timeMin).toBe(35);
+  });
+
+  test('aus einem Chat: Markdown, Gruppen, fette Schritt-Titel, Tipps', () => {
+    const rezept = ausEingefuegtemText(`Hier ist ein Rezept für dich:
+
+# Kichererbsen-Curry mit Spinat
+
+**Portionen:** 2 | **Zeit:** 30 Minuten
+
+Ein schnelles Feierabend-Curry.
+
+## Zutaten
+
+**Für das Curry:**
+- 1 EL Kokosöl
+- 1 1/2 TL Currypulver
+- 200 ml Kokosmilch
+
+## Zubereitung
+
+1. **Anbraten:** Kokosöl erhitzen und das Currypulver 1 Minute rösten.
+2. **Köcheln:** Kokosmilch dazugeben und 10 Minuten köcheln lassen.
+
+## Tipps
+- Schmeckt am nächsten Tag noch besser.
+
+Guten Appetit!`)!;
+    expect(rezept.name).toBe('Kichererbsen-Curry mit Spinat');
+    expect(rezept.servings).toBe(2);
+    expect(rezept.timeMin).toBe(30);
+    expect(rezept.ingredients.map((zutat) => [zutat.amount, zutat.unit, zutat.name])).toEqual([
+      [1, 'EL', 'Kokosöl (Curry)'],
+      // Steckt die Gruppe schon im Namen, kommt sie nicht noch einmal dazu.
+      [1.5, 'TL', 'Currypulver'],
+      [200, 'ml', 'Kokosmilch (Curry)'],
+    ]);
+    expect(rezept.steps.map((schritt) => [schritt.durationSec, schritt.text])).toEqual([
+      [60, 'Kokosöl erhitzen und das Currypulver 1 Minute rösten.'],
+      [600, 'Kokosmilch dazugeben und 10 Minuten köcheln lassen.'],
+    ]);
+    expect(rezept.notes).toBe('Ein schnelles Feierabend-Curry. – Schmeckt am nächsten Tag noch besser.');
+  });
 });
 
 test.describe('Import-Route mit Text', () => {
@@ -390,7 +490,7 @@ test.describe('Import-Route mit Text', () => {
     expect(daten.recipe.name).toBe('Pfannkuchen');
     expect(daten.recipe.ingredients).toHaveLength(3);
     expect(daten.recipe.steps).toHaveLength(2);
-    expect(daten.recipe.herkunft).toBe('seite');
+    expect(daten.recipe.herkunft).toBe('text');
   });
 
   test('ohne Rezept im Text sagt sie, woran es liegt', async ({ request }) => {
@@ -434,7 +534,7 @@ In der Pfanne goldbraun ausbacken.`;
     await form.getByRole('button', { name: 'Text übernehmen' }).click();
 
     await expect(form.getByLabel('Name', { exact: true })).toHaveValue('Pfannkuchen');
-    await expect(form.getByText(/aus dem Text gelesen/)).toBeVisible();
+    await expect(form.getByText(/Text gelesen/)).toBeVisible();
     await expect(form.getByLabel('Name für Zutat 1')).toHaveValue('Mehl');
     await expect(form.getByLabel('Text für Schritt 1')).toHaveValue('Alles verrühren und 30 Minuten ruhen lassen.');
     await expect(form.getByLabel('Portionen')).toHaveValue('4');
@@ -448,5 +548,38 @@ In der Pfanne goldbraun ausbacken.`;
     await form.getByLabel('Rezepttext einfügen').fill(TEXT);
     await form.getByRole('button', { name: 'Text übernehmen' }).click();
     await expect(form.getByLabel('Name', { exact: true })).toHaveValue('Pfannkuchen');
+  });
+});
+
+test.describe('Rezept aus Text', () => {
+  test('ein eigener Weg im Plus: Text einfügen, umwandeln, speichern', async ({ page }) => {
+    await openSpace(page, newSpace('austext'));
+    await page.route('**/api/simplify', (route) =>
+      route.fulfill({ status: 503, json: { ok: false, error: 'billing' } }),
+    );
+    await page.getByRole('button', { name: 'Neu anlegen' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /^Rezept aus Text/ }).click();
+
+    const form = page.getByRole('dialog');
+    // Kein Link-Feld, gleich das grosse Textfeld.
+    await expect(form.getByLabel('Rezept über Link hinzufügen')).toHaveCount(0);
+    const feld = form.getByLabel('Rezept als Text einfügen');
+    await expect(feld).toBeFocused();
+    // Anderer Titel: das mitgelieferte Rezept heisst schon so.
+    await feld.fill(LASAGNE.replace('Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce', 'Röllchen aus dem Chat'));
+    await form.getByRole('button', { name: 'In Rezept umwandeln' }).click();
+
+    await expect(form.getByLabel('Name', { exact: true })).toHaveValue('Röllchen aus dem Chat');
+    await expect(form.getByText(/Aus deinem Text gelesen/)).toBeVisible();
+    await expect(form.getByLabel('Portionen')).toHaveValue('4');
+    await expect(form.getByLabel('Name für Zutat 2')).toHaveValue('Olivenöl');
+    await expect(form.getByLabel('Einheit für Zutat 2')).toHaveValue('EL');
+    await expect(form.getByLabel('Notiz')).toHaveValue(/^Mit Hüttenkäse statt Béchamel.*Meal-Prep/);
+
+    await form.getByRole('button', { name: 'Speichern' }).click();
+    await page.getByRole('button', { name: 'Rezept Röllchen aus dem Chat öffnen' }).click();
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByText('Gut fürs Meal-Prep: hält 3–4 Tage im Kühlschrank.', { exact: false })).toBeVisible();
+    await expect(detail.locator('.ingredient', { hasText: 'Olivenöl' })).toContainText('1 EL');
   });
 });

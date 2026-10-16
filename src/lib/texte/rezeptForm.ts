@@ -16,14 +16,22 @@ const de = {
     'Auf der Seite das Rezept markieren und kopieren – mit Zutaten und Zubereitung. Auch aus Nachrichten oder Notizen.',
   textPlatzhalter: 'Zutaten\n200 g Mehl\n…\n\nZubereitung\nMehl und …',
   textUebernehmen: 'Text übernehmen',
+  textLabelFrei: 'Rezept als Text einfügen',
+  textHinweisFrei:
+    'Den ganzen Text einfügen, zum Beispiel aus Claude, ChatGPT oder einer Nachricht – mit Titel, Zutaten und Zubereitung, gern mit Tipps. Crave erkennt Portionen, Mengen, Timer und Notizen, auch auf Englisch. Danach lässt sich alles noch ändern.',
+  textPlatzhalterFrei:
+    'Leichte Lasagne-Röllchen\nFür 4 Personen\n\nZutaten\n• 8 Lasagneblätter\n• 1 EL Olivenöl\n…\n\nZubereitung\n1. Olivenöl erhitzen …\n\nTipps\n…',
+  umwandeln: 'In Rezept umwandeln',
   liest: 'Liest…',
   oderText: 'Oder Rezepttext einfügen',
+  andererText: 'Anderen Text einfügen',
   keineVerbindungImport: 'Keine Verbindung zum Server. Prüfe die Verbindung.',
 
   /** Hinweise nach dem Import, werden zu einem Absatz zusammengesetzt. */
   importHinweis: {
     vonKi: 'Die KI hat das Rezept aus dem Text gelesen.',
     vonSeite: 'Zutaten und Schritte sind aus dem Text gelesen, nicht aus Rezeptdaten.',
+    vonText: 'Aus deinem Text gelesen: Zutaten, Schritte, Timer und Notiz.',
     uebersetzt: 'Aus dem Englischen übersetzt, Mengen in Gramm, Deziliter und Grad Celsius.',
     pruefen: 'Bitte kurz prüfen, ob alles stimmt.',
     aufEnglisch: (grund: string) =>
@@ -128,13 +136,21 @@ const en: Form<typeof de> = {
     'Select and copy the recipe on the page, including ingredients and directions. Works with messages and notes too.',
   textPlatzhalter: 'Ingredients\n200 g flour\n…\n\nDirections\nMix the flour and …',
   textUebernehmen: 'Use text',
+  textLabelFrei: 'Paste a recipe as text',
+  textHinweisFrei:
+    'Paste the whole text, for example from Claude, ChatGPT or a message – with title, ingredients and directions, tips welcome. Crave picks up servings, amounts, timers and notes, in English too. You can still change everything afterwards.',
+  textPlatzhalterFrei:
+    'Light Lasagna Roll-Ups\nServes 4\n\nIngredients\n• 8 lasagna sheets\n• 1 tbsp olive oil\n…\n\nDirections\n1. Heat the olive oil …\n\nNotes\n…',
+  umwandeln: 'Turn into a recipe',
   liest: 'Reading…',
   oderText: 'Or paste recipe text',
+  andererText: 'Paste different text',
   keineVerbindungImport: 'Can’t reach the server. Check your connection.',
 
   importHinweis: {
     vonKi: 'The AI read the recipe from the text.',
     vonSeite: 'Ingredients and steps were read from the text, not from recipe data.',
+    vonText: 'Read from your text: ingredients, steps, timers and notes.',
     uebersetzt: 'Translated from English, with amounts in grams, deciliters and degrees Celsius.',
     pruefen: 'Please check that everything looks right.',
     aufEnglisch: (grund: string) =>

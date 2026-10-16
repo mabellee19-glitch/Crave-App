@@ -183,6 +183,15 @@ export const IconLink = (p: IconProps) => (
   </Base>
 );
 
+/** Ein Blatt mit Zeilen: eingefuegter Text. */
+export const IconText = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M7 3.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9.5A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5Z" />
+    <path d="M14 3.5V8h4" />
+    <path d="M8.5 12h7M8.5 15h7M8.5 18h4" />
+  </Base>
+);
+
 export const IconShare = (p: IconProps) => (
   <Base {...p}>
     <path d="M12 15.5V3.5" />

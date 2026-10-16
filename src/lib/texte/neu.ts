@@ -3,11 +3,15 @@ import type { Form } from './form';
 
 const de = {
   titel: 'Was kommt dazu?',
-  /** Die drei Wege, in der Reihenfolge des Blatts. */
+  /** Die vier Wege, in der Reihenfolge des Blatts. */
   wege: {
     link: {
       titel: 'Rezept über Link',
-      text: 'Link einer Rezeptseite – oder den kopierten Rezepttext – einfügen. Die Schritte werden kurz und einfach.',
+      text: 'Link einer Rezeptseite einfügen. Die Schritte werden kurz und einfach.',
+    },
+    text: {
+      titel: 'Rezept aus Text',
+      text: 'Text aus Claude, ChatGPT, einer Nachricht oder Notiz einfügen – Crave macht ein Rezept daraus.',
     },
     rezept: {
       titel: 'Rezept selbst schreiben',
@@ -27,7 +31,11 @@ const en: Form<typeof de> = {
   wege: {
     link: {
       titel: 'Recipe from a link',
-      text: 'Paste a link to a recipe page – or the copied recipe text. The steps are kept short and simple.',
+      text: 'Paste a link to a recipe page. The steps are kept short and simple.',
+    },
+    text: {
+      titel: 'Recipe from text',
+      text: 'Paste text from Claude, ChatGPT, a message or a note – Crave turns it into a recipe.',
     },
     rezept: {
       titel: 'Write your own recipe',

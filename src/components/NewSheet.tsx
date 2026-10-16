@@ -3,12 +3,12 @@
 import React from 'react';
 import { useT } from '@/lib/i18n';
 import { Sheet } from './ui';
-import { IconChevronRight, IconIdee, IconLink, IconPencil } from './Icons';
+import { IconChevronRight, IconIdee, IconLink, IconPencil, IconText } from './Icons';
 
-export type NeuArt = 'link' | 'rezept' | 'idee';
+export type NeuArt = 'link' | 'text' | 'rezept' | 'idee';
 
 /**
- * Was kommt dazu? Drei Wege, ein Knopf. Vorher musste man wissen, ob etwas
+ * Was kommt dazu? Vier Wege, ein Knopf. Vorher musste man wissen, ob etwas
  * ein Rezept oder ein Gericht ist, bevor man den richtigen Bereich fand.
  */
 export function NewSheet({ onPick, onClose }: { onPick: (art: NeuArt) => void; onClose: () => void }) {
@@ -19,6 +19,12 @@ export function NewSheet({ onPick, onClose }: { onPick: (art: NeuArt) => void; o
       titel: t.neu.wege.link.titel,
       text: t.neu.wege.link.text,
       icon: <IconLink size={22} />,
+    },
+    {
+      art: 'text',
+      titel: t.neu.wege.text.titel,
+      text: t.neu.wege.text.text,
+      icon: <IconText size={22} />,
     },
     {
       art: 'rezept',

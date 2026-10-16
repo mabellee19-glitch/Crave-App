@@ -42,6 +42,8 @@ type Overlay =
       isNew: boolean;
       /** Fokus gleich ins Link-Feld – "Rezept über Link" im Plus-Blatt. */
       mitLink?: boolean;
+      /** Gewaehlt ueber "Rezept aus Text": das Textfeld steht gleich offen. */
+      mitText?: boolean;
       /** Das Rezept entsteht aus dieser Idee. */
       ausIdee?: string;
     }
@@ -240,7 +242,13 @@ export function AppShell() {
     const formular: Overlay =
       art === 'idee'
         ? { kind: 'dishForm', dish: blankDish(), isNew: true }
-        : { kind: 'recipeForm', recipe: blankRecipe(), isNew: true, mitLink: art === 'link' };
+        : {
+            kind: 'recipeForm',
+            recipe: blankRecipe(),
+            isNew: true,
+            mitLink: art === 'link',
+            mitText: art === 'text',
+          };
     setStack((current) => [...current.slice(0, -1), formular]);
   };
 
@@ -583,6 +591,7 @@ export function AppShell() {
           initial={overlay.recipe}
           isNew={overlay.isNew}
           mitLink={overlay.mitLink}
+          mitText={overlay.mitText}
           onClose={closeTop}
           onSave={(recipe) => {
             if (overlay.ausIdee) store.ideeAlsRezept(overlay.ausIdee, recipe);

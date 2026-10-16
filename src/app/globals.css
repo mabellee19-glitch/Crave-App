@@ -2834,6 +2834,11 @@ ol {
   color: var(--link);
 }
 
+.wahl--text .wahl__icon {
+  background: var(--sage-soft);
+  color: var(--sage);
+}
+
 .wahl__text {
   display: flex;
   flex-direction: column;

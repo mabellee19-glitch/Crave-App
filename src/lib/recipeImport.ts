@@ -43,10 +43,11 @@ export interface ImportedRecipe {
   source: string;
   /**
    * Wie es gelesen wurde, wenn nicht aus strukturierten Daten: `seite` aus
-   * Ueberschriften wie "Zutaten" und "Zubereitung", `ki` vom Modell. Dann
+   * Ueberschriften wie "Zutaten" und "Zubereitung" auf einer Seite, `text`
+   * aus eingefuegtem Text mit solchen Ueberschriften, `ki` vom Modell. Dann
    * lohnt sich ein pruefender Blick.
    */
-  herkunft?: 'seite' | 'ki';
+  herkunft?: 'seite' | 'text' | 'ki';
   /** Aus dem Englischen uebersetzt (recipeAi.ts). */
   uebersetztAus?: 'en';
   /**
@@ -55,6 +56,8 @@ export interface ImportedRecipe {
    */
   sprache?: 'en';
   kiFehler?: string;
+  /** Einleitung und Tipps aus eingefuegtem Text – landen in der Notiz. */
+  notes?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -666,65 +669,433 @@ export function extractRecipe(html: string, quelle: string): ImportedRecipe | nu
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/* Eingefuegter Text                                                           */
-/* -------------------------------------------------------------------------- */
-
-/** Wo nach den Schritten nichts mehr zum Rezept gehoert. */
-const ENDE_TITEL =
-  /^(tipps?|hinweis|nährwerte|naehrwerte|kommentare?|bewertungen?|das könnte dich auch interessieren|weitere rezepte|ähnliche rezepte|guten appetit|viel spass|viel spaß)\b/i;
-
-function titelZeile(zeile: string, muster: RegExp): boolean {
-  return zeile.length <= 60 && muster.test(zeile.replace(/^[#*\s]+/, ''));
-}
-
 /** Beginnt mit einer Menge: "200 g", "½ TL", "2–3". */
 const MIT_MENGE = /^([\d½¼¾⅓⅔]|ca\.?\s*\d|eine?\s|etwas\s|1\/2)/i;
 
-/**
- * Ein Rezept aus kopiertem Text lesen – fuer Seiten, die den Abruf vom Server
- * sperren, und fuer Rezepte aus Nachrichten oder Notizen. Erkannt werden die
- * Ueberschriften "Zutaten" und "Zubereitung"; fehlen sie, gelten Zeilen mit
- * einer Menge vorne als Zutaten und laengere Zeilen danach als Schritte.
+/* -------------------------------------------------------------------------- */
+/* 4. Eingefuegter Text                                                        */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Rezepte, die jemand aus einer Nachricht, einer Notiz oder aus einem Chat
+ * mit Claude oder ChatGPT kopiert. Die sehen oft so aus:
+ *
+ *   # Leichte Lasagne-Röllchen        (oder ohne "#")
+ *   Serves 4 · Zeit: 65 Min
+ *   Mit Hüttenkäse statt Béchamel …   (eine Einleitung)
+ *   ## Zutaten / Ingredients
+ *   • 14.79 millilitres Olivenöl
+ *   ## Zubereitung / Steps
+ *   1. Sauce ansetzen                 (ein Titel …)
+ *      15m                            (… eine Dauer …)
+ *      Olivenöl erhitzen, …           (… und der eigentliche Schritt)
+ *   ## Tipps / Notes
+ *
+ * Gelesen wird ohne Modell. Einleitung und Tipps werden zur Notiz, die
+ * Dauer zum Timer, englische Einheiten deutsch – und Löffelmengen, die
+ * eine App in Milliliter umgerechnet hat (14.79 ml), wieder Löffel.
  */
-export function ausEingefuegtemText(text: string, quelle = ''): ImportedRecipe | null {
-  const zeilen = (text ?? '')
+
+const NOTIZ_TITEL =
+  /^(notes?|notizen?|tipps?|tips?|hinweise?|anmerkungen?|variationen?|varianten?|aufbewahrung|meal[- ]?prep|servier(vorschlag|tipps?)|dazu passt|nährwerte|naehrwerte|nutrition)\b/i;
+const ABBRUCH_TITEL =
+  /^(kommentare?|bewertungen?|das könnte dich auch interessieren|weitere rezepte|ähnliche rezepte|guten appetit|viel spass|viel spaß|en guete)\b/i;
+
+interface TextZeile {
+  /** Ohne Markdown und ohne Aufzaehlungszeichen. */
+  text: string;
+  /** Stand ein Punkt oder Strich davor? */
+  punkt: boolean;
+  /** "1." oder "Schritt 2:" vorne – die Nummer selbst ist weg. */
+  nummer: boolean;
+  /** Eine Markdown-Ueberschrift ("# …"). */
+  ueberschrift: boolean;
+}
+
+const PUNKT = /^[-•*–·▢☐□✓✔◦‣]\s+/;
+const NUMMER = /^(?:(?:schritt|step)\s*)?\d{1,2}\s*[.:)]\s+/i;
+const NUR_NUMMER = /^(?:(?:schritt|step)\s*)?\d{1,2}\s*[.:)]?$/i;
+
+function textZeilen(text: string): TextZeile[] {
+  return (text ?? '')
     .split(/\r?\n/)
-    .map((zeile) => zeile.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
-  if (zeilen.length < 3) return null;
+    .map((roh) => {
+      const ueberschrift = /^\s*#{1,6}\s/.test(roh);
+      let zeile = roh
+        .replace(/^\s*#{1,6}\s*/, '')
+        .replace(/\*\*|__|`/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const punkt = PUNKT.test(zeile);
+      if (punkt) zeile = zeile.replace(PUNKT, '');
+      // Kursiv ueber die ganze Zeile: "*Für 4 Personen*"
+      zeile = zeile.replace(/^[*_](.+)[*_]$/, '$1').trim();
+      const nummer = NUMMER.test(zeile) || NUR_NUMMER.test(zeile);
+      return { text: zeile, punkt, nummer, ueberschrift };
+    })
+    .filter((zeile) => zeile.text.length > 0);
+}
 
-  let zutatenZeilen: string[] = [];
-  let schrittZeilen: string[] = [];
-  let servings: number | null = null;
-  let nameVor = 0;
+type Kopf = 'zutaten' | 'schritte' | 'notizen' | 'abbruch' | null;
 
-  const zi = zeilen.findIndex((zeile) => titelZeile(zeile, ZUTATEN_TITEL));
-  const si = zeilen.findIndex((zeile, i) => i > zi && titelZeile(zeile, SCHRITTE_TITEL));
-  if (zi >= 0 && si > zi) {
-    zutatenZeilen = zeilen.slice(zi + 1, si);
-    const ende = zeilen.findIndex((zeile, i) => i > si && titelZeile(zeile, ENDE_TITEL));
-    schrittZeilen = zeilen.slice(si + 1, ende > si ? ende : undefined);
-    servings = portionen(/(\d+)\s*(portionen|personen|stück|stk)/i.exec(zeilen[zi])?.[1]);
-    nameVor = zi;
-  } else {
-    // Ohne Ueberschriften: der erste Block mit Mengen vorne sind die Zutaten.
-    const start = zeilen.findIndex((zeile) => MIT_MENGE.test(zeile));
-    if (start < 0) return null;
-    let ende = start;
-    while (ende < zeilen.length && (MIT_MENGE.test(zeilen[ende]) || zeilen[ende].length <= 40)) ende++;
-    zutatenZeilen = zeilen.slice(start, ende);
-    schrittZeilen = zeilen.slice(ende).filter((zeile) => zeile.length >= 25);
-    nameVor = start;
+/** Ist die Zeile eine Ueberschrift – und welche? */
+function kopfArt(zeile: string): Kopf {
+  const text = zeile.replace(/^[^\p{L}]+/u, '').trim();
+  if (text.length > 60) return NOTIZ_TITEL.test(text) && /^[^:]{2,25}:\s/.test(text) ? 'notizen' : null;
+  const kern = text.replace(/\s*\(.*?\)\s*/g, ' ').replace(/:\s*$/, '').trim();
+  if (ZUTATEN_TITEL.test(kern)) return 'zutaten';
+  // "Zubereitung: 20 Min" ist eine Angabe, keine Ueberschrift.
+  if (SCHRITTE_TITEL.test(kern) && !/\d/.test(kern)) return 'schritte';
+  if (/^(schritte|steps|arbeitsschritte|so wird es gemacht|vorgehen)$/i.test(kern)) return 'schritte';
+  if (NOTIZ_TITEL.test(kern)) return 'notizen';
+  if (ABBRUCH_TITEL.test(kern)) return 'abbruch';
+  return null;
+}
+
+/** Portionen aus "Serves 4", "Für 4 Personen", "Portionen: 4", "4 Portionen". */
+function portionenAusZeile(zeile: string): number | null {
+  const treffer =
+    /\b(?:serves|servings?|yield|makes|portionen|personen|für|ergibt|reicht für)\b\D{0,12}?(\d{1,2})\b/i.exec(zeile) ??
+    /\b(\d{1,2})\s*(?:portionen|personen|servings|people|persons|stück)\b/i.exec(zeile);
+  return treffer ? portionen(treffer[1]) : null;
+}
+
+/** Minuten aus "65 Min", "1 Std. 10 Min", "1h 30m", "45 minutes". */
+function minutenAusZeile(zeile: string): number | null {
+  let minuten = 0;
+  let gefunden = false;
+  for (const treffer of zeile.matchAll(
+    /(\d+(?:[.,]\d+)?)\s*(stunden|stunde|std|hours?|hrs?|h|minuten|minute|min|mins|minutes|m)\b\.?/gi,
+  )) {
+    const wert = Number(treffer[1].replace(',', '.'));
+    if (!Number.isFinite(wert)) continue;
+    gefunden = true;
+    minuten += /^(st|ho|hr|h$)/i.test(treffer[2]) ? wert * 60 : wert;
+  }
+  return gefunden && minuten > 0 ? Math.round(minuten) : null;
+}
+
+const ZEIT_WORT = /(zeit|time|dauer|gesamt|total|insgesamt|prep|cook|backen)/i;
+
+/** Eine Angabe wie "Serves 4" oder "Zeit: 65 Min" – kein Titel, keine Einleitung. */
+function istAngabe(zeile: string): boolean {
+  if (zeile.length > 90) return false;
+  if (portionenAusZeile(zeile) != null) return true;
+  return minutenAusZeile(zeile) != null && (ZEIT_WORT.test(zeile) || /^[\d\s.,:hminstdu]+$/i.test(zeile));
+}
+
+/* Englische Einheiten, wie sie Rezept-Apps beim Export schreiben. */
+const EINHEIT_WORTE: Array<[RegExp, string, number]> = [
+  [/^(kilograms?|kilos?)$/i, 'kg', 1],
+  [/^(grams?|grammes?)$/i, 'g', 1],
+  [/^(millilit(?:er|re)s?|mls?)$/i, 'ml', 1],
+  [/^(lit(?:er|re)s?)$/i, 'l', 1],
+  [/^(deciliters?|decilitres?)$/i, 'dl', 1],
+  [/^(tablespoons?|tbsps?|tbs)$/i, 'EL', 1],
+  [/^(teaspoons?|tsps?)$/i, 'TL', 1],
+  [/^(cups?)$/i, 'ml', 240],
+  [/^(fl\.? ?oz|fluid ounces?)$/i, 'ml', 29.57],
+  [/^(ounces?|oz)$/i, 'g', 28.35],
+  [/^(pounds?|lbs?)$/i, 'g', 453.6],
+  [/^(pinch(?:es)?)$/i, 'Prise', 1],
+  [/^(cloves?)$/i, 'Zehen', 1],
+  [/^(cans?|tins?)$/i, 'Dose', 1],
+];
+
+/** Eine Zahl, wie sie in Rezepten steht: "1 1/2", "1/2", "1½", "0,5". */
+function zahlLesen(roh: string): number | null {
+  const text = roh.trim().replace(',', '.');
+  const gemischt = /^(\d+)\s+(\d+)\/(\d+)$/.exec(text);
+  if (gemischt) return Number(gemischt[1]) + Number(gemischt[2]) / Number(gemischt[3]);
+  const bruch = /^(\d+)\/(\d+)$/.exec(text);
+  if (bruch) return Number(bruch[1]) / Number(bruch[2]);
+  const mitZeichen = /^(\d+)?\s*([½¼¾⅓⅔])$/.exec(text);
+  if (mitZeichen) return Number(mitZeichen[1] ?? 0) + BRUECHE[mitZeichen[2]];
+  const zahl = Number(text);
+  return Number.isFinite(zahl) ? zahl : null;
+}
+
+/**
+ * Milliliter, die eigentlich Löffel sind: 14.79 ml war 1 EL, 4.93 ml 1 TL.
+ * Rezept-Apps rechnen amerikanische Löffel so um. Gilt nur für kleine
+ * Mengen, die genau auf einen Löffel fallen – 200 ml Wasser bleiben.
+ */
+function loeffel(ml: number): { amount: number; unit: string } | null {
+  if (!(ml > 0) || ml >= 60) return null;
+  const naheBei = (wert: number, raster: number) => {
+    const gerundet = Math.round(wert / raster) * raster;
+    return gerundet > 0 && Math.abs(wert - gerundet) / gerundet < 0.02 ? gerundet : null;
+  };
+  const el = ml / 14.7868;
+  const ganzeEl = el >= 1 ? naheBei(el, 0.5) : null;
+  if (ganzeEl) return { amount: ganzeEl, unit: 'EL' };
+  const tl = naheBei(ml / 4.92892, 0.25);
+  if (tl && tl <= 3) return { amount: tl, unit: 'TL' };
+  return null;
+}
+
+/** Menge und Einheit auf Deutsch: "14.79 millilitres" → 1 EL, "80 grams" → 80 g. */
+function mengeAufDeutsch(amount: number, einheit: string): { amount: number; unit: string } | null {
+  const eintrag = EINHEIT_WORTE.find(([muster]) => muster.test(einheit.trim()));
+  if (!eintrag) return null;
+  const [, unit, faktor] = eintrag;
+  const wert = amount * faktor;
+  if (unit === 'ml') {
+    const alsLoeffel = loeffel(wert);
+    if (alsLoeffel) return alsLoeffel;
+    return { amount: wert >= 100 ? Math.round(wert / 10) * 10 : Math.round(wert), unit: 'ml' };
+  }
+  if (unit === 'g') return { amount: faktor === 1 ? wert : wert >= 100 ? Math.round(wert / 10) * 10 : Math.round(wert), unit };
+  return { amount: wert, unit };
+}
+
+const ZAHL_MUSTER = String.raw`(\d+\s+\d+\/\d+|\d+\/\d+|\d*\s*[½¼¾⅓⅔]|\d+(?:[.,]\d+)?)`;
+const EINHEIT_IM_TEXT = new RegExp(
+  `${ZAHL_MUSTER}\\s*(kilograms?|grams?|grammes?|millilit(?:er|re)s?|lit(?:er|re)s?|tablespoons?|tbsps?|teaspoons?|tsps?|cups?|fluid ounces?|ounces?|oz|pounds?|lbs?)\\b`,
+  'gi',
+);
+
+/** Zahlen als Text: 1 → "1", 0.5 → "½", 1.5 → "1½", 0.333 → "0.33". */
+function zahlText(wert: number): string {
+  const ganz = Math.floor(wert);
+  const rest = Math.round((wert - ganz) * 100) / 100;
+  const zeichen: Record<string, string> = { '0.25': '¼', '0.5': '½', '0.75': '¾' };
+  if (rest === 0) return String(ganz);
+  if (zeichen[String(rest)]) return `${ganz || ''}${zeichen[String(rest)]}`;
+  return String(Math.round(wert * 100) / 100);
+}
+
+/** Dasselbe im laufenden Text eines Schritts: "14.79 millilitres Olivenöl" → "1 EL Olivenöl". */
+function einheitenImText(text: string): string {
+  return text.replace(EINHEIT_IM_TEXT, (ganz, zahl: string, einheit: string) => {
+    const wert = zahlLesen(zahl);
+    const deutsch = wert == null ? null : mengeAufDeutsch(wert, einheit);
+    return deutsch ? `${zahlText(deutsch.amount)} ${deutsch.unit}` : ganz;
+  });
+}
+
+/** Eine Zutatenzeile vorbereiten: Brueche lesbar, englische Einheit deutsch. */
+function zutatenZeileAufDeutsch(zeile: string): string {
+  const treffer = new RegExp(`^${ZAHL_MUSTER}\\s*([\\p{L}.]+(?:\\s(?:oz|ounces?))?)\\s+(.+)$`, 'iu').exec(zeile.trim());
+  if (!treffer) return zeile;
+  const [, zahl, einheit, rest] = treffer;
+  const wert = zahlLesen(zahl);
+  if (wert == null) return zeile;
+  const deutsch = mengeAufDeutsch(wert, einheit);
+  if (deutsch) return `${deutsch.amount} ${deutsch.unit} ${rest}`;
+  // Nur die Zahl lesbar machen: "1 1/2 Zwiebeln" → "1.5 Zwiebeln".
+  return /[/\s]/.test(zahl.trim()) ? `${wert} ${einheit} ${rest}` : zeile;
+}
+
+/** Eine Zutat: Milliliter, die ein Löffel sind, werden wieder einer. */
+function zutatMitLoeffel(zutat: ImportedIngredient): ImportedIngredient {
+  if (zutat.unit !== 'ml' || zutat.amount == null) return zutat;
+  const alsLoeffel = loeffel(zutat.amount);
+  return alsLoeffel ? { ...zutat, ...alsLoeffel } : zutat;
+}
+
+interface Block {
+  kopf: string;
+  teile: string[];
+  dauer: number | null;
+  /** Mit Nummer oder Punkt begonnen: Zeilen darunter gehoeren dazu. */
+  markiert: boolean;
+}
+
+/** "15m", "15 Min.", "1h 30m", "⏱ 20 Minuten" – eine Zeile nur mit einer Dauer. */
+function nurDauer(zeile: string): number | null {
+  const ohneZeichen = zeile.replace(/^[^\d]+/, '').trim();
+  if (!/^\d/.test(ohneZeichen)) return null;
+  if (!/^[\d\s.,]*(stunden|stunde|std|hours?|hrs?|h|minuten|minute|min|mins|minutes|m)\.?(\s*\d+\s*(minuten|minute|min|mins|minutes|m)\.?)?$/i.test(ohneZeichen)) {
+    return null;
+  }
+  const minuten = minutenAusZeile(ohneZeichen);
+  return minuten ? minuten * 60 : null;
+}
+
+/** Ein kurzer Titel ueber dem Schritt ("Sauce ansetzen") – kein Satz. */
+function istSchrittTitel(text: string): boolean {
+  return !text || (text.length <= 40 && !/[.!?]$/.test(text) && text.split(/\s+/).length <= 5);
+}
+
+/** Schritte aus den Zeilen unter "Zubereitung": nummeriert, mit Titel und Dauer, oder einfach Absaetze. */
+function schritteAusZeilen(zeilen: TextZeile[]): ImportedStep[] {
+  const bloecke: Block[] = [];
+  for (const zeile of zeilen) {
+    if (NUR_NUMMER.test(zeile.text)) {
+      bloecke.push({ kopf: '', teile: [], dauer: null, markiert: true });
+      continue;
+    }
+    if (zeile.nummer) {
+      bloecke.push({ kopf: zeile.text.replace(NUMMER, ''), teile: [], dauer: null, markiert: true });
+      continue;
+    }
+    const aktuell = bloecke[bloecke.length - 1];
+    const dauer = nurDauer(zeile.text);
+    if (dauer != null) {
+      if (aktuell && aktuell.dauer == null) aktuell.dauer = dauer;
+      continue;
+    }
+    if (zeile.punkt) {
+      bloecke.push({ kopf: zeile.text, teile: [], dauer: null, markiert: true });
+    } else if (aktuell?.markiert) {
+      aktuell.teile.push(zeile.text);
+    } else {
+      bloecke.push({ kopf: zeile.text, teile: [], dauer: null, markiert: false });
+    }
+  }
+
+  const heraus: ImportedStep[] = [];
+  for (const block of bloecke) {
+    let kopf = block.kopf.trim();
+    // "Sauce ansetzen: Olivenöl erhitzen …" – der Titel vor dem Doppelpunkt faellt weg.
+    const titel = /^([^.:!?\d]{2,40}):\s*(.*)$/.exec(kopf);
+    if (titel) kopf = titel[2].trim();
+    const teile = block.teile.join(' ').trim();
+    const roh = teile ? (istSchrittTitel(kopf) ? teile : `${kopf} ${teile}`) : kopf;
+    const text = saubererText(einheitenImText(roh));
+    if (text.length < 2) continue;
+    heraus.push({ text, durationSec: block.dauer ?? durationFromText(text) });
+  }
+  return heraus;
+}
+
+/** Kommt als Titel infrage? Kurz, kein Satz, keine Angabe. */
+function titelKandidat(zeile: string): boolean {
+  return (
+    zeile.length >= 3 &&
+    zeile.length <= 90 &&
+    !zeile.includes(':') &&
+    !/[.!?]$/.test(zeile) &&
+    !/^\d+\s*$/.test(zeile) &&
+    !istAngabe(zeile) &&
+    !(zeile.includes(',') && zeile.length > 45) &&
+    zeile.split(/\s+/).length <= 12
+  );
+}
+
+/** Ein Rezept mit Ueberschriften: Zutaten, Zubereitung, vielleicht Tipps. */
+function mitUeberschriften(zeilen: TextZeile[], zi: number, si: number, quelle: string): ImportedRecipe | null {
+  const kopfzeilen = zeilen.slice(0, zi);
+
+  // Der Titel: eine Markdown-Ueberschrift, sonst die erste Zeile, wenn sie
+  // nach Titel aussieht – sonst die letzte solche Zeile vor den Zutaten
+  // ("Werbung" weiter oben ist keiner).
+  let ti = kopfzeilen.findIndex((zeile) => zeile.ueberschrift && titelKandidat(zeile.text));
+  if (ti < 0 && kopfzeilen[0] && titelKandidat(kopfzeilen[0].text) && kopfzeilen[0].text.split(/\s+/).length >= 2) ti = 0;
+  if (ti < 0) {
+    for (let i = kopfzeilen.length - 1; i >= 0; i--) {
+      if (titelKandidat(kopfzeilen[i].text)) {
+        ti = i;
+        break;
+      }
+    }
+  }
+  const name = ti >= 0 ? kopfzeilen[ti].text : '';
+
+  let servings = portionenAusZeile(zeilen[zi].text);
+  let timeMin: number | null = null;
+  let summe = 0;
+  const einleitung: string[] = [];
+  kopfzeilen.forEach((zeile, i) => {
+    if (i <= ti && ti >= 0) {
+      if (i < ti || !istAngabe(zeile.text)) return;
+    }
+    if (istAngabe(zeile.text)) {
+      servings = servings ?? portionenAusZeile(zeile.text);
+      const minuten = ZEIT_WORT.test(zeile.text) || !portionenAusZeile(zeile.text) ? minutenAusZeile(zeile.text) : null;
+      if (minuten) {
+        if (/gesamt|total|insgesamt/i.test(zeile.text)) timeMin = minuten;
+        else summe += minuten;
+      }
+      return;
+    }
+    if (i > ti) einleitung.push(zeile.text);
+  });
+  timeMin = timeMin ?? (summe > 0 ? summe : null);
+
+  // Zubereitung bis zur naechsten Ueberschrift; Tipps und Notizen sammeln.
+  const schrittZeilen: TextZeile[] = [];
+  const notizen: string[] = [];
+  let ziel: 'schritte' | 'notizen' = 'schritte';
+  for (const zeile of zeilen.slice(si + 1)) {
+    const art = kopfArt(zeile.text);
+    if (art === 'abbruch') break;
+    if (art === 'notizen') {
+      ziel = 'notizen';
+      // "Tipp: Schmeckt auch lauwarm." – der Inhalt steht gleich dahinter.
+      const inhalt = /^[^:]{2,25}:\s*(.+)$/.exec(zeile.text)?.[1];
+      if (inhalt) notizen.push(inhalt);
+      continue;
+    }
+    if (art === 'schritte' && ziel === 'notizen') {
+      ziel = 'schritte';
+      continue;
+    }
+    if (ziel === 'schritte') schrittZeilen.push(zeile);
+    else notizen.push(zeile.punkt ? `– ${zeile.text}` : zeile.text);
   }
 
   const ingredients = zutatenAusZeilen(
-    zutatenZeilen.map((zeile) => zeile.replace(/^[-•*–·]\s*/, '')).filter((zeile) => zeile.length <= 120),
-  );
+    zeilen
+      .slice(zi + 1, si)
+      .map((zeile) => zutatenZeileAufDeutsch(zeile.text))
+      .filter((zeile) => zeile.length <= 120),
+  ).map(zutatMitLoeffel);
+  const steps = schritteAusZeilen(schrittZeilen);
+  if (ingredients.length < 2 || steps.length === 0) return null;
+
+  // Saetze ohne Schlusspunkt ("… für extra Protein") bekommen einen, bevor der naechste folgt.
+  const notiz = [...einleitung, ...notizen]
+    .map((teil) => einheitenImText(teil).trim())
+    .map((teil, i, alle) => (i < alle.length - 1 && !/[.!?:…]$/.test(teil) ? `${teil}.` : teil))
+    .join(' ')
+    .trim();
+  // Ohne Zeitangabe: wenigstens die Timer zusammengezaehlt, auf fuenf Minuten gerundet.
+  const timer = steps.reduce((summe, schritt) => summe + (schritt.durationSec ?? 0), 0) / 60;
+  return {
+    name: saubererText(name).replace(/\s*[-–|:]?\s*rezept$/i, ''),
+    servings,
+    timeMin: timeMin ?? (timer >= 10 ? Math.ceil(timer / 5) * 5 : null),
+    ingredients,
+    steps,
+    source: quelle,
+    herkunft: 'text',
+    ...(notiz ? { notes: notiz } : {}),
+  };
+}
+
+/**
+ * Ein Rezept aus kopiertem Text lesen – fuer Seiten, die den Abruf vom Server
+ * sperren, und fuer Rezepte aus Nachrichten, Notizen oder einem Chat.
+ * Erkannt werden Ueberschriften wie "Zutaten" und "Zubereitung" (auch auf
+ * Englisch und in Markdown); fehlen sie, gelten Zeilen mit einer Menge vorne
+ * als Zutaten und laengere Zeilen danach als Schritte.
+ */
+export function ausEingefuegtemText(text: string, quelle = ''): ImportedRecipe | null {
+  const alle = textZeilen(text);
+  if (alle.length < 3) return null;
+
+  const zi = alle.findIndex((zeile) => kopfArt(zeile.text) === 'zutaten');
+  const si = zi >= 0 ? alle.findIndex((zeile, i) => i > zi && kopfArt(zeile.text) === 'schritte') : -1;
+  if (zi >= 0 && si > zi) return mitUeberschriften(alle, zi, si, quelle);
+
+  // Ohne Ueberschriften: der erste Block mit Mengen vorne sind die Zutaten.
+  const zeilen = alle.map((zeile) => zeile.text);
+  const start = zeilen.findIndex((zeile) => MIT_MENGE.test(zeile));
+  if (start < 0) return null;
+  let ende = start;
+  while (ende < zeilen.length && (MIT_MENGE.test(zeilen[ende]) || zeilen[ende].length <= 40)) ende++;
+  const zutatenZeilen = zeilen.slice(start, ende);
+  const schrittZeilen = zeilen.slice(ende).filter((zeile) => zeile.length >= 25);
+
+  const ingredients = zutatenAusZeilen(
+    zutatenZeilen.map((zeile) => zutatenZeileAufDeutsch(zeile)).filter((zeile) => zeile.length <= 120),
+  ).map(zutatMitLoeffel);
   const steps = schrittZeilen
     // Eine Nummer allein auf der Zeile ("1", "Schritt 2") ist keine Anweisung.
-    .filter((zeile) => !/^(schritt\s*)?\d{1,2}[.:)]?$/i.test(zeile))
-    .map((zeile) => schrittAusText(zeile.replace(/^[-•*–·]\s*/, '')))
+    .filter((zeile) => !NUR_NUMMER.test(zeile))
+    .map((zeile) => schrittAusText(einheitenImText(zeile)))
     .filter((schritt): schritt is ImportedStep => schritt !== null);
   if (ingredients.length < 2 || steps.length === 0) return null;
 
@@ -732,13 +1103,13 @@ export function ausEingefuegtemText(text: string, quelle = ''): ImportedRecipe |
   // nicht nach Angabe aussieht ("Portionen: 4", "Werbung" weiter oben).
   const name =
     zeilen
-      .slice(0, nameVor)
+      .slice(0, start)
       .reverse()
       .find((zeile) => zeile.length >= 3 && zeile.length <= 60 && !/[\d:]/.test(zeile)) ?? '';
 
   return {
     name: saubererText(name).replace(/\s*[-–|:]?\s*rezept$/i, ''),
-    servings,
+    servings: null,
     timeMin: null,
     ingredients,
     steps,
@@ -787,6 +1158,7 @@ export function rezeptAufraeumen(rezept: ImportedRecipe): ImportedRecipe {
       unit: ohneEszett(zutat.unit),
     })),
     steps: rezept.steps.map((schritt) => ({ ...schritt, text: ohneEszett(schritt.text) })),
+    ...(rezept.notes ? { notes: ohneEszett(rezept.notes) } : {}),
     source: ohneTracking(rezept.source),
   };
 }

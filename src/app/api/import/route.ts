@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
   if (typeof eingefuegt === 'string' && eingefuegt.trim()) {
     const text = eingefuegt.slice(0, MAX_TEXT);
     const rezept = ausEingefuegtemText(text);
-    // Aus Text liest die KI besser als die Regeln – wenn sie da ist, darf sie.
+    // Mit Ueberschriften ("Zutaten", "Zubereitung") ist der Text eindeutig –
+    // dafuer braucht es keine KI, und Einleitung und Tipps bleiben erhalten.
+    if (rezept?.herkunft === 'text') return gefunden(rezept);
+    // Sonst liest die KI besser als die Regeln – wenn sie da ist, darf sie.
     return mitKi(text, '', rezept);
   }
 

@@ -127,6 +127,7 @@ export function RecipeForm({
   initial,
   isNew,
   mitLink = false,
+  mitText = false,
   onSave,
   onClose,
 }: {
@@ -134,6 +135,11 @@ export function RecipeForm({
   isNew: boolean;
   /** Gewaehlt ueber "Rezept über Link": der Cursor steht gleich im Link-Feld. */
   mitLink?: boolean;
+  /**
+   * Gewaehlt ueber "Rezept aus Text": statt des Link-Felds steht gleich ein
+   * grosses Textfeld da – fuer Rezepte aus Claude, ChatGPT oder Nachrichten.
+   */
+  mitText?: boolean;
   onSave: (recipe: Recipe) => void;
   onClose: () => void;
 }) {
@@ -368,7 +374,7 @@ export function RecipeForm({
   const [laedt, setLaedt] = useState(false);
   const [importFehler, setImportFehler] = useState<string | null>(null);
   // Fuer Seiten, die den Abruf sperren: den Rezepttext selbst einfuegen.
-  const [textModus, setTextModus] = useState(false);
+  const [textModus, setTextModus] = useState(mitText);
   const [rezeptText, setRezeptText] = useState('');
   const [importHinweis, setImportHinweis] = useState<string | null>(null);
 
@@ -405,10 +411,11 @@ export function RecipeForm({
         ingredients: Array<{ name: string; amount: number | null; unit: string }>;
         steps: Array<{ text: string; durationSec: number | null }>;
         source: string;
-        herkunft?: 'seite' | 'ki';
+        herkunft?: 'seite' | 'text' | 'ki';
         uebersetztAus?: 'en';
         sprache?: 'en';
         kiFehler?: string;
+        notes?: string;
       };
 
       const current = draftRef.current;
@@ -423,7 +430,10 @@ export function RecipeForm({
         steps: rezept.steps.length
           ? rezept.steps.map((schritt) => ({ ...blankStep(), ...schritt }))
           : current.steps,
-        notes: current.notes || (rezept.source ? `Übernommen von ${rezept.source}` : ''),
+        // Einleitung und Tipps aus dem Text, dazu woher es stammt.
+        notes:
+          current.notes ||
+          [rezept.notes, rezept.source ? `Übernommen von ${rezept.source}` : ''].filter(Boolean).join(' '),
         // Ein neuer Import ersetzt den Inhalt – und mit ihm, was die KI
         // daran schon versucht hat.
         uebersetztAus: rezept.uebersetztAus,
@@ -453,6 +463,8 @@ export function RecipeForm({
       const hinweise: string[] = [];
       if (rezept.herkunft === 'ki') {
         hinweise.push(tf.importHinweis.vonKi);
+      } else if (rezept.herkunft === 'text') {
+        hinweise.push(tf.importHinweis.vonText);
       } else if (rezept.herkunft === 'seite') {
         hinweise.push(tf.importHinweis.vonSeite);
       }
@@ -537,6 +549,7 @@ export function RecipeForm({
 
       {isNew ? (
         <>
+          {mitText ? null : (
           <Field
             label={tf.linkLabel}
             htmlFor="recipe-url"
@@ -571,6 +584,7 @@ export function RecipeForm({
               </button>
             </div>
           </Field>
+          )}
 
           {importFehler ? (
             <div className="notice notice--warn" style={{ marginBottom: 16 }} role="alert">
@@ -580,17 +594,18 @@ export function RecipeForm({
 
           {textModus ? (
             <Field
-              label={tf.textLabel}
+              label={mitText ? tf.textLabelFrei : tf.textLabel}
               htmlFor="recipe-text"
-              hint={tf.textHinweis}
+              hint={mitText ? tf.textHinweisFrei : tf.textHinweis}
             >
               <textarea
                 id="recipe-text"
                 className="textarea"
-                rows={6}
+                rows={mitText ? 12 : 6}
                 value={rezeptText}
-                placeholder={tf.textPlatzhalter}
+                placeholder={mitText ? tf.textPlatzhalterFrei : tf.textPlatzhalter}
                 onChange={(event) => setRezeptText(event.target.value)}
+                autoFocus={mitText}
               />
               <div style={{ height: 8 }} />
               <button
@@ -598,7 +613,7 @@ export function RecipeForm({
                 onClick={() => void holen('text')}
                 disabled={!rezeptText.trim() || laedt}
               >
-                {laedt ? tf.liest : tf.textUebernehmen}
+                {laedt ? tf.liest : mitText ? tf.umwandeln : tf.textUebernehmen}
               </button>
             </Field>
           ) : (
@@ -607,7 +622,7 @@ export function RecipeForm({
               style={{ paddingInline: 0, marginTop: -6, marginBottom: 10 }}
               onClick={() => setTextModus(true)}
             >
-              {tf.oderText}
+              {mitText ? tf.andererText : tf.oderText}
             </button>
           )}
 

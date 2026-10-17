@@ -5,8 +5,7 @@ import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
 import { unlockAudio } from '@/lib/audio';
 import { KiKuerzung } from '@/lib/useKiKuerzung';
-import { KiEnglisch } from '@/lib/useKiEnglisch';
-import { setzeSprache, spracheAnwenden, useT } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 import { useInhalt } from '@/lib/inhalt';
 import { Wordmark } from './Logo';
 import { EssenView } from './EssenView';
@@ -63,8 +62,6 @@ export function AppShell() {
   const t = texte.app;
   const inhalt = useInhalt();
   const tabLabel = (id: Tab) => (id === 'essen' ? texte.allgemein.bereichRezepte : texte.allgemein.bereichEinkauf);
-  // Das lang-Attribut zur gespeicherten Sprache – fuer Vorlesen und Silbentrennung.
-  useEffect(() => spracheAnwenden(), []);
   const [tab, setTab] = useState<Tab>('essen');
   const [stack, setStack] = useState<Overlay[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -297,14 +294,6 @@ export function AppShell() {
           <span className="topbar__spacer" />
 
           <button
-            className="iconbtn sprachknopf"
-            onClick={() => setzeSprache(inhalt.sprache === 'de' ? 'en' : 'de')}
-            aria-label={t.sprache}
-          >
-            {t.spracheKurz}
-          </button>
-
-          <button
             className="iconbtn"
             onClick={() => openOverlay({ kind: 'fridge' })}
             aria-label={t.foto}
@@ -437,7 +426,6 @@ export function AppShell() {
       ))}
 
       <KiKuerzung />
-      <KiEnglisch />
 
       {toast ? <Toast toast={toast} onDismiss={() => setToast(null)} /> : null}
     </div>
@@ -508,8 +496,8 @@ export function AppShell() {
             store.toggleDishCookNext(dish.id);
             showToast(
               dish.cookNext
-                ? t.vonCookNext(kurz(inhalt.text(dish.name, dish.en)))
-                : t.aufCookNext(kurz(inhalt.text(dish.name, dish.en))),
+                ? t.vonCookNext(kurz(dish.name))
+                : t.aufCookNext(kurz(dish.name)),
             );
           }}
           onMakeRecipe={() => {

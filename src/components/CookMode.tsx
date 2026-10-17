@@ -329,7 +329,7 @@ export function CookMode({
           <CookAnimation
             variante="start"
             motiv={animationsMotiv(recipe, 'start')}
-            title={inhalt.text(recipe.name, recipe.en)}
+            title={recipe.name}
             onDone={introFertig}
           />
         ) : null}
@@ -399,7 +399,7 @@ export function CookMode({
                           <span className={`checkbox${fertig ? ' checkbox--on' : ''}`}>
                             <IconCheck size={16} />
                           </span>
-                          <span>{inhalt.text(task, recipe.en)}</span>
+                          <span>{task}</span>
                         </button>
                       </li>
                     );
@@ -429,7 +429,7 @@ export function CookMode({
                           </span>
                           <span>
                             {quantity ? <strong>{quantity} </strong> : null}
-                            {inhalt.zutat(ingredient.name, menge, recipe.en)}
+                            {inhalt.zutat(ingredient.name, menge)}
                           </span>
                         </button>
                       </li>
@@ -442,7 +442,7 @@ export function CookMode({
         ) : (
           <div className="cook__body" key={step.id}>
             <div className="cook__count">{t.kochen.schrittVon(stepIndex + 1, total)}</div>
-            <p className="cook__text">{inhalt.text(step.text, recipe.en)}</p>
+            <p className="cook__text">{step.text}</p>
 
             {step.durationSec ? (
               <Timer
@@ -465,7 +465,7 @@ export function CookMode({
                     return (
                       <li key={ingredient.id}>
                         {quantity ? <strong>{quantity}</strong> : null}
-                        <span>{inhalt.zutat(ingredient.name, menge, recipe.en)}</span>
+                        <span>{inhalt.zutat(ingredient.name, menge)}</span>
                       </li>
                     );
                   })}

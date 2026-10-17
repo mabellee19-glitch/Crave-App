@@ -9,7 +9,8 @@
  *   (`einheitenVorschlaege`).
  * - **Abteilung**: wo die Zutat im Laden steht. Danach ordnet sich die
  *   Einkaufsliste (`abteilungVon`).
- * - **Namen auf Deutsch und Englisch**: fuer die englische Ansicht
+ * - **Namen auf Deutsch und Englisch**: englisch Eingetipptes zeigt die App
+ *   deutsch, und englische Rezepte bekommen deutsche Zutatennamen
  *   (`zutatenName`). Was hier fehlt, uebersetzt die KI.
  *
  * Erkannt wird an Schluesselwoertern in Kleinschrift ohne Umlaute, deutsch und

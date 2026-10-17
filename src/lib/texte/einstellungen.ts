@@ -1,15 +1,9 @@
-/** Texte: Einstellungen und Abgleich. Deutsch zuerst, Englisch mit derselben Form. */
-import type { Form } from './form';
+/** Texte: Einstellungen und Abgleich. */
 
 const de = {
   titel: 'Einstellungen & Sync',
-  sprache: 'Sprache',
-  spracheText: 'Gilt für die ganze App, auch für alle Rezepte – auf diesem Gerät.',
-  deutsch: 'Deutsch',
-  englisch: 'English',
   design: 'Design',
   designText: 'Such dir eine Farbwelt aus – sie gilt sofort und bleibt auf diesem Gerät gespeichert.',
-  themes: {} as Record<string, { name: string; beschreibung: string }>,
   link: 'Dein Link',
   linkText:
     'Öffne diesen Link auf iPhone, iPad und Computer. Alle Geräte mit diesem Link sehen denselben Datenstand.',
@@ -53,61 +47,4 @@ const de = {
   bereit: 'Bereit',
 };
 
-const en: Form<typeof de> = {
-  titel: 'Settings & Sync',
-  sprache: 'Language',
-  spracheText: 'Applies to the whole app, recipes included – on this device.',
-  deutsch: 'Deutsch',
-  englisch: 'English',
-  design: 'Look',
-  designText: 'Pick a color scheme – it applies right away and is saved on this device.',
-  themes: {
-    diner: { name: 'Diner', beschreibung: 'Like the logo: tomato red, mustard, espresso' },
-    creme: { name: 'Cream', beschreibung: 'Warm and calm, copper accent' },
-    salbei: { name: 'Sage', beschreibung: 'Fresh and green, lots of white' },
-    pfirsich: { name: 'Peach', beschreibung: 'Cheerful and warm, coral accent' },
-    himmel: { name: 'Sky', beschreibung: 'Light and airy, blue accent' },
-    klar: { name: 'Clear', beschreibung: 'Pure white and modern, tomato red' },
-    dunkel: { name: 'Dark', beschreibung: 'The night version for evenings' },
-  },
-  link: 'Your link',
-  linkText: 'Open this link on your iPhone, iPad and computer. Every device with this link sees the same data.',
-  linkKopiert: 'Link copied',
-  linkTeilen: 'Share link',
-  sync: 'Sync',
-  jetztAbgleichen: 'Sync now',
-  dbFehltTitel: 'The configured database is not responding.',
-  dbFehltText1:
-    ' Most common cause: an environment variable pointing to a connection that doesn’t exist – such as a placeholder from an example file. ',
-  dbFehltText2: ' shows which variable is used and why the connection fails.',
-  meldung: 'Message:',
-  keineCloudTitel: 'No cloud database configured.',
-  keineCloudText1:
-    ' The server only keeps your data temporarily. For lasting sync between your devices, set the environment variable ',
-  keineCloudText2: ' – see the README.',
-  cloudOk: 'Changes are saved automatically and synced with every device that has opened this link.',
-  pruefen: 'Checking the connection to the server…',
-  zuletzt: (zeit: string) => `Last synced: ${zeit}`,
-  zeitformat: 'en-GB',
-  home: 'Add to Home Screen',
-  homeText: 'In Safari, tap “Share” and choose “Add to Home Screen”. Crave then opens like an app, full screen.',
-  start: 'Built-in content',
-  startText:
-    'New built-in recipes and ideas appear by themselves when you open the app – anything you deleted stays gone. This button covers the rest: where an existing recipe has no directions or ingredients at all, they are filled in. Your own entries stay as they are.',
-  nachtragen: 'Fill in missing recipes and ideas',
-  timer: 'Cooking timer',
-  timerText:
-    'When a step’s timer runs out, Crave rings and vibrates. While cooking, the sound counts as media playback – so you hear it even when your iPhone is on silent. Try it out here.',
-  timerTesten: 'Test the alarm',
-  gespeichert: 'Saved',
-  zaehlerRezepte: (n: number) => `${n} ${n === 1 ? 'recipe' : 'recipes'}`,
-  zaehlerIdeen: (n: number) => `${n} ${n === 1 ? 'idea' : 'ideas'}`,
-  zaehlerEinkauf: (n: number) => `${n} on Groceries`,
-  zaehlerStandard: (n: number) => `${n} ${n === 1 ? 'staple' : 'staples'}`,
-  offline: 'Offline – changes are saved',
-  gleichtAb: 'Syncing…',
-  synchron: 'All synced',
-  bereit: 'Ready',
-};
-
-export const einstellungen = { de, en };
+export const einstellungen = de;

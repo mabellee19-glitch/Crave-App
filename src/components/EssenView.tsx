@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from 'react';
 import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, Recipe } from '@/lib/types';
 import { Eintrag, eintraegeAus, kategorieKlasse } from '@/lib/essen';
-import { Inhalt, useInhalt } from '@/lib/inhalt';
 import { normalizeName } from '@/lib/units';
 import { useT } from '@/lib/i18n';
 import { SearchBar } from './SearchBar';
@@ -40,13 +39,7 @@ export const EssenView = React.memo(function EssenView({
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'cooknext' | string>('all');
 
-  const inhalt = useInhalt();
-  const eintraege = useMemo(() => {
-    const alle = eintraegeAus(recipes, ideen);
-    // Auf Englisch nach dem englischen Namen ordnen.
-    if (inhalt.sprache === 'de') return alle;
-    return [...alle].sort((a, b) => anzeigeName(inhalt, a).localeCompare(anzeigeName(inhalt, b), 'en'));
-  }, [recipes, ideen, inhalt]);
+  const eintraege = useMemo(() => eintraegeAus(recipes, ideen), [recipes, ideen]);
 
   /*
    * Die festen Sparten stehen immer da, auch leer – sonst waere "Dessert"
@@ -77,17 +70,11 @@ export const EssenView = React.memo(function EssenView({
       const zutaten =
         eintrag.art === 'rezept' ? eintrag.recipe.ingredients : (eintrag.dish.ingredients ?? []);
       const notiz = eintrag.art === 'idee' ? eintrag.dish.notes : '';
-      // Gesucht wird in beiden Sprachen: "Poulet" findet auf Englisch auch "chicken".
-      const woerter = woerterVon(eintrag);
-      const englisch =
-        inhalt.sprache === 'en'
-          ? `${anzeigeName(inhalt, eintrag)} ${zutaten.map((zutat) => inhalt.zutat(zutat.name, null, woerter)).join(' ')}`
-          : '';
       return normalizeName(
-        `${eintrag.name} ${eintrag.kategorie} ${notiz} ${zutaten.map((zutat) => zutat.name).join(' ')} ${englisch}`,
+        `${eintrag.name} ${eintrag.kategorie} ${notiz} ${zutaten.map((zutat) => zutat.name).join(' ')}`,
       ).includes(needle);
     });
-  }, [eintraege, query, filter, inhalt]);
+  }, [eintraege, query, filter]);
 
   return (
     <section aria-labelledby="essen-heading">
@@ -134,7 +121,7 @@ export const EssenView = React.memo(function EssenView({
               onClick={() => setFilter(category)}
               aria-pressed={filter === category}
             >
-              {inhalt.kategorie(category)}
+              {category}
             </button>
           );
         })}
@@ -186,8 +173,7 @@ function EintragKarte({
   onToggleCookNext: () => void;
 }) {
   const t = useT();
-  const inhalt = useInhalt();
-  const name = anzeigeName(inhalt, eintrag);
+  const name = eintrag.name;
   const klasse = kategorieKlasse(eintrag.kategorie);
   const rezept = eintrag.art === 'rezept';
 
@@ -236,7 +222,7 @@ function EintragKarte({
           <span className="card__meta">
             {eintrag.kategorie ? (
               <span className={`tag${klasse === 'neutral' ? '' : ` tag--${klasse}`}`}>
-                {inhalt.kategorie(eintrag.kategorie)}
+                {eintrag.kategorie}
               </span>
             ) : null}
             <span className={rezept ? '' : 'card__idee'}>{meta}</span>
@@ -247,12 +233,4 @@ function EintragKarte({
   );
 }
 
-/** Die englische Fassung eines Eintrags – am Rezept oder am Gericht. */
-function woerterVon(eintrag: Eintrag): Record<string, string> | undefined {
-  return eintrag.art === 'rezept' ? eintrag.recipe.en : eintrag.dish.en;
-}
 
-/** Der Name eines Eintrags in der gewaehlten Sprache. */
-function anzeigeName(inhalt: Inhalt, eintrag: Eintrag): string {
-  return inhalt.text(eintrag.name, woerterVon(eintrag));
-}

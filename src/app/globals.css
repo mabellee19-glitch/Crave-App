@@ -2700,48 +2700,7 @@ ol {
   }
 }
 
-/* Sprache: zwei Knoepfe in den Einstellungen, ein kleiner im Kopf. */
-.sprachwahl {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.sprachwahl__knopf {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-  border-radius: var(--radius-md, 14px);
-  border: 1.5px solid var(--line);
-  background: var(--surface);
-  font: inherit;
-  font-weight: 650;
-  color: var(--ink);
-}
-
-.sprachwahl__knopf--aktiv {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
-}
-
-.sprachknopf {
-  font-size: 13.5px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-/* Auf sehr schmalen Bildschirmen reicht der Platz im Kopf nicht – die
-   Sprache steht dann in den Einstellungen. */
-@media (max-width: 359px) {
-  .sprachknopf {
-    display: none;
-  }
-}
-
-/* Einkaufsliste (Beute / Groceries) -------------------------------------- */
+/* Einkaufsliste (Beute) -------------------------------------------------- */
 
 .einkauf__kopf {
   display: flex;
@@ -3130,7 +3089,7 @@ ol {
   color: var(--accent-strong);
 }
 
-/* Vorschau ueber Groceries: was in den naechsten Tagen gekocht wird. */
+/* Vorschau ueber der Beute: was in den naechsten Tagen gekocht wird. */
 .plannedstrip {
   display: flex;
   align-items: baseline;

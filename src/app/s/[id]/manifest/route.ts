@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     {
       name: 'Crave – Kochen & Einkaufen',
       short_name: 'Crave',
-      description: 'Cravings und Groceries – Rezepte, Ideen und Einkauf, auf allen Geräten gleich.',
+      description: 'Gelüste und Beute – Rezepte, Ideen und Einkauf, auf allen Geräten gleich.',
       start_url: `/s/${id}`,
       scope: '/',
       display: 'standalone',

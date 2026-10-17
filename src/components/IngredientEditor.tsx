@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Ingredient } from '@/lib/types';
 import { blankIngredient } from '@/lib/store';
 import { canonicalUnit } from '@/lib/units';
-import { Vorschlag, einheitIn, einheitenVorschlaege } from '@/lib/zutaten';
+import { Vorschlag, einheitenVorschlaege } from '@/lib/zutaten';
 import { gelernt, zutatLernen } from '@/lib/zutatKi';
 import { useT } from '@/lib/i18n';
 import { useInhalt } from '@/lib/inhalt';
@@ -150,14 +150,12 @@ export function IngredientEditor({
               />
               <input
                 className="input editrow__unit"
-                value={inhalt.einheit(ingredient.unit, ingredient.amount)}
+                value={ingredient.unit}
                 placeholder={t.platzhalterEinheit}
                 aria-label={t.einheit(index + 1)}
                 onChange={(event) => {
                   markieren(ingredient.id, false);
-                  // Gespeichert wird die deutsche Einheit: "tbsp" wird "EL".
-                  const wert = event.target.value;
-                  patch(ingredient.id, { unit: inhalt.sprache === 'en' ? einheitIn(wert, 'de') : wert });
+                  patch(ingredient.id, { unit: event.target.value });
                 }}
                 autoComplete="off"
               />

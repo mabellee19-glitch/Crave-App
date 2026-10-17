@@ -1,5 +1,4 @@
-/** Texte: Schritt-Timer. Deutsch zuerst, Englisch mit derselben Form. */
-import type { Form } from './form';
+/** Texte: Schritt-Timer. */
 
 const de = {
   /** Beschriftung, wenn der Kochmodus keine eigene mitgibt. */
@@ -13,15 +12,4 @@ const de = {
   start: 'Start',
 };
 
-const en: Form<typeof de> = {
-  timer: 'Timer',
-  zeitUm: 'Time’s up',
-  fertig: 'Done',
-  zuruecksetzen: 'Reset timer',
-  pausieren: 'Pause timer',
-  starten: 'Start timer',
-  pause: 'Pause',
-  start: 'Start',
-};
-
-export const timer = { de, en };
+export const timer = de;

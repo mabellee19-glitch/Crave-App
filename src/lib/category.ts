@@ -15,21 +15,12 @@
  * behaelt seine Wahl.
  */
 
-import { zutatenName } from './zutaten';
-
-/** Ein Zutatenname auf Englisch, soweit die App ihn kennt. */
-function en(name: string): string {
-  return zutatenName(name, 'en') ?? name;
-}
-
 export type ErkannteKategorie = 'High-Protein' | 'Comfort' | 'Vegi' | 'Dessert';
 
 export interface Erkennung {
   kategorie: ErkannteKategorie;
   /** Kurz, warum – fuer den Hinweis unter dem Feld. */
   grund: string;
-  /** Dasselbe auf Englisch, fuer die englische Ansicht. */
-  grundEn: string;
 }
 
 interface Zutat {
@@ -279,7 +270,7 @@ export function kategorieErkennen(rezept: {
   if (enthaelt(name, SUESS_IM_NAMEN)) suess += 2;
 
   if (!fleisch && !herzhaft && suess >= 2) {
-    return { kategorie: 'Dessert', grund: 'süss, nichts Herzhaftes', grundEn: 'sweet, nothing savory' };
+    return { kategorie: 'Dessert', grund: 'süss, nichts Herzhaftes' };
   }
 
   if (fleisch) {
@@ -288,13 +279,11 @@ export function kategorieErkennen(rezept: {
       return {
         kategorie: 'High-Protein',
         grund: `${fleisch}, rund ${proPortion} g pro Portion`,
-        grundEn: `${en(fleisch)}, about ${proPortion} g per serving`,
       };
     }
     return {
       kategorie: 'Comfort',
       grund: `${comfortGrund ?? 'Pasta oder Teig'} mit wenig ${fleisch}`,
-      grundEn: `${comfortGrund ? en(comfortGrund) : 'pasta or dough'} with a little ${en(fleisch)}`,
     };
   }
 
@@ -302,15 +291,13 @@ export function kategorieErkennen(rezept: {
     return {
       kategorie: 'Comfort',
       grund: comfortGrund ?? 'deftig und cremig',
-      grundEn: comfortGrund ? en(comfortGrund) : 'hearty and creamy',
     };
   }
   if (eiweissVegi) {
     return {
       kategorie: 'High-Protein',
       grund: `${eiweissVegi} statt Fleisch`,
-      grundEn: `${en(eiweissVegi)} instead of meat`,
     };
   }
-  return { kategorie: 'Vegi', grund: 'ohne Fleisch und Fisch', grundEn: 'no meat or fish' };
+  return { kategorie: 'Vegi', grund: 'ohne Fleisch und Fisch' };
 }

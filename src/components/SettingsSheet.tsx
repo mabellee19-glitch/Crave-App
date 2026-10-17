@@ -6,7 +6,7 @@ import { Sheet } from './ui';
 import { testAlarm } from '@/lib/audio';
 import { STANDARD_THEME, THEMES, applyTheme, readTheme } from '@/lib/theme';
 import { IconCheck, IconLink, IconPlus, IconRefresh, IconShare, IconTimer } from './Icons';
-import { setzeSprache, useSprache, useT } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 
 export function SettingsSheet({
   spaceId,
@@ -23,7 +23,6 @@ export function SettingsSheet({
 }) {
   const sync = useSync();
   const t = useT().einstellungen;
-  const sprache = useSprache();
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState(STANDARD_THEME);
@@ -58,30 +57,6 @@ export function SettingsSheet({
     <Sheet title={t.titel} onClose={onClose}>
       <div style={{ height: 16 }} />
 
-      <div className="detail__h" id="sprache-heading">
-        {t.sprache}
-      </div>
-      <p className="muted" style={{ fontSize: 14.5, margin: '8px 0 12px' }}>
-        {t.spracheText}
-      </p>
-      <div className="sprachwahl" role="radiogroup" aria-labelledby="sprache-heading">
-        {(['de', 'en'] as const).map((eintrag) => (
-          <button
-            key={eintrag}
-            role="radio"
-            aria-checked={sprache === eintrag}
-            className={`sprachwahl__knopf${sprache === eintrag ? ' sprachwahl__knopf--aktiv' : ''}`}
-            lang={eintrag}
-            onClick={() => setzeSprache(eintrag)}
-          >
-            {eintrag === 'de' ? t.deutsch : t.englisch}
-            {sprache === eintrag ? <IconCheck size={15} /> : null}
-          </button>
-        ))}
-      </div>
-
-      <hr className="divider" />
-
       <div className="detail__h" id="design-heading">
         {t.design}
       </div>
@@ -111,10 +86,10 @@ export function SettingsSheet({
                 <span className="themecard__button" style={{ background: akzent }} />
               </span>
               <span className="themecard__name">
-                {t.themes[entry.id]?.name ?? entry.name}
+                {entry.name}
                 {aktiv ? <IconCheck size={15} /> : null}
               </span>
-              <span className="themecard__text">{t.themes[entry.id]?.beschreibung ?? entry.beschreibung}</span>
+              <span className="themecard__text">{entry.beschreibung}</span>
             </button>
           );
         })}

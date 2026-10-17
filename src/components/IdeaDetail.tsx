@@ -29,7 +29,7 @@ export function IdeaDetail({
   const t = useT();
   const zutaten = (dish.ingredients ?? []).filter((zutat) => zutat.name.trim());
   const inhalt = useInhalt();
-  const name = inhalt.text(dish.name, dish.en);
+  const name = dish.name;
 
   return (
     <Sheet
@@ -57,11 +57,11 @@ export function IdeaDetail({
           <IconIdee size={13} />
           {t.idee.idee}
         </span>
-        <span className={`tag tag--${dish.category}`}>{inhalt.kategorie(DISH_CATEGORY_LABEL[dish.category])}</span>
+        <span className={`tag tag--${dish.category}`}>{DISH_CATEGORY_LABEL[dish.category]}</span>
       </div>
 
       {dish.notes ? (
-        <Notiz className="muted detail__notiz" text={inhalt.text(dish.notes, dish.en)} />
+        <Notiz className="muted detail__notiz" text={dish.notes} />
       ) : null}
 
       <div className="detail__section">
@@ -77,7 +77,7 @@ export function IdeaDetail({
             {zutaten.map((zutat) => (
               <li className="ingredient" key={zutat.id}>
                 <span className="ingredient__amount">{inhalt.menge(zutat.amount, zutat.unit)}</span>
-                <span>{inhalt.zutat(zutat.name, zutat.amount, dish.en)}</span>
+                <span>{inhalt.zutat(zutat.name, zutat.amount)}</span>
               </li>
             ))}
           </ul>

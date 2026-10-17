@@ -35,8 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const sprache = (body as { sprache?: unknown })?.sprache === 'en' ? 'en' : 'de';
-    const result = await analysePhoto(image, sprache);
+    const result = await analysePhoto(image);
     return NextResponse.json({ ok: true, ...result }, { headers: NO_STORE });
   } catch (err) {
     const error = err instanceof Error ? err.message : 'unknown_error';

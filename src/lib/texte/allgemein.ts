@@ -1,5 +1,4 @@
-/** Texte, die ueberall vorkommen. Deutsch zuerst, Englisch mit derselben Form. */
-import type { Form } from './form';
+/** Texte, die ueberall vorkommen. */
 
 const de = {
   speichern: 'Speichern',
@@ -24,26 +23,4 @@ const de = {
   } as Record<string, string>,
 };
 
-const en: Form<typeof de> = {
-  speichern: 'Save',
-  abbrechen: 'Cancel',
-  loeschen: 'Delete',
-  schliessen: 'Close',
-  hinzufuegen: 'Add',
-  bereichRezepte: 'Cravings',
-  bereichEinkauf: 'Groceries',
-  zutat: (n: number) => (n === 1 ? 'ingredient' : 'ingredients'),
-  rezepte: (n: number) => (n === 1 ? 'recipe' : 'recipes'),
-  ideen: (n: number) => (n === 1 ? 'idea' : 'ideas'),
-  portionen: (n: number) => (n === 1 ? 'serving' : 'servings'),
-  schritte: (n: number) => (n === 1 ? 'step' : 'steps'),
-  minuten: 'min',
-  kategorie: {
-    'high-protein': 'High-Protein',
-    comfort: 'Comfort',
-    vegi: 'Veggie',
-    dessert: 'Dessert',
-  },
-};
-
-export const allgemein = { de, en };
+export const allgemein = de;

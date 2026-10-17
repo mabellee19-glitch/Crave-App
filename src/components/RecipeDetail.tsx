@@ -48,7 +48,7 @@ export function RecipeDetail({
 }) {
   const t = useT();
   const inhalt = useInhalt();
-  const name = inhalt.text(recipe.name, recipe.en);
+  const name = recipe.name;
   const base = recipe.servings > 0 ? recipe.servings : 1;
   const [servings, setServings] = useState(base);
   const [confirming, setConfirming] = useState(false);
@@ -117,7 +117,7 @@ export function RecipeDetail({
           {recipe.category ? (
             <span className={`tag${categoryTag(recipe.category)}`}>
               <IconFlame size={13} />
-              {inhalt.kategorie(recipe.category)}
+              {recipe.category}
             </span>
           ) : null}
           {recipe.timeMin ? (
@@ -133,7 +133,7 @@ export function RecipeDetail({
         </div>
 
         {recipe.notes ? (
-          <Notiz className="muted detail__notiz" text={inhalt.text(recipe.notes, recipe.en)} />
+          <Notiz className="muted detail__notiz" text={recipe.notes} />
         ) : null}
 
         <div className="detail__section">
@@ -177,11 +177,7 @@ export function RecipeDetail({
                     )}
                   </span>
                   <span>
-                    {inhalt.zutat(
-                      ingredient.name,
-                      scaleAmount(ingredient.amount, factor, ingredient.noScale),
-                      recipe.en,
-                    )}
+                    {inhalt.zutat(ingredient.name, scaleAmount(ingredient.amount, factor, ingredient.noScale))}
                   </span>
                 </li>
               ))}
@@ -223,7 +219,7 @@ export function RecipeDetail({
                 <div className="step__title">{t.rezept.vorbereitung}</div>
                 <ul className="preplist">
                   {prep.map((task, index) => (
-                    <li key={`${index}-${task}`}>{inhalt.text(task, recipe.en)}</li>
+                    <li key={`${index}-${task}`}>{task}</li>
                   ))}
                   {ingredients.length > 0 ? <li>{t.rezept.abmessen}</li> : null}
                 </ul>
@@ -247,14 +243,14 @@ export function RecipeDetail({
                 <li className="step" key={step.id}>
                   <span className="step__num">{index + 1}</span>
                   <div>
-                    <div className="step__text">{inhalt.text(step.text, recipe.en)}</div>
+                    <div className="step__text">{step.text}</div>
                     {schrittZutaten[index].length ? (
                       <div className="step__zutaten">
                         {schrittZutaten[index]
                           .map((ingredient) => {
                             const menge = scaleAmount(ingredient.amount, factor, ingredient.noScale);
                             const quantity = inhalt.menge(menge, ingredient.unit);
-                            const zutat = inhalt.zutat(ingredient.name, menge, recipe.en);
+                            const zutat = inhalt.zutat(ingredient.name, menge);
                             return quantity ? `${quantity} ${zutat}` : zutat;
                           })
                           .join(' · ')}
@@ -266,7 +262,7 @@ export function RecipeDetail({
               ))}
             </ol>
           )}
-          {inhalt.sprache === 'en' ? null : recipe.uebersetztAus === 'en' ? (
+          {recipe.uebersetztAus === 'en' ? (
             <p className="kuerzung">{t.rezept.uebersetzt}</p>
           ) : nochEnglisch ? (
             <p className="kuerzung">

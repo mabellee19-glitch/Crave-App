@@ -2,13 +2,13 @@ import { expect, test } from '@playwright/test';
 import { goToTab, neuesRezept, newSpace, openSpace, shoppingRow } from './helpers';
 import { eingabeTeilen, namenVorschlagen } from '../src/lib/autocomplete';
 
-const namen = (suche: string, sprache: 'de' | 'en' = 'de', eigene = new Map<string, number>()) =>
-  namenVorschlagen(suche, sprache, eigene).map((vorschlag) => vorschlag.name);
+const namen = (suche: string, eigene = new Map<string, number>()) =>
+  namenVorschlagen(suche, eigene).map((vorschlag) => vorschlag.name);
 
 test.describe('Vorschläge beim Tippen', () => {
   test('"bas" bietet Basilikum an, mit der üblichen Menge', () => {
     expect(namen('bas')[0]).toBe('Basilikum');
-    expect(namenVorschlagen('bas', 'de', new Map())[0].menge).toEqual({ amount: 1, unit: 'Bund' });
+    expect(namenVorschlagen('bas', new Map())[0].menge).toEqual({ amount: 1, unit: 'Bund' });
     expect(namen('ba')).toContain('Bananen');
     // Ein Buchstabe ist noch zu wenig – und wer fertig getippt hat, braucht keine Liste.
     expect(namen('b')).toEqual([]);
@@ -24,7 +24,7 @@ test.describe('Vorschläge beim Tippen', () => {
     const tom = namen('tom');
     expect(tom[0]).toBe('Tomaten');
     // Ein einzelner eigener Eintrag drängt sich nicht vor die Grundzutat.
-    expect(namen('tom', 'de', new Map([['Tomatensauce Pasta', 1]]))[0]).toBe('Tomaten');
+    expect(namen('tom', new Map([['Tomatensauce Pasta', 1]]))[0]).toBe('Tomaten');
     expect(tom.indexOf('Tomatensauce')).toBeLessThan(tom.indexOf('Cherrytomaten') === -1 ? 99 : tom.indexOf('Cherrytomaten'));
   });
 
@@ -33,13 +33,13 @@ test.describe('Vorschläge beim Tippen', () => {
       ['Basmati-Reis', 3],
       ['Bärlauch', 1],
     ]);
-    expect(namen('bas', 'de', eigene)[0]).toBe('Basmati-Reis');
-    expect(namen('bar', 'de', eigene)[0]).toBe('Bärlauch');
+    expect(namen('bas', eigene)[0]).toBe('Basmati-Reis');
+    expect(namen('bar', eigene)[0]).toBe('Bärlauch');
   });
 
-  test('auf Englisch englische Namen', () => {
-    expect(namen('bas', 'en')[0]).toBe('Basil');
-    expect(namen('oni', 'en')[0]).toBe('Onions');
+  test('englisch getippt, deutsch vorgeschlagen', () => {
+    expect(namen('basil')[0]).toBe('Basilikum');
+    expect(namen('onio')[0]).toBe('Zwiebeln');
   });
 
   test('in der Schnelleingabe zählt nur der Name hinter Menge und Einheit', () => {

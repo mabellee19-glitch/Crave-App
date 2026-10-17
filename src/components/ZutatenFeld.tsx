@@ -8,14 +8,14 @@ import { NameVorschlag, eigeneNamen, eingabeTeilen, namenVorschlagen } from '@/l
 
 /**
  * Alle Zutatennamen aus den eigenen Daten – Rezepte, Ideen, Grundliste,
- * Einkaufsliste –, in der gewaehlten Sprache. Gerechnet nur, wenn sich die
- * Daten oder die Sprache aendern, nicht bei jedem Buchstaben.
+ * Einkaufsliste. Gerechnet nur, wenn sich die Daten aendern, nicht bei
+ * jedem Buchstaben.
  */
 function useEigeneNamen(): Map<string, number> {
   const { data } = useStore();
-  const inhalt = useInhalt();
-  return useMemo(() => {
-    const roh = eigeneNamen([
+  return useMemo(
+    () =>
+      eigeneNamen([
       ...Object.values(data.recipes)
         .filter((recipe) => !recipe.deleted)
         .map((recipe) => recipe.ingredients),
@@ -24,16 +24,9 @@ function useEigeneNamen(): Map<string, number> {
         .map((dish) => dish.ingredients ?? []),
       Object.values(data.pantry).filter((item) => !item.deleted),
       Object.values(data.shopping).filter((item) => !item.deleted),
-    ]);
-    if (inhalt.sprache === 'de') return roh;
-    const uebersetzt = new Map<string, number>();
-    for (const [name, anzahl] of roh) {
-      const anzeige = inhalt.zutat(name);
-      const gross = anzeige.charAt(0).toLocaleUpperCase() + anzeige.slice(1);
-      uebersetzt.set(gross, (uebersetzt.get(gross) ?? 0) + anzahl);
-    }
-    return uebersetzt;
-  }, [data, inhalt]);
+      ]),
+    [data],
+  );
 }
 
 /** Kleinschrift ohne Akzente – gleich lang wie das Original, damit die Stellen passen. */
@@ -95,8 +88,8 @@ export function ZutatenFeld({
 
   const { vorne, suche } = schnell ? eingabeTeilen(value) : { vorne: '', suche: value };
   const vorschlaege = useMemo(
-    () => (offen ? namenVorschlagen(suche, inhalt.sprache, eigene) : []),
-    [offen, suche, inhalt.sprache, eigene],
+    () => (offen ? namenVorschlagen(suche, eigene) : []),
+    [offen, suche, eigene],
   );
   const sichtbar = offen && vorschlaege.length > 0;
 

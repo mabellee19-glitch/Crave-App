@@ -1,5 +1,4 @@
-/** Texte: kochen (Kochmodus). Deutsch zuerst, Englisch mit derselben Form. */
-import type { Form } from './form';
+/** Texte: kochen (Kochmodus). */
 
 const de = {
   beenden: 'Kochmodus beenden',
@@ -25,26 +24,4 @@ const de = {
   weiter: 'Weiter',
 };
 
-const en: Form<typeof de> = {
-  beenden: 'Exit cook mode',
-  keinSchritt: 'No steps yet',
-  keineSchritte: 'This recipe doesn’t have any steps yet.',
-  zurueckZumRezept: 'Back to recipe',
-  enGuete: 'Enjoy!',
-  zuSchrittMitTimer: (n: number) => `Go to step ${n} with running timer`,
-  schritt: (n: number) => `Step ${n}`,
-  timerFertig: 'done',
-  vorbereitung: 'Prep',
-  vorbereitungText: 'Chop and measure first – then there’s no rush at the stove.',
-  schneiden: 'Chop & set out',
-  abmessen: 'Measure',
-  schrittVon: (i: number, n: number) => `Step ${i} of ${n}`,
-  zutatenSchritt: 'Ingredients for this step',
-  dafuer: 'You’ll need',
-  zurueck: 'Back',
-  fertigGekocht: 'Done cooking',
-  losGehts: 'Let’s go',
-  weiter: 'Next',
-};
-
-export const kochen = { de, en };
+export const kochen = de;

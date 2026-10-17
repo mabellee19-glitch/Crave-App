@@ -5,8 +5,7 @@
  * - **Eigene Zutaten** – was in den eigenen Rezepten, Ideen, der Grundliste
  *   und der Einkaufsliste schon vorkommt, genau so geschrieben. Was oft
  *   vorkommt, steht weiter oben.
- * - **Zutatenwissen** (lib/zutaten) – gut 230 gelaeufige Zutaten, in der
- *   gewaehlten Sprache.
+ * - **Zutatenwissen** (lib/zutaten) – gut 230 gelaeufige Zutaten.
  *
  * Verglichen wird ohne Gross/Klein und ohne Umlaute ("rue" findet Rüebli).
  * Zuerst kommt, was mit dem Getippten beginnt, dann was ein Wort darin damit
@@ -26,8 +25,6 @@ export interface NameVorschlag {
 /** Wie viele Vorschlaege hoechstens dastehen. */
 const MAX = 6;
 
-const gross = (text: string) => (text ? text.charAt(0).toLocaleUpperCase() + text.slice(1) : text);
-
 /** 0: beginnt damit, 1: ein Wort beginnt damit, 3: steckt darin, -1: nein. */
 function rang(name: string, suche: string): number {
   const n = norm(name).trim();
@@ -41,11 +38,7 @@ function rang(name: string, suche: string): number {
  * Vorschlaege fuer `suche`. `eigene` zaehlt, wie oft ein eigener Name
  * vorkommt (Name → Anzahl).
  */
-export function namenVorschlagen(
-  suche: string,
-  sprache: 'de' | 'en',
-  eigene: Map<string, number>,
-): NameVorschlag[] {
+export function namenVorschlagen(suche: string, eigene: Map<string, number>): NameVorschlag[] {
   const s = norm(suche).trim();
   if (s.length < 2) return [];
 
@@ -77,9 +70,9 @@ export function namenVorschlagen(
   for (const [name, oft] of eigene) merken(name, rang(name, s), oft);
 
   for (const eintrag of alleZutaten()) {
-    const name = sprache === 'en' ? gross(eintrag.en[1]) : eintrag.de;
+    const name = eintrag.de;
     let r = rang(name, s);
-    // Auch ueber die Schluesselwoerter: auf Deutsch findet "basil" Basilikum.
+    // Auch ueber die Schluesselwoerter: "basil" findet Basilikum.
     if (r < 0 && eintrag.woerter.some((wort) => wort.startsWith(s))) r = 2;
     merken(name, r, 0, eintrag.vorschlaege[0]);
   }
@@ -97,7 +90,7 @@ export function namenVorschlagen(
         a.rang - b.rang ||
         gewicht(b.oft) - gewicht(a.oft) ||
         a.name.length - b.name.length ||
-        a.name.localeCompare(b.name, sprache),
+        a.name.localeCompare(b.name, 'de'),
     )
     .slice(0, MAX)
     .map(({ name, menge }) => (menge ? { name, menge } : { name }));

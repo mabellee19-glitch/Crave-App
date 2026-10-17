@@ -256,25 +256,6 @@ async function starteGateway(modus) {
         return;
       }
 
-      if (body?.tools?.[0]?.name === 'englisch') {
-        const zeilen = String(body.messages?.[0]?.content ?? '').split('\n');
-        res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            ...GELESEN,
-            content: [
-              {
-                type: 'tool_use',
-                id: 'toolu_test6',
-                name: 'englisch',
-                input: { texte: zeilen.map((zeile, index) => `${index + 1}. EN ${zeile.replace(/^\d+\.\s+/, '')}`) },
-              },
-            ],
-          }),
-        );
-        return;
-      }
-
       if (body?.tools?.[0]?.name === 'rezept_uebersetzt') {
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify(uebersetzt(modus === 'kurz')));
@@ -621,8 +602,8 @@ async function uebersetzen(modus) {
   }
 }
 
-/** Menge und Einheit fuer eine unbekannte Zutat, und Texte fuer die englische Ansicht. */
-async function zutatenUndEnglisch() {
+/** Menge und Einheit fuer eine unbekannte Zutat. */
+async function zutaten() {
   const gateway = await starteGateway('ok');
   const appPort = await freierPort();
   const app = await starteApp(gateway.port, appPort, false);
@@ -641,20 +622,6 @@ async function zutatenUndEnglisch() {
     );
     check('[einheiten] Abteilung und Namen', daten.abteilung === 'kuehl' && daten.en === 'kimchi');
     check('[einheiten] die Zutat geht mit', JSON.stringify(gateway.anfragen.at(-1)?.body?.messages ?? '').includes('Kimchi'));
-
-    const en = await fetch(`http://127.0.0.1:${appPort}/api/englisch`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ texte: ['Älplermagronen', 'Zwiebeln in Ringe schneiden'] }),
-    });
-    const enDaten = await en.json();
-    check('[englisch] die Route antwortet mit 200', en.status === 200, `war ${en.status} ${enDaten.error ?? ''}`);
-    check(
-      '[englisch] gleiche Reihenfolge, ohne Nummern',
-      JSON.stringify(enDaten.texte) === '["EN Älplermagronen","EN Zwiebeln in Ringe schneiden"]',
-      JSON.stringify(enDaten.texte),
-    );
-    check('[englisch] das Werkzeug ist angemeldet', gateway.anfragen.at(-1)?.body?.tools?.[0]?.name === 'englisch');
   } finally {
     app.kill();
     gateway.server.close();
@@ -673,7 +640,7 @@ await lesen('karte');
 await uebersetzen('ok');
 await uebersetzen('kurz');
 await uebersetzen('karte');
-await zutatenUndEnglisch();
+await zutaten();
 
 console.log(`\n${pass} ok, ${fail} fehlgeschlagen`);
 process.exit(fail === 0 ? 0 : 1);

@@ -881,9 +881,8 @@ export const PANTRY_CATEGORY_RENAMES: Record<string, string> = {
  * Umbenannte Standard-Zutaten: alter Name -> heutiger Name.
  *
  * Die Vorschlagsliste trug anfangs halb englische Namen ("Red Beans", "Lean
- * Hackfleisch"). Gespeichert wird aber auf Deutsch; die englische Ansicht
- * uebersetzt beim Zeigen. Bestehende Eintraege mit genau dem alten Namen
- * bekommen den neuen – selbst Umbenanntes bleibt, wie es ist.
+ * Hackfleisch"). Crave ist aber deutsch. Bestehende Eintraege mit genau dem
+ * alten Namen bekommen den neuen – selbst Umbenanntes bleibt, wie es ist.
  */
 export const PANTRY_NAME_RENAMES: Record<string, string> = {
   'Lean Hackfleisch': 'Mageres Hackfleisch',

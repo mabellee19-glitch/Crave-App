@@ -4,7 +4,7 @@
  * Fragt man nach "Kimchi", kommt Menge, Einheit, Abteilung und der Name in
  * beiden Sprachen zurueck (/api/einheiten). Die Antwort bleibt auf dem Geraet
  * gespeichert: dieselbe Zutat kostet nur einmal eine Anfrage, und die
- * Einkaufsliste und die englische Ansicht nutzen sie mit.
+ * Einkaufsliste nutzt sie mit.
  *
  * Fehlt der Zugang zur KI (keine Zahlungsangabe, kein Schluessel), wird in
  * dieser Sitzung nicht weiter gefragt.

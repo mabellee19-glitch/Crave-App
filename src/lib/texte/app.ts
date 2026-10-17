@@ -1,5 +1,4 @@
-/** Texte: die App-Huelle – Kopf, Navigation, Meldungen. Deutsch zuerst, Englisch mit derselben Form. */
-import type { Form } from './form';
+/** Texte: die App-Huelle – Kopf, Navigation, Meldungen. */
 
 const de = {
   bereiche: 'Bereiche',
@@ -9,8 +8,6 @@ const de = {
   zutatHinzufuegen: 'Zutat hinzufügen',
   einstellungen: 'Einstellungen und Synchronisation',
   laedt: 'Daten werden geladen',
-  sprache: 'Sprache: Deutsch – auf Englisch umschalten',
-  spracheKurz: 'DE',
   hinzugefuegt: (name: string) => `${name} hinzugefügt`,
   erledigt: (name: string) => `${name} erledigt`,
   zutat: 'Zutat',
@@ -36,39 +33,4 @@ const de = {
   ideeGeloescht: 'Idee gelöscht',
 };
 
-const en: Form<typeof de> = {
-  bereiche: 'Sections',
-  hauptnavigation: 'Main navigation',
-  foto: 'Take a photo of your fridge',
-  neu: 'Add new',
-  zutatHinzufuegen: 'Add an item',
-  einstellungen: 'Settings and sync',
-  laedt: 'Loading your data',
-  sprache: 'Language: English – switch to German',
-  spracheKurz: 'EN',
-  hinzugefuegt: (name: string) => `${name} added`,
-  erledigt: (name: string) => `${name} checked off`,
-  zutat: 'Item',
-  rueckgaengig: 'Undo',
-  allesVorhanden: 'Already all there',
-  vorschlaegeErgaenzt: (ergaenzt: number, eingeordnet: number) =>
-    `${ergaenzt} ${ergaenzt === 1 ? 'staple' : 'staples'} added` + (eingeordnet > 0 ? `, ${eingeordnet} sorted` : ''),
-  vorlageNachgetragen: 'Filled in from the original',
-  keineVorlage: 'There is no original for this recipe',
-  originalZurueck: 'Original steps restored',
-  rezeptGeloescht: 'Recipe deleted',
-  inDerBeute: (n: number) => `${n} ${n === 1 ? 'item' : 'items'} added to Groceries`,
-  vonCookNext: (name: string) => `${name} removed from Cook Next`,
-  aufCookNext: (name: string) => `${name} is on Cook Next – the ingredients are on Groceries`,
-  nachgetragen: (n: number) => `${n} added`,
-  ergaenzt: (n: number) => `${n} completed`,
-  gespeichert: (name: string) => `“${name}” saved`,
-  ausIdee: 'Your idea is now a recipe',
-  rezeptAngelegt: 'Recipe created',
-  rezeptGespeichert: 'Recipe saved',
-  ideeAngelegt: 'Idea created',
-  ideeGespeichert: 'Idea saved',
-  ideeGeloescht: 'Idea deleted',
-};
-
-export const app = { de, en };
+export const app = de;

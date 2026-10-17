@@ -7,7 +7,7 @@ import { kategorieErkennen } from '@/lib/category';
 import { vorbereitungAusText, vorbereitungVorschlagen } from '@/lib/prep';
 import { schritteKuerzen } from '@/lib/kuerzen';
 import { randomId } from '@/lib/id';
-import { useSprache, useT } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 import type { Texte } from '@/lib/texte';
 import { Field, NumberInput, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
@@ -144,7 +144,6 @@ export function RecipeForm({
   onClose: () => void;
 }) {
   const t = useT();
-  const sprache = useSprache();
   const tf = t.rezeptForm;
   const [draft, setDraft] = useState<Recipe>(() => ({
     ...initial,
@@ -654,7 +653,7 @@ export function RecipeForm({
         htmlFor="recipe-category"
         hint={
           kategorieAuto && erkennung ? (
-            tf.kategorieErkannt(sprache === 'en' ? erkennung.grundEn : erkennung.grund)
+            tf.kategorieErkannt(erkennung.grund)
           ) : isNew && !kategorieAuto && erkennung && erkennung.kategorie !== kategorie ? (
             <button
               type="button"

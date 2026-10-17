@@ -6,7 +6,6 @@ import { VisionIdea, VisionResult } from '@/lib/vision';
 import { blankRecipe } from '@/lib/store';
 import { normalizeName } from '@/lib/units';
 import { useInhalt } from '@/lib/inhalt';
-import { spracheJetzt } from '@/lib/i18n';
 import { randomId } from '@/lib/id';
 import { vorbereitungVorschlagen } from '@/lib/prep';
 import { useT } from '@/lib/i18n';
@@ -110,7 +109,7 @@ export function FridgeSheet({
         headers: { 'Content-Type': 'application/json' },
         // Auf Englisch antwortet die KI englisch; gespeichert wird es wie jedes
         // englische Rezept und dann ins Deutsche uebersetzt.
-        body: JSON.stringify({ image, sprache: spracheJetzt() }),
+        body: JSON.stringify({ image }),
       });
       const body = await response.json().catch(() => null);
       if (!body?.ok) {
@@ -234,11 +233,11 @@ export function FridgeSheet({
                     style={{ textAlign: 'left' }}
                   >
                     <div className="card__open" style={{ paddingRight: 16 }}>
-                      <h3 className="card__title">{inhalt.text(recipe.name, recipe.en)}</h3>
+                      <h3 className="card__title">{recipe.name}</h3>
                       <div className="card__meta">
                         <span className="tag">{t.fridge.zutatenDa(vorhanden, gesamt)}</span>
                         {fehlt.length > 0 ? (
-                          <span>{t.fridge.fehlt(fehlt.map((name) => inhalt.zutat(name, null, recipe.en)).join(', '))}</span>
+                          <span>{t.fridge.fehlt(fehlt.map((name) => inhalt.zutat(name, null)).join(', '))}</span>
                         ) : null}
                       </div>
                     </div>

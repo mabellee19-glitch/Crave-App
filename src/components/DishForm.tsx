@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { DISH_CATEGORIES, DISH_CATEGORY_LABEL, Dish, DishCategory, matchDishCategory } from '@/lib/types';
 import { blankIngredient } from '@/lib/store';
 import { kategorieErkennen } from '@/lib/category';
-import { useSprache, useT } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 import { ConfirmDialog, Field, Sheet } from './ui';
 import { IngredientEditor, aufgeraeumteZutaten } from './IngredientEditor';
 import { IconTrash } from './Icons';
@@ -27,7 +27,6 @@ export function DishForm({
   onClose: () => void;
 }) {
   const t = useT();
-  const sprache = useSprache();
   // Gerichte aus aelteren Staenden haben noch gar keine Zutatenliste.
   const [draft, setDraft] = useState<Dish>(() => ({
     ...initial,
@@ -96,7 +95,7 @@ export function DishForm({
           label={t.ideeForm.kategorie}
           htmlFor="dish-category"
           hint={
-            kategorieAuto && erkennung && erkannt ? t.ideeForm.automatischErkannt(sprache === 'en' ? erkennung.grundEn : erkennung.grund) : undefined
+            kategorieAuto && erkennung && erkannt ? t.ideeForm.automatischErkannt(erkennung.grund) : undefined
           }
         >
           <select

@@ -4,19 +4,18 @@ Persönliche Koch- und Einkaufs-App. Mobile-first, läuft im Browser (Safari auf
 iPhone und iPad, Chrome, Edge, Firefox) und lässt sich zum Home-Bildschirm
 hinzufügen. Kein App Store nötig.
 
-Zwei Bereiche, auf Deutsch und auf Englisch:
+Die App ist auf Deutsch, in Schweizer Schreibweise. Zwei Bereiche:
 
-- **Gelüste** (englisch *Cravings*) – alles, was man kochen kann, in einer
-  Liste: Rezepte mit Zutaten, Vorbereitung, Schritten und Kochmodus, und
-  Ideen – Gerichte ohne Anleitung, nur mit Name und Zutaten.
-- **Beute** (englisch *Groceries*) – die Einkaufsliste, nach Abteilungen des
-  Ladens geordnet, plus dauerhafte Grundliste mit Standard-Zutaten.
+- **Gelüste** – alles, was man kochen kann, in einer Liste: Rezepte mit
+  Zutaten, Vorbereitung, Schritten und Kochmodus, und Ideen – Gerichte ohne
+  Anleitung, nur mit Name und Zutaten.
+- **Beute** – die Einkaufsliste, nach Abteilungen des Ladens geordnet, plus
+  dauerhafte Grundliste mit Standard-Zutaten.
 
 ## Was die App kann
 
 | Bereich | Funktion |
 | --- | --- |
-| Überall | Deutsch oder Englisch auf Knopfdruck (`DE`/`EN` oben) – die ganze App samt aller Rezepte |
 | Rezepte | Anlegen, bearbeiten, löschen; Kategorie, Portionen, Zeit |
 | Rezepte | Beim Eintippen einer Zutat schlägt die App Menge und Einheit vor: Basilikum «1 Bund», Tomatensauce «1 Dose» oder «1 Glas» |
 | Rezepte, Beute | Vorschläge beim Tippen: «bas» bietet Basilikum an – aus dem Zutatenwissen und allem, was du schon verwendet hast |
@@ -51,29 +50,6 @@ Zwei Bereiche, auf Deutsch und auf Englisch:
 | Überall | Sechs Farbwelten zur Auswahl unter `Einstellungen & Sync → Design` |
 | Überall | Startet sofort mit dem Stand auf dem Gerät, der Abgleich läuft im Hintergrund |
 
-## Deutsch und Englisch
-
-Oben rechts steht `DE` oder `EN`: ein Tipp schaltet die ganze App um, auch in
-`Einstellungen & Sync → Sprache`. Die Wahl gilt für dieses Gerät. Die
-Bereiche heissen auf Deutsch «Gelüste» und «Beute», auf Englisch «Cravings»
-und «Groceries».
-
-- **Texte der Oberfläche** stehen je Bildschirm in `src/lib/texte/`, einmal
-  Deutsch und einmal Englisch in derselben Form. Fehlt auf Englisch ein Text,
-  meldet das TypeScript beim Bauen.
-- **Rezepte** sind auf Deutsch gespeichert. Die englische Ansicht schlägt
-  jeden Text nach (`src/lib/inhalt.tsx`): zuerst die englische Fassung am
-  Rezept selbst, dann die von Hand übersetzten Startinhalte
-  (`src/lib/seedEn.ts`), bei Zutaten das Zutatenwissen. Mengen und Einheiten
-  werden mitübersetzt: «2 EL» wird «2 tbsp», «3 Stück Zwiebeln» «3 onions».
-- **Eigene Rezepte** übersetzt die KI im Hintergrund, sobald jemand Englisch
-  wählt – nur die Texte, die noch fehlen. Die Übersetzung hängt am Rezept und
-  gilt damit auf allen Geräten. Ohne erreichbare KI steht bis dahin der
-  deutsche Text da.
-- **Kühlschrankfoto**: auf Englisch antwortet die KI englisch; ein
-  gespeicherter Vorschlag wird wie jedes englische Rezept ins Deutsche
-  übersetzt.
-
 ## Zutaten eingeben
 
 Wer im Rezept nur den Namen einer Zutat tippt, bekommt Menge und Einheit
@@ -82,8 +58,8 @@ anderen üblichen Mengen als Knöpfe («1 Glas», «400 g»). Was man selbst bei
 Menge oder Einheit einträgt, wird nie überschrieben.
 
 Das Wissen dafür steckt in `src/lib/zutaten.ts`: gut 230 Zutaten mit
-Schlüsselwörtern auf Deutsch und Englisch, üblichen Mengen, der Abteilung im
-Laden und dem englischen Namen. Kennt die App eine Zutat nicht, fragt sie
+Schlüsselwörtern (auch englischen – «basil» wird Basilikum), üblichen Mengen
+und der Abteilung im Laden. Kennt die App eine Zutat nicht, fragt sie
 nach einer kurzen Pause die KI (`/api/einheiten`) und merkt sich die Antwort
 auf dem Gerät – dieselbe Zutat kostet nur einmal eine Anfrage.
 
@@ -119,14 +95,12 @@ Gerät.
 `Verwalten` zeigt dieselben Karten. Ein Tipp auf eine Zutat klappt ihre
 Bearbeitung auf: Name, Menge, Einheit, Rubrik, Löschen.
 
-Die Namen stehen in einer Sprache – auf Deutsch «Rote Bohnen», «Mageres
-Hackfleisch», «Protein-Joghurt», auf Englisch «Red beans», «Lean ground
-beef», «High-protein yogurt». Die Vorschlagsliste trug anfangs halb englische
-Namen; bestehende Einträge mit genau diesem Namen bekommen beim Öffnen den
+Die Namen sind deutsch: «Rote Bohnen», «Mageres Hackfleisch»,
+«Protein-Joghurt». Die Vorschlagsliste trug anfangs halb englische Namen;
+bestehende Einträge mit genau diesem Namen bekommen beim Öffnen den
 deutschen (`PANTRY_NAME_RENAMES` in `src/lib/seed.ts`), auch wenn sie gerade
-in der Beute liegen. Wer auf Englisch eine Menge ändert, ändert nur die
-Menge – gespeichert bleibt der deutsche Name. Eigene Standard-Zutaten, die
-die App nicht kennt, lässt sie wie die Beute von der KI übersetzen.
+in der Beute liegen. Englisch Eingetipptes zeigt die App deutsch, wenn sie
+die Zutat kennt.
 
 ## Rezepte und Ideen
 
@@ -578,12 +552,9 @@ src/
   lib/
     vision.ts                 Auswertung des Kühlschrankfotos
     recipeAi.ts               Vereinfachen, Lesen und Übersetzen mit KI
-    i18n.tsx, texte/          Sprache wählen; Texte der Oberfläche auf Deutsch und Englisch
-    inhalt.tsx                Rezepte, Zutaten und Mengen in der gewählten Sprache zeigen
-    seedEn.ts                 Startinhalte auf Englisch, von Hand übersetzt
-    englisch.ts               Was an der englischen Fassung eines Rezepts noch fehlt
-    useKiEnglisch.ts          Englische Fassung eigener Rezepte im Hintergrund
-    zutaten.ts                Zutatenwissen: Mengen, Einheiten, Abteilung, englischer Name
+    i18n.tsx, texte/          Texte der Oberfläche, je Bildschirm eine Datei
+    inhalt.tsx                Zutaten und Mengen zeigen, englisch Eingetipptes deutsch
+    zutaten.ts                Zutatenwissen: Mengen, Einheiten, Abteilung, Namen
     zutatKi.ts                Was die KI zu unbekannten Zutaten gesagt hat (auf dem Gerät)
     autocomplete.ts           Vorschläge beim Tippen eines Zutatennamens
     uebersetzen.ts            Englische Rezepte: Auftrag an die KI, Antwort ans Rezept

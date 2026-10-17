@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { PantryItem, ShoppingItem } from '@/lib/types';
 import { PANTRY_CATEGORY_ORDER } from '@/lib/seed';
 import { parseQuickAdd } from '@/lib/units';
-import { ABTEILUNGEN, Abteilung, abteilungVon, einheitIn, kenntZutat } from '@/lib/zutaten';
+import { ABTEILUNGEN, Abteilung, abteilungVon, kenntZutat } from '@/lib/zutaten';
 import { gelernt, zutatLernen } from '@/lib/zutatKi';
 import { useT } from '@/lib/i18n';
 import { Inhalt, useInhalt } from '@/lib/inhalt';
@@ -30,7 +30,7 @@ function abteilung(name: string): Abteilung {
 }
 
 /**
- * Die Einkaufsliste – auf Deutsch "Beute", auf Englisch "Groceries".
+ * Die Einkaufsliste – die "Beute".
  *
  * Oben steht, was offen ist und was geplant. Darunter die offenen Zutaten,
  * nach Abteilungen geordnet in der Reihenfolge, in der man durch den Laden
@@ -122,10 +122,10 @@ export function ShoppingView({
     return ABTEILUNGEN.filter((eintrag) => nachAbteilung.has(eintrag.id)).map((eintrag) => ({
       ...eintrag,
       items: [...nachAbteilung.get(eintrag.id)!].sort((a, b) =>
-        inhalt.zutat(a.name).localeCompare(inhalt.zutat(b.name), inhalt.sprache),
+        inhalt.zutat(a.name).localeCompare(inhalt.zutat(b.name), 'de'),
       ),
     }));
-    // inhalt aendert sich mit der Sprache und mit dem, was die KI dazulernt.
+    // inhalt aendert sich mit dem, was die KI dazulernt.
   }, [shopping, inhalt]);
 
   return (
@@ -161,7 +161,7 @@ export function ShoppingView({
                 className="chip chip--plan"
                 onClick={() => onOpenPlanned(eintrag)}
               >
-                {inhalt.text(eintrag.name)}
+                {eintrag.name}
               </button>
             ))}
           </div>
@@ -199,7 +199,7 @@ export function ShoppingView({
             <section className="abteilung" key={gruppe.id} data-abteilung={gruppe.id}>
               <h2 className="abteilung__titel">
                 <span className="abteilung__punkt" aria-hidden="true" />
-                {inhalt.sprache === 'en' ? gruppe.en : gruppe.de}
+                {gruppe.de}
                 <span className="abteilung__zahl">{gruppe.items.length}</span>
               </h2>
               <ul className="kacheln">
@@ -297,7 +297,7 @@ const Kachel = React.memo(function Kachel({
       <span className="row__main">
         <span className="row__name kachel__name">{gross(inhalt.zutat(item.name, item.amount))}</span>
         {item.fromRecipe ? (
-          <span className="row__note kachel__fuer">{fuer(inhalt.text(item.fromRecipe))}</span>
+          <span className="row__note kachel__fuer">{fuer(item.fromRecipe)}</span>
         ) : item.pantryId ? (
           <span className="row__note kachel__fuer kachel__fuer--standard">{standard}</span>
         ) : null}
@@ -350,7 +350,7 @@ function groupPantry(
   return [...buckets.entries()]
     .map(([category, entries]) => ({
       category,
-      items: [...entries].sort((a, b) => anzeige(a).localeCompare(anzeige(b), inhalt.sprache)),
+      items: [...entries].sort((a, b) => anzeige(a).localeCompare(anzeige(b), 'de')),
     }))
     .sort((a, b) => rank(a.category) - rank(b.category) || a.category.localeCompare(b.category, 'de'));
 }
@@ -398,7 +398,7 @@ function PantryGroups({
     <div className="abteilungen rubriken">
       {groups.map((group) => {
         const isOpen = open[group.category] ?? false;
-        const titel = t.rubriken[group.category] ?? group.category;
+        const titel = group.category;
         const listId = `rubrik-${RUBRIK_FARBE[group.category] ?? group.category.replace(/\W+/g, '-')}`;
         return (
           <section
@@ -512,12 +512,7 @@ function PantrySheet({
           event.preventDefault();
           const parsed = parseQuickAdd(text);
           if (!parsed.name) return;
-          onAdd({
-            ...parsed,
-            // Gespeichert wird die deutsche Einheit: "tbsp" wird "EL".
-            unit: inhalt.sprache === 'en' ? einheitIn(parsed.unit, 'de') : parsed.unit,
-            category: category || undefined,
-          });
+          onAdd({ ...parsed, category: category || undefined });
           setText('');
         }}
       >
@@ -572,7 +567,7 @@ function PantrySheet({
             >
               <h3 className="abteilung__titel">
                 <span className="abteilung__punkt" aria-hidden="true" />
-                {t.rubriken[group.category] ?? group.category}
+                {group.category}
                 <span className="abteilung__zahl">{group.items.length}</span>
               </h3>
               <ul className="kacheln">
@@ -598,7 +593,7 @@ function PantrySheet({
   );
 }
 
-/** Die Rubriken zur Auswahl, in der gewaehlten Sprache. */
+/** Die Rubriken zur Auswahl. */
 function RubrikWahl({
   value,
   onChange,
@@ -623,7 +618,7 @@ function RubrikWahl({
       <option value="">{leer}</option>
       {PANTRY_CATEGORY_ORDER.map((name) => (
         <option key={name} value={name}>
-          {t.rubriken[name] ?? name}
+          {name}
         </option>
       ))}
       {value && !PANTRY_CATEGORY_ORDER.includes(value) ? <option value={value}>{value}</option> : null}
@@ -651,10 +646,10 @@ const PantryRow = React.memo(function PantryRow({
   onDelete: (id: string) => void;
 }) {
   const t = useT().einkauf;
-  // Name und Einheit stehen in der gewaehlten Sprache da. Bleiben sie, wie
-  // sie waren, bleibt auch das Gespeicherte – deutsch.
+  // Ein englisch eingetippter Name steht deutsch da. Bleibt er, wie er war,
+  // bleibt auch das Gespeicherte.
   const anzeigeName = gross(inhalt.zutat(item.name, item.amount));
-  const anzeigeEinheit = inhalt.einheit(item.unit, item.amount);
+  const anzeigeEinheit = item.unit;
   const [name, setName] = useState(anzeigeName);
   const [amount, setAmount] = useState<number | null>(item.amount);
   const [unit, setUnit] = useState(anzeigeEinheit);
@@ -676,12 +671,7 @@ const PantryRow = React.memo(function PantryRow({
       return;
     }
     const neuerName = trimmed === anzeigeName ? item.name : trimmed;
-    const neueEinheit =
-      unit.trim() === anzeigeEinheit
-        ? item.unit
-        : inhalt.sprache === 'en'
-          ? einheitIn(unit.trim(), 'de')
-          : unit.trim();
+    const neueEinheit = unit.trim();
     if (neuerName === item.name && amount === item.amount && neueEinheit === item.unit) return;
     onSave({ ...item, name: neuerName, amount, unit: neueEinheit });
   };

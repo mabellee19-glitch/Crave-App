@@ -170,20 +170,10 @@ const TOOL = {
 };
 
 /**
- * Fuer die englische Ansicht: dieselben Regeln, die Antwort auf Englisch. Ein
- * gespeicherter Vorschlag ist dann ein englisches Rezept und wird wie jedes
- * andere ins Deutsche uebersetzt (lib/uebersetzen).
- */
-const SYSTEM_EN = SYSTEM.replace(
-  '- Schreibe auf Deutsch, in Schweizer Schreibweise ohne Eszett.',
-  '- Schreibe alle Texte (Namen, Kategorie, Zutaten, Vorbereitung, Schritte) auf Englisch. Mengen und Einheiten metrisch (g, ml, EL, TL).',
-);
-
-/**
  * Foto auswerten. `image` ist eine Data-URL, wie sie die Kamera im Browser
  * nach dem Verkleinern liefert.
  */
-export async function analysePhoto(image: string, sprache: 'de' | 'en' = 'de'): Promise<VisionResult> {
+export async function analysePhoto(image: string): Promise<VisionResult> {
   const match = image.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
   if (!match) throw new Error('unsupported_image');
   const [, mediaType, data] = match;
@@ -208,7 +198,7 @@ export async function analysePhoto(image: string, sprache: 'de' | 'en' = 'de'): 
   const basis = {
     model: access.model,
     max_tokens: 16000,
-    system: sprache === 'en' ? SYSTEM_EN : SYSTEM,
+    system: SYSTEM,
     tools: [TOOL],
     // Bewusst kein erzwungener Werkzeugaufruf: die Anweisung im Systemtext
     // genügt, und erzwungene Aufrufe vertragen sich nicht mit jedem Modell.

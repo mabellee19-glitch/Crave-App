@@ -318,7 +318,7 @@ async function starteApp(gatewayPort, port, direkt) {
       };
 
   const kind = spawn('npx', ['next', 'start', '-p', String(port)], {
-    env: { ...process.env, ...zugang, CRAVE_DATA_DIR: '.vision-check-data' },
+    env: { ...process.env, ...zugang, CRAVE_DATA_DIR: '.vision-check-data', MYMEMORY_URL: 'http://127.0.0.1:9/get' },
     stdio: 'ignore',
   });
 

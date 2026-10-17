@@ -28,9 +28,9 @@ const de = {
   keineSchritteSchluss: ' selbst eintragen.',
   ausVorlage: 'Aus der Vorlage nachtragen',
   uebersetzt: 'Aus dem Englischen übersetzt.',
-  englischNichtUebersetzt: 'Dieses Rezept ist auf Englisch. Die KI konnte es nicht übersetzen.',
+  englischNichtUebersetzt: 'Dieses Rezept ist auf Englisch. Die Übersetzung hat nicht geklappt.',
   englischWirdUebersetzt:
-    'Dieses Rezept ist auf Englisch. Die App übersetzt es von selbst, sobald die KI erreichbar ist.',
+    'Dieses Rezept ist noch auf Englisch. Die App übersetzt es von selbst, sobald die Übersetzung erreichbar ist.',
   gekuerztKi: 'Die Schritte wurden mit KI gekürzt.',
   gekuerztRegeln: 'Lange Schritte wurden in kurze aufgeteilt.',
   originalWiederherstellen: 'Original wiederherstellen',

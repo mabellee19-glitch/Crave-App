@@ -865,22 +865,75 @@ function zahlText(wert: number): string {
   return String(Math.round(wert * 100) / 100);
 }
 
-/** Dasselbe im laufenden Text eines Schritts: "14.79 millilitres Olivenöl" → "1 EL Olivenöl". */
-function einheitenImText(text: string): string {
-  return text.replace(EINHEIT_IM_TEXT, (ganz, zahl: string, einheit: string) => {
-    const wert = zahlLesen(zahl);
-    const deutsch = wert == null ? null : mengeAufDeutsch(wert, einheit);
-    return deutsch ? `${zahlText(deutsch.amount)} ${deutsch.unit}` : ganz;
-  });
+/**
+ * Wie schwer eine amerikanische Tasse ist (240 ml), fuer was man wiegt statt
+ * misst. Der erste Treffer gilt: "brown sugar" vor "sugar".
+ */
+const TASSE_GRAMM: Array<[RegExp, number]> = [
+  [/flour|mehl/i, 125],
+  [/powdered sugar|icing sugar|confectioners/i, 120],
+  [/brown sugar/i, 220],
+  [/sugar|zucker/i, 200],
+  [/butter/i, 225],
+  [/\boats?\b|haferflocken/i, 90],
+  [/cocoa|kakao/i, 85],
+  [/chocolate/i, 170],
+  [/nuts?\b|almonds?|walnuts?|pecans?|hazelnuts?|cashews?/i, 120],
+  [/cheese|parmesan|cheddar|mozzarella|käse/i, 100],
+  [/breadcrumbs|panko/i, 60],
+  [/\brice\b|reis/i, 185],
+  [/quinoa|couscous|lentils?|linsen/i, 180],
+  [/berries|blueberries|raspberries|strawberries|beeren/i, 150],
+  [/spinach|lettuce|arugula|kale|basil|parsley|cilantro|herbs/i, 30],
+  [/coconut flakes|shredded coconut|desiccated coconut/i, 80],
+  [/raisins|cranberries|dates/i, 150],
+  [/pasta|macaroni|penne/i, 100],
+];
+
+/** Auf eine Menge runden, die man abwiegen mag: 31 g, 125 g, 380 g. */
+function rund(gramm: number): number {
+  return gramm >= 100 ? Math.round(gramm / 5) * 5 : Math.round(gramm);
+}
+
+/**
+ * Dasselbe im laufenden Text eines Schritts: "14.79 millilitres Olivenöl" →
+ * "1 EL Olivenöl", "350°F" → "180 °C", "9x13 inch" → "23x33 cm".
+ */
+export function einheitenImText(text: string): string {
+  return text
+    .replace(/(\d{2,3})\s*°?\s*F\b\s*\((\d{2,3})\s*°?\s*C\)/g, '$2 °C')
+    .replace(/(\d{2,3})\s*(?:°\s*F\b|degrees\s+F(?:ahrenheit)?\b|F\b(?=[\s.,;)]|$))/g, (_, f: string) => {
+      const celsius = Math.round(((Number(f) - 32) * 5) / 9 / 10) * 10;
+      return `${celsius} °C`;
+    })
+    .replace(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)[\s-]*(?:inch(?:es)?|in\.|")/gi, (_, a: string, b: string) =>
+      `${Math.round(Number(a.replace(',', '.')) * 2.54)}x${Math.round(Number(b.replace(',', '.')) * 2.54)} cm`,
+    )
+    .replace(/(\d+(?:[.,]\d+)?)[\s-]*(?:inch(?:es)?\b|in\.)/gi, (_, a: string) => `${Math.round(Number(a.replace(',', '.')) * 2.54)} cm`)
+    .replace(new RegExp(`${ZAHL_MUSTER}\\s*cups?\\s+(?:of\\s+)?([a-z][a-z -]{0,30})`, 'gi'), (ganz, zahl: string, was: string) => {
+      const wert = zahlLesen(zahl);
+      const gramm = TASSE_GRAMM.find(([muster]) => muster.test(was))?.[1];
+      return wert != null && gramm ? `${rund(wert * gramm)} g ${was}` : ganz;
+    })
+    .replace(EINHEIT_IM_TEXT, (ganz, zahl: string, einheit: string) => {
+      const wert = zahlLesen(zahl);
+      const deutsch = wert == null ? null : mengeAufDeutsch(wert, einheit);
+      return deutsch ? `${zahlText(deutsch.amount)} ${deutsch.unit}` : ganz;
+    });
 }
 
 /** Eine Zutatenzeile vorbereiten: Brueche lesbar, englische Einheit deutsch. */
-function zutatenZeileAufDeutsch(zeile: string): string {
+export function zutatenZeileAufDeutsch(zeile: string): string {
   const treffer = new RegExp(`^${ZAHL_MUSTER}\\s*([\\p{L}.]+(?:\\s(?:oz|ounces?))?)\\s+(.+)$`, 'iu').exec(zeile.trim());
   if (!treffer) return zeile;
   const [, zahl, einheit, rest] = treffer;
   const wert = zahlLesen(zahl);
   if (wert == null) return zeile;
+  // Tassen Mehl, Zucker, Reis: in Gramm – nur Fluessiges in Milliliter.
+  if (/^cups?$/i.test(einheit)) {
+    const gramm = TASSE_GRAMM.find(([muster]) => muster.test(rest))?.[1];
+    if (gramm) return `${rund(wert * gramm)} g ${rest}`;
+  }
   const deutsch = mengeAufDeutsch(wert, einheit);
   if (deutsch) return `${deutsch.amount} ${deutsch.unit} ${rest}`;
   // Nur die Zahl lesbar machen: "1 1/2 Zwiebeln" → "1.5 Zwiebeln".

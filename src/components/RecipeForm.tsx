@@ -32,19 +32,6 @@ function kiGrund(t: Texte, ki: string): string {
   }
 }
 
-/** Warum ein englisches Rezept (noch) nicht uebersetzt ist. */
-function uebersetzenGrund(t: Texte, ki: string): string {
-  const texte = t.rezeptForm.uebersetzenGrund;
-  switch (ki) {
-    case 'billing':
-      return texte.billing;
-    case 'no_key':
-      return texte.no_key;
-    default:
-      return '';
-  }
-}
-
 /** Fehler der Import-Route in einen Satz uebersetzen, der weiterhilft. */
 function importMeldung(t: Texte, code: string, ki = '', ausText = false): string {
   const texte = t.rezeptForm.importFehler;
@@ -472,7 +459,7 @@ export function RecipeForm({
       }
       if (hinweise.length) hinweise.push(tf.importHinweis.pruefen);
       if (rezept.sprache === 'en') {
-        hinweise.push(tf.importHinweis.aufEnglisch(uebersetzenGrund(t, rezept.kiFehler ?? '')).trim());
+        hinweise.push(tf.importHinweis.aufEnglisch);
       }
       if (hinweise.length) setImportHinweis(hinweise.join(' '));
       if (rezept.steps.length) {

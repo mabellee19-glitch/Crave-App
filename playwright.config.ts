@@ -54,6 +54,7 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/status`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
-    env: { CRAVE_DATA_DIR: '.playwright-data' },
+    // Kein freier Uebersetzungsdienst in den Tests: die Adresse zeigt ins Leere.
+    env: { CRAVE_DATA_DIR: '.playwright-data', MYMEMORY_URL: 'http://127.0.0.1:9/get' },
       },
 });

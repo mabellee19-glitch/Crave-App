@@ -236,7 +236,7 @@ test.describe('Rezepte auf Englisch in der App', () => {
     await page.goto(`/s/${space}`);
     await page.getByRole('button', { name: 'Rezept Easy Banana Bread öffnen' }).click();
     await expect(
-      page.getByRole('dialog').getByText(/auf Englisch. Die App übersetzt es von selbst/),
+      page.getByRole('dialog').getByText(/noch auf Englisch. Die App übersetzt es von selbst/),
     ).toBeVisible();
   });
 });
@@ -344,7 +344,61 @@ test.describe('Import räumt auf', () => {
     const form = page.getByRole('dialog');
     await form.getByLabel('Rezept über Link hinzufügen').fill('example.com/banana-bread');
     await form.getByRole('button', { name: 'Holen' }).click();
-    await expect(form.getByText(/Das Rezept ist auf Englisch\. Die App übersetzt es von selbst/)).toBeVisible();
-    await expect(form.getByText(/fehlt beim Anbieter noch die Zahlungsangabe/)).toBeVisible();
+    await expect(form.getByText(/Das Rezept ist noch auf Englisch.*Die App übersetzt es von selbst/)).toBeVisible();
+  });
+});
+
+test.describe('Ohne KI auf Deutsch', () => {
+  /** Ein Ersatz fuer den freien Dienst: "EN:" wird zu "DE:" – so sieht man, was durchging. */
+  test.beforeEach(() => {
+    process.env.MYMEMORY_URL = 'http://dienst.test/get';
+    const echt = globalThis.fetch;
+    globalThis.fetch = (async (eingabe: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(eingabe);
+      if (!url.startsWith('http://dienst.test/')) return echt(eingabe, init);
+      const text = new URL(url).searchParams.get('q') ?? '';
+      const deutsch = `DE ${text}`.replace('large bowl', 'große Schüssel');
+      return new Response(JSON.stringify({ responseStatus: 200, responseData: { translatedText: deutsch } }), {
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+    (globalThis as { echtesFetch?: typeof fetch }).echtesFetch = echt;
+  });
+  test.afterEach(() => {
+    globalThis.fetch = (globalThis as { echtesFetch?: typeof fetch }).echtesFetch!;
+    delete process.env.MYMEMORY_URL;
+  });
+
+  test('Masse metrisch, bekannte Zutaten aus dem Zutatenwissen, der Rest vom Dienst', async () => {
+    const { ohneKiUebersetzen } = await import('../src/lib/maschinell');
+    const ergebnis = await ohneKiUebersetzen({
+      name: 'Banana Bread',
+      zutaten: ['2 cups all-purpose flour', '3 bananas', '1 cup milk', '2 tbsp butter', '1 pinch salt'],
+      schritte: ['Preheat the oven to 350°F (175°C).', 'Mix everything in a large bowl and bake for 60 minutes.'],
+      vorbereitung: [],
+      originalSchritte: [],
+      originalVorbereitung: [],
+    });
+    expect(ergebnis.name).toBe('DE Banana Bread');
+    expect(ergebnis.zutaten).toEqual([
+      '250 g DE all-purpose flour',
+      '3 Bananen',
+      '240 ml Milch',
+      '2 EL Butter',
+      '1 Prise Salz',
+    ]);
+    expect(ergebnis.schritte).toEqual([
+      'DE Preheat the oven to 175 °C.',
+      // Ohne Eszett, auch wenn der Dienst eines schreibt.
+      'DE Mix everything in a grosse Schüssel and bake for 60 minutes.',
+    ]);
+  });
+
+  test('ohne erreichbaren Dienst gibt es einen Fehler, kein halbes Rezept', async () => {
+    process.env.MYMEMORY_URL = 'http://127.0.0.1:9/get';
+    const { ohneKiUebersetzen } = await import('../src/lib/maschinell');
+    await expect(
+      ohneKiUebersetzen({ name: 'Pancakes', zutaten: [], schritte: ['Mix.'], vorbereitung: [], originalSchritte: [], originalVorbereitung: [] }),
+    ).rejects.toThrow(/mt_/);
   });
 });

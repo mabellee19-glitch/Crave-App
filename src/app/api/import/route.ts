@@ -8,6 +8,7 @@ import {
   seitentext,
 } from '@/lib/recipeImport';
 import { rezeptLesen, rezeptUebersetzen } from '@/lib/recipeAi';
+import { maschinellUebersetzen, ohneKiUebersetzen } from '@/lib/maschinell';
 import { importAuftrag, importIstEnglisch, importUebersetzt } from '@/lib/uebersetzen';
 import { ohneTracking } from '@/lib/aufraeumen';
 import { hasVisionKey } from '@/lib/vision';
@@ -84,15 +85,39 @@ async function gefunden(recipe: ImportedRecipe) {
   return NextResponse.json({ ok: true, recipe: fertig }, { headers: NO_STORE });
 }
 
-/** Ein englisches Rezept uebersetzen; jedes andere bleibt, wie es ist. */
+/**
+ * Ein englisches Rezept uebersetzen; jedes andere bleibt, wie es ist. Zuerst
+ * die KI, sonst der freie Dienst (lib/maschinell). Erst wenn beides nicht
+ * geht, kommt es englisch an – und die App versucht es spaeter nochmal.
+ */
 async function aufDeutsch(recipe: ImportedRecipe): Promise<ImportedRecipe> {
   if (recipe.uebersetztAus || !importIstEnglisch(recipe)) return recipe;
-  if (!hasVisionKey()) return { ...recipe, sprache: 'en', kiFehler: 'no_key' };
-  try {
-    return importUebersetzt(recipe, await rezeptUebersetzen(importAuftrag(recipe)));
-  } catch (err) {
-    return { ...recipe, sprache: 'en', kiFehler: err instanceof Error ? err.message : 'unknown_error' };
+  let kiFehler = 'no_key';
+  let uebersetzt: ImportedRecipe | null = null;
+  if (hasVisionKey()) {
+    try {
+      uebersetzt = importUebersetzt(recipe, await rezeptUebersetzen(importAuftrag(recipe)));
+    } catch (err) {
+      kiFehler = err instanceof Error ? err.message : 'unknown_error';
+    }
   }
+  if (!uebersetzt) {
+    try {
+      uebersetzt = importUebersetzt(recipe, await ohneKiUebersetzen(importAuftrag(recipe)));
+    } catch {
+      return { ...recipe, sprache: 'en', kiFehler };
+    }
+  }
+  // Einleitung und Tipps aus eingefuegtem Text gehen nicht durch die KI.
+  if (uebersetzt.notes) {
+    try {
+      const [notiz] = await maschinellUebersetzen([uebersetzt.notes]);
+      uebersetzt = { ...uebersetzt, notes: notiz };
+    } catch {
+      /* Die Notiz bleibt englisch – das Rezept ist trotzdem deutsch. */
+    }
+  }
+  return uebersetzt;
 }
 
 /**

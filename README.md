@@ -283,11 +283,25 @@ Erkannt wird die Sprache ohne KI, an kleinen Wörtern, die nur im Englischen
 vorkommen («the», «until», «with»). Ein englischer Name allein («Marry me
 Chicken») macht noch kein englisches Rezept.
 
-Ist die KI gerade nicht erreichbar, kommt das Rezept auf Englisch, mit dem
-Hinweis, dass es übersetzt wird. Das geschieht dann von selbst beim nächsten
-Start, auch für Rezepte, die schon gespeichert sind. Am Rezept steht danach
-«Aus dem Englischen übersetzt». Ist es für Cook Next geplant, stehen die
-Zutaten in der Beute danach ebenfalls auf Deutsch.
+Ist die KI nicht erreichbar (kein Schlüssel, keine Zahlungsangabe beim
+Anbieter), übersetzt die App ohne sie (`src/lib/maschinell.ts`):
+
+- Die Masse werden nach Regeln metrisch: Tassen Mehl, Zucker, Haferflocken,
+  Nüsse … in Gramm (nach Dichte), andere Tassen in ml, Unzen und Pfund in
+  Gramm, °F in °C, Inch in cm, Löffel in EL und TL – auch mitten in den
+  Schritten («Preheat the oven to 350°F» wird «… 180 °C»).
+- Bekannte Zutaten kommen aus dem Zutatenwissen («garlic» → Knoblauch).
+- Name, Schritte und unbekannte Zutaten gehen an [MyMemory](https://mymemory.translated.net),
+  einen freien Übersetzungsdienst ohne Schlüssel. Ohne Anmeldung gilt ein
+  Tageskontingent von etwa 5000 Wörtern; mit `MYMEMORY_EMAIL` in der Umgebung
+  (eine eigene E-Mail-Adresse) ist es zehnmal grösser. Der Dienst bekommt nur
+  die Rezepttexte, keine Notizen über dich.
+
+Erst wenn beides nicht geht, kommt das Rezept auf Englisch, mit dem Hinweis,
+dass es übersetzt wird. Das geschieht dann von selbst beim nächsten Start,
+auch für Rezepte, die schon gespeichert sind. Am Rezept steht danach «Aus dem
+Englischen übersetzt». Ist es für Cook Next geplant, stehen die Zutaten in der
+Beute danach ebenfalls auf Deutsch.
 
 ### Schweizer Schreibweise
 
@@ -558,6 +572,7 @@ src/
     zutatKi.ts                Was die KI zu unbekannten Zutaten gesagt hat (auf dem Gerät)
     autocomplete.ts           Vorschläge beim Tippen eines Zutatennamens
     uebersetzen.ts            Englische Rezepte: Auftrag an die KI, Antwort ans Rezept
+    maschinell.ts             Englische Rezepte ohne KI: Masse nach Regeln, Text über MyMemory
     sprache.ts                Ist ein Rezept englisch?
     aufraeumen.ts             Eszett zu ss, Adressen ohne Werbeparameter
     kuerzen.ts                Lange Schritte ohne KI teilen

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasVisionKey } from '@/lib/vision';
 import { rezeptUebersetzen } from '@/lib/recipeAi';
+import { ohneKiUebersetzen } from '@/lib/maschinell';
 import type { Uebersetzung } from '@/lib/uebersetzen';
 
 export const dynamic = 'force-dynamic';
@@ -19,12 +20,11 @@ const LISTEN = ['zutaten', 'schritte', 'vorbereitung', 'originalSchritte', 'orig
  * Ein gespeichertes englisches Rezept auf Deutsch. Der Browser schickt die
  * Texte (lib/uebersetzen) und setzt die Antwort selbst ans Rezept – so
  * entscheidet er, ob es sich in der Zwischenzeit geaendert hat.
+ *
+ * Zuerst die KI; ist sie nicht erreichbar (keine Zahlungsangabe, kein
+ * Schluessel), uebersetzt der freie Dienst (lib/maschinell).
  */
 export async function POST(req: NextRequest) {
-  if (!hasVisionKey()) {
-    return NextResponse.json({ ok: false, error: 'no_key' }, { status: 503, headers: NO_STORE });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -53,11 +53,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'too_large' }, { status: 413, headers: NO_STORE });
   }
 
+  let kiFehler = 'no_key';
+  if (hasVisionKey()) {
+    try {
+      const uebersetzt = await rezeptUebersetzen(eingabe);
+      return NextResponse.json({ ok: true, recipe: uebersetzt }, { headers: NO_STORE });
+    } catch (err) {
+      kiFehler = err instanceof Error ? err.message : 'unknown_error';
+    }
+  }
   try {
-    const uebersetzt = await rezeptUebersetzen(eingabe);
-    return NextResponse.json({ ok: true, recipe: uebersetzt }, { headers: NO_STORE });
-  } catch (err) {
-    const error = err instanceof Error ? err.message : 'unknown_error';
+    const uebersetzt = await ohneKiUebersetzen(eingabe);
+    return NextResponse.json({ ok: true, recipe: uebersetzt, ohneKi: true }, { headers: NO_STORE });
+  } catch {
+    const error = kiFehler;
     const status = error === 'no_result' || error === 'refused' || error === 'incomplete' ? 422 : 503;
     return NextResponse.json({ ok: false, error }, { status, headers: NO_STORE });
   }

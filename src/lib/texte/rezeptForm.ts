@@ -33,8 +33,8 @@ const de = {
     vonText: 'Aus deinem Text gelesen: Zutaten, Schritte, Timer und Notiz.',
     uebersetzt: 'Aus dem Englischen übersetzt, Mengen in Gramm, Deziliter und Grad Celsius.',
     pruefen: 'Bitte kurz prüfen, ob alles stimmt.',
-    aufEnglisch: (grund: string) =>
-      `Das Rezept ist auf Englisch. Die App übersetzt es von selbst, sobald die KI erreichbar ist. ${grund}`,
+    aufEnglisch:
+      'Das Rezept ist noch auf Englisch – die Übersetzung war gerade nicht erreichbar. Die App übersetzt es von selbst, sobald es geht.',
   },
 
   /** Fehler der Import-Route. */
@@ -60,12 +60,6 @@ const de = {
     no_key: 'Mit eingerichteter KI ginge es auch so.',
     not_found: 'Auch die KI hat darin kein Rezept gefunden.',
     rate_limit: 'Die KI ist gerade ausgelastet – gleich nochmal versuchen.',
-  },
-
-  /** Warum ein englisches Rezept (noch) nicht uebersetzt ist. */
-  uebersetzenGrund: {
-    billing: 'Dafür fehlt beim Anbieter noch die Zahlungsangabe (Vercel → AI Gateway).',
-    no_key: 'Dafür muss die KI eingerichtet sein.',
   },
 
   /* Vereinfachen mit KI */

@@ -189,12 +189,13 @@ test.describe('Rezepte', () => {
       await expect(page.locator('.cook')).toHaveCount(0, { timeout: 2500 });
     });
 
-    test('Gebratenes brutzelt in der Pfanne, am Schluss wird gewendet', async ({ page }) => {
+    test('Gebratenes brutzelt in der leeren Pfanne, am Schluss ein Schwung', async ({ page }) => {
       await openSpace(page, newSpace('pfanne'));
       await page.getByRole('button', { name: 'Rezept Gyoza mit Hackfleisch & Gemüse öffnen' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
 
       await expect(page.locator('.cookanim--start.cookanim--pfanne .cookanim__tropfen').first()).toBeAttached();
+      await expect(page.locator('.cookanim--start .cookanim__oelglanz')).toBeAttached();
       await expect(page.locator('.cookanim__loeffel')).toHaveCount(0);
       await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 2500 });
 
@@ -203,7 +204,9 @@ test.describe('Rezepte', () => {
         await page.getByRole('button', { name: 'Weiter' }).click();
       }
       await page.getByRole('button', { name: 'Fertig gekocht' }).click();
-      await expect(page.locator('.cookanim--fertig.cookanim--pfanne .cookanim__wendeplaetzli')).toBeVisible();
+      // Die Pfanne ist leer – so passt sie zu jedem Gebratenen.
+      await expect(page.locator('.cookanim--fertig.cookanim--pfanne .cookanim__pfanne--schwung')).toBeVisible();
+      await expect(page.locator('.cookanim--pfanne .cookanim__pfannendampf')).toBeAttached();
       await expect(page.locator('.cook')).toHaveCount(0, { timeout: 2500 });
     });
 
@@ -645,69 +648,119 @@ test.describe('Zubereitung nachtragen', () => {
 });
 
 test.describe('Weckerton', () => {
-  /** Toene zaehlen und die Audio-Session nachbilden, die es nur in Safari gibt. */
-  async function hoerrohr(page: import('@playwright/test').Page) {
-    await page.addInitScript(() => {
-      const fenster = window as unknown as { __toene: number };
+  /**
+   * Hinhoeren: das <audio>-Element und die Web-Audio-Toene zaehlen, und die
+   * Audio-Session nachbilden, die es nur in Safari gibt. `ohneElement` laesst
+   * das Element nicht spielen – dann muss Web Audio einspringen.
+   */
+  async function hoerrohr(page: import('@playwright/test').Page, ohneElement = false) {
+    await page.addInitScript((ohne) => {
+      const fenster = window as unknown as {
+        __toene: number;
+        __stumm: number;
+        __wecker: HTMLMediaElement | null;
+      };
       fenster.__toene = 0;
+      fenster.__stumm = 0;
+      fenster.__wecker = null;
       const original = AudioContext.prototype.createOscillator;
       AudioContext.prototype.createOscillator = function createOscillator(this: AudioContext) {
         fenster.__toene += 1;
         return original.call(this);
       };
+      const abspielen = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
+        if (ohne) return Promise.reject(new DOMException('nicht erlaubt', 'NotAllowedError'));
+        if (this.muted) fenster.__stumm += 1;
+        else fenster.__wecker = this;
+        return abspielen.call(this);
+      };
       (navigator as unknown as { audioSession: { type: string } }).audioSession = {
         type: 'auto',
       };
-    });
+    }, ohneElement);
   }
 
   const toene = (page: import('@playwright/test').Page) =>
     page.evaluate(() => (window as unknown as { __toene: number }).__toene);
+
+  /** Klingelt das <audio>-Element gerade, laut und in Schleife? */
+  const element = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => {
+      const wecker = (window as unknown as { __wecker: HTMLMediaElement | null }).__wecker;
+      return wecker ? { spielt: !wecker.paused, laut: !wecker.muted, schleife: wecker.loop } : null;
+    });
 
   const session = (page: import('@playwright/test').Page) =>
     page.evaluate(
       () => (navigator as unknown as { audioSession: { type: string } }).audioSession.type,
     );
 
-  test('ein abgelaufener Schritt klingelt und klingelt weiter', async ({ page }) => {
+  test('ein abgelaufener Schritt klingelt als Tondatei, bis man drueckt', async ({ page }) => {
     await hoerrohr(page);
     await page.clock.install();
     await openSpace(page, newSpace('wecker'));
 
     await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+    // Das erste Tippen gibt den Ton frei – stumm, man hoert nichts davon.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __stumm: number }).__stumm))
+      .toBeGreaterThan(0);
+    expect(await element(page)).toBeNull();
+
     await startCooking(page);
     await expect(page.getByText('Schritt 1 von 5')).toBeVisible();
-
-    // Waehrend des Kochens gilt der Ton als Medienwiedergabe.
     expect(await session(page)).toBe('playback');
 
     await page.getByRole('button', { name: 'Timer starten' }).click();
-    expect(await toene(page)).toBe(0);
+    expect(await element(page)).toBeNull();
 
     // Schritt 1 dauert 15 Minuten.
     await page.clock.fastForward('16:00');
     await expect(page.getByText('Zeit ist um')).toBeVisible();
-    const ersteRunde = await toene(page);
-    expect(ersteRunde).toBeGreaterThan(0);
+    await expect.poll(() => element(page)).toEqual({ spielt: true, laut: true, schleife: true });
 
-    // Ein Wecker gibt nach einer Runde nicht auf.
-    await page.clock.fastForward('00:05');
-    const zweiteRunde = await toene(page);
-    expect(zweiteRunde).toBeGreaterThan(ersteRunde);
-
-    // Und auch nach Minuten nicht – er klingelt, bis man drueckt.
+    // Ein Wecker gibt nicht auf – auch nach Minuten nicht.
     await page.clock.fastForward('05:00');
-    const spaeter = await toene(page);
-    expect(spaeter).toBeGreaterThan(zweiteRunde);
+    expect((await element(page))?.spielt).toBe(true);
 
     // "Fertig" beendet ihn.
     await page.getByRole('button', { name: 'Fertig', exact: true }).click();
-    await page.clock.fastForward('01:00');
-    expect(await toene(page)).toBe(spaeter);
+    expect((await element(page))?.spielt).toBe(false);
+    // Das Element hat geklingelt, Web Audio musste nicht einspringen.
+    expect(await toene(page)).toBe(0);
 
     // Beenden stellt die Audio-Session zurueck.
     await page.getByRole('button', { name: 'Kochmodus beenden' }).click();
     expect(await session(page)).toBe('auto');
+  });
+
+  test('darf das Element nicht spielen, klingelt Web Audio in Runden weiter', async ({ page }) => {
+    await hoerrohr(page, true);
+    await page.clock.install();
+    await openSpace(page, newSpace('weckerweb'));
+
+    await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+    await startCooking(page);
+    await page.getByRole('button', { name: 'Timer starten' }).click();
+    expect(await toene(page)).toBe(0);
+
+    await page.clock.fastForward('16:00');
+    await expect(page.getByText('Zeit ist um')).toBeVisible();
+    await expect.poll(() => toene(page)).toBeGreaterThan(0);
+    const ersteRunde = await toene(page);
+
+    await page.clock.fastForward('00:05');
+    const zweiteRunde = await toene(page);
+    expect(zweiteRunde).toBeGreaterThan(ersteRunde);
+
+    await page.clock.fastForward('05:00');
+    const spaeter = await toene(page);
+    expect(spaeter).toBeGreaterThan(zweiteRunde);
+
+    await page.getByRole('button', { name: 'Fertig', exact: true }).click();
+    await page.clock.fastForward('01:00');
+    expect(await toene(page)).toBe(spaeter);
   });
 
   test('der Weckerton laesst sich in den Einstellungen ausprobieren', async ({ page }) => {
@@ -715,9 +768,11 @@ test.describe('Weckerton', () => {
     await openSpace(page, newSpace('weckertest'));
 
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
-    expect(await toene(page)).toBe(0);
+    expect(await element(page)).toBeNull();
     await page.getByRole('dialog').getByRole('button', { name: 'Weckerton testen' }).click();
-    expect(await toene(page)).toBeGreaterThan(0);
+    await expect.poll(() => element(page)).toEqual({ spielt: true, laut: true, schleife: true });
+    // Probeklingeln hoert von selbst auf.
+    await expect.poll(() => element(page).then((zustand) => zustand?.spielt), { timeout: 6000 }).toBe(false);
   });
 });
 

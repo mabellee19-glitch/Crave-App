@@ -5,7 +5,7 @@ import { Recipe } from '@/lib/types';
 import { formatClock, scaleAmount } from '@/lib/units';
 import { useInhalt } from '@/lib/inhalt';
 import { zutatenProSchritt } from '@/lib/stepIngredients';
-import { playAlarm, setAlarmSession, stopAlarm } from '@/lib/audio';
+import { playAlarm, setAlarmSession, stopAlarm, unlockAudio } from '@/lib/audio';
 import { useT } from '@/lib/i18n';
 import { Portal, useBodyScrollLock, useVerdeckt } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
@@ -144,6 +144,8 @@ export function CookMode({
   );
 
   const startTimer = (id: string, duration: number) => {
+    // Der Druck auf "Timer starten" ist das sicherste Tippen, um den Ton freizugeben.
+    unlockAudio();
     stopAlarm();
     patchTimer(id, duration, (state) => ({
       endsAt: Date.now() + remainingSeconds(state) * 1000,

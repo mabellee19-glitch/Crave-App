@@ -3,7 +3,7 @@
 import React, { Activity, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
-import { unlockAudio } from '@/lib/audio';
+import { audioFreigegeben, unlockAudio } from '@/lib/audio';
 import { KiKuerzung } from '@/lib/useKiKuerzung';
 import { useT } from '@/lib/i18n';
 import { useInhalt } from '@/lib/inhalt';
@@ -144,14 +144,22 @@ export function AppShell() {
   // Ohne Parameter: wird oft direkt als Klick-Handler weitergegeben.
   const closeTop = useCallback(() => closeOverlays(1), [closeOverlays]);
 
-  /* Audio beim ersten Tap entsperren, damit der Kochtimer spaeter klingeln darf. */
+  /*
+   * Audio bei einem Tippen entsperren, damit der Kochtimer spaeter klingeln
+   * darf. Safari zaehlt nur das Loslassen als Tippen, nicht das Aufsetzen –
+   * und es wird so lange versucht, bis es geklappt hat.
+   */
   useEffect(() => {
-    const unlock = () => unlockAudio();
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
+    const ereignisse = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+    const unlock = () => {
+      unlockAudio();
+      if (audioFreigegeben()) {
+        for (const ereignis of ereignisse) window.removeEventListener(ereignis, unlock, true);
+      }
+    };
+    for (const ereignis of ereignisse) window.addEventListener(ereignis, unlock, true);
     return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
+      for (const ereignis of ereignisse) window.removeEventListener(ereignis, unlock, true);
     };
   }, []);
 

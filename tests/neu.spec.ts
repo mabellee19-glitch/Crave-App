@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { neuesRezept, newSpace, openSpace, startCooking, waitForSync } from './helpers';
 import { buildSeedData, SCHRITTE_VOR_DER_VORBEREITUNG } from '../src/lib/seed';
 import { kategorieErkennen } from '../src/lib/category';
+import { animationsMotiv } from '../src/lib/kochAnimation';
 import { schrittSignatur, vorbereitungAusText, vorbereitungVorschlagen } from '../src/lib/prep';
 import { zutatenFuerSchritt, zutatenProSchritt } from '../src/lib/stepIngredients';
 
@@ -508,5 +509,36 @@ test.describe('Design', () => {
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'creme');
     await context.close();
+  });
+});
+
+test.describe('Animation zum Rezept', () => {
+  const rezept = (category: string, ...schritte: Array<[string, number | null]>) => ({
+    category,
+    steps: schritte.map(([text, durationSec], i) => ({ id: `s${i}`, text, durationSec })),
+  });
+
+  test('Ofen, Dessert oder Bräter – je nach Rezept', () => {
+    const seeds = Object.values(buildSeedData().recipes);
+    const motiv = (name: string) => {
+      const r = seeds.find((recipe) => recipe.name === name)!;
+      return [animationsMotiv(r, 'start'), animationsMotiv(r, 'fertig')];
+    };
+    expect(motiv('Ofenlachs mit Süsskartoffeln')).toEqual(['ofen', 'ofen']);
+    expect(motiv('Spinat-Feta-Blätterteig-Taschen')).toEqual(['ofen', 'ofen']);
+    expect(motiv('Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce')).toEqual(['ofen', 'ofen']);
+    // Vier Minuten Brötchen aufbacken machen keinen Ofen-Burger.
+    expect(motiv('Halloumiburger mit Honig-Senf-Sauce')).toEqual(['braeter', 'braeter']);
+    expect(motiv('Poulet mit Brokkoli und Reis')).toEqual(['braeter', 'braeter']);
+
+    // Dessert: Schwingbesen zum Start, Sahnehaube am Schluss …
+    const creme = rezept('Dessert', ['Milch und Zucker aufkochen und kalt stellen.', null]);
+    expect([animationsMotiv(creme, 'start'), animationsMotiv(creme, 'fertig')]).toEqual(['besen', 'dessert']);
+    // … und gebacken geht am Schluss der Ofen auf.
+    const waehe = rezept('Dessert', ['Den Teig auswallen.', null], ['Im Ofen bei 200 °C backen.', 35 * 60]);
+    expect([animationsMotiv(waehe, 'start'), animationsMotiv(waehe, 'fertig')]).toEqual(['besen', 'ofen']);
+    // In der Pfanne ausgebacken ist nicht aus dem Ofen.
+    const kuechlein = rezept('Dessert', ['In heissem Öl 10 Minuten ausbacken.', 600]);
+    expect(animationsMotiv(kuechlein, 'fertig')).toBe('dessert');
   });
 });

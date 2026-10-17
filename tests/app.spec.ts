@@ -169,6 +169,24 @@ test.describe('Rezepte', () => {
       await expect(page.locator('.cookanim')).toHaveCount(0);
     });
 
+    test('ein Ofengericht fährt in den Ofen und kommt dampfend wieder heraus', async ({ page }) => {
+      await openSpace(page, newSpace('ofenanim'));
+      await page.getByRole('button', { name: 'Rezept Ofenlachs mit Süsskartoffeln öffnen' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+
+      await expect(page.locator('.cookanim--start.cookanim--ofen .cookanim__ofentuer')).toBeVisible();
+      await expect(page.locator('.cookanim__loeffel')).toHaveCount(0);
+      await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 2500 });
+
+      await page.getByRole('button', { name: 'Los geht’s' }).click();
+      while (await page.getByRole('button', { name: 'Weiter' }).isVisible()) {
+        await page.getByRole('button', { name: 'Weiter' }).click();
+      }
+      await page.getByRole('button', { name: 'Fertig gekocht' }).click();
+      await expect(page.locator('.cookanim--fertig.cookanim--ofen .cookanim__heraus')).toBeVisible();
+      await expect(page.locator('.cook')).toHaveCount(0, { timeout: 2500 });
+    });
+
     test('zum Start wird geruehrt, am Schluss hebt sich der Deckel', async ({ page }) => {
       await openSpace(page, newSpace('abschluss'));
 

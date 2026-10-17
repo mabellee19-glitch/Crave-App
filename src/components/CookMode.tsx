@@ -11,6 +11,7 @@ import { Portal, useBodyScrollLock, useVerdeckt } from './ui';
 import { Timer, TimerState, initialTimerState, remainingSeconds } from './Timer';
 import { IconCheck, IconChevronLeft, IconChevronRight, IconClose, IconKnife, IconTimer } from './Icons';
 import { CookAnimation, animationErwuenscht } from './CookAnimation';
+import { animationsMotiv } from '@/lib/kochAnimation';
 
 /**
  * Kochmodus: ein Schritt pro Bildschirm, gross gesetzt, ohne Ablenkung.
@@ -42,9 +43,11 @@ export function CookMode({
   // mitscrollen, sonst tauchen beim Scrollen die Rezepte darunter auf.
   useBodyScrollLock(true);
 
-  // Kurzer Vorspann: im Topf wird geruehrt, dann steht Schritt 1 da. Der
-  // Schritt ist die ganze Zeit schon gerendert, der Vorspann legt sich nur
-  // darueber. Am Schluss hebt sich der Deckel – dasselbe Bauteil, andere Rolle.
+  // Kurzer Vorspann: im Topf wird geruehrt (beim Dessert mit dem
+  // Schwingbesen, beim Ofengericht faehrt der Braeter in den Ofen), dann
+  // steht Schritt 1 da. Der Schritt ist die ganze Zeit schon gerendert, der
+  // Vorspann legt sich nur darueber. Am Schluss hebt sich der Deckel – oder
+  // der Ofen geht auf, oder die Sahnehaube kommt auf das Dessert.
   const [intro, setIntro] = useState(animationErwuenscht);
   const introFertig = useCallback(() => setIntro(false), []);
   const [abschluss, setAbschluss] = useState(false);
@@ -323,10 +326,20 @@ export function CookMode({
     <Portal>
       <div className={`cook${verdeckt ? ' cook--verdeckt' : ''}`}>
         {intro ? (
-          <CookAnimation variante="start" title={inhalt.text(recipe.name, recipe.en)} onDone={introFertig} />
+          <CookAnimation
+            variante="start"
+            motiv={animationsMotiv(recipe, 'start')}
+            title={inhalt.text(recipe.name, recipe.en)}
+            onDone={introFertig}
+          />
         ) : null}
         {abschluss ? (
-          <CookAnimation variante="fertig" title={t.kochen.enGuete} onDone={onClose} />
+          <CookAnimation
+            variante="fertig"
+            motiv={animationsMotiv(recipe, 'fertig')}
+            title={t.kochen.enGuete}
+            onDone={onClose}
+          />
         ) : null}
         <div className="cook__head">
           <button className="iconbtn" onClick={onClose} aria-label={t.kochen.beenden}>

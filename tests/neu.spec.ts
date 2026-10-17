@@ -458,17 +458,18 @@ test.describe('Design', () => {
 
     await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
     const auswahl = page.getByRole('radiogroup', { name: 'Design' });
-    await expect(auswahl.getByRole('radio')).toHaveCount(7);
+    // Nur noch zwei: Diner und Dunkel.
+    await expect(auswahl.getByRole('radio')).toHaveCount(2);
     // Ohne Wahl gilt Diner, die Farbwelt des Logos.
     await expect(auswahl.getByRole('radio', { name: /Diner/ })).toHaveAttribute('aria-checked', 'true');
-    await auswahl.getByRole('radio', { name: /Salbei/ }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'salbei');
-    await expect(auswahl.getByRole('radio', { name: /Salbei/ })).toHaveAttribute('aria-checked', 'true');
+    await auswahl.getByRole('radio', { name: /Dunkel/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dunkel');
+    await expect(auswahl.getByRole('radio', { name: /Dunkel/ })).toHaveAttribute('aria-checked', 'true');
 
     await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'salbei');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dunkel');
     const grund = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(grund).toBe('rgb(244, 247, 241)');
+    expect(grund).toBe('rgb(23, 17, 13)');
   });
 
   test('ein dunkel eingestelltes iPhone bekommt trotzdem die helle App', async ({ browser }) => {
@@ -490,24 +491,21 @@ test.describe('Design', () => {
     expect(farben).toEqual(['rgb(59, 26, 20)', 'rgb(215, 38, 61)']);
   });
 
-  test('wer noch den alten Standard Creme hatte, kommt einmal zu Diner', async ({ browser }) => {
+  test('eine gelöschte Farbwelt wird zu Diner', async ({ browser }) => {
     const context = await browser.newContext();
     await context.addInitScript(() => {
-      // Nur beim allerersten Laden: so stand es vor dem neuen Logo auf dem Geraet.
+      // Nur beim allerersten Laden: so stand es vorher auf dem Geraet.
       if (!sessionStorage.getItem('vorbereitet')) {
-        localStorage.setItem('crave:theme', 'creme');
+        localStorage.setItem('crave:theme', 'salbei');
         sessionStorage.setItem('vorbereitet', '1');
       }
     });
     const page = await context.newPage();
-    await openSpace(page, newSpace('marke'));
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'diner');
-
-    // Wer danach Creme bewusst waehlt, behaelt es.
-    await page.getByRole('button', { name: 'Einstellungen und Synchronisation' }).click();
-    await page.getByRole('radiogroup', { name: 'Design' }).getByRole('radio', { name: /Creme/ }).click();
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'creme');
+    await openSpace(page, newSpace('geloescht'));
+    await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'salbei');
+    const grund = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(grund).toBe('rgb(255, 246, 230)');
+    expect(await page.evaluate(() => localStorage.getItem('crave:theme'))).not.toBe('salbei');
     await context.close();
   });
 });

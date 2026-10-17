@@ -47,7 +47,7 @@ Die App ist auf Deutsch, in Schweizer Schreibweise. Zwei Bereiche:
 | Cook Next | Vormerken, was in den nächsten Tagen gekocht wird – die Zutaten stehen dann in der Beute |
 | Cook Next | Abwählen nimmt genau diese Zutaten wieder von der Liste |
 | Überall | Suche, automatisches Speichern, Geräte-Abgleich |
-| Überall | Sechs Farbwelten zur Auswahl unter `Einstellungen & Sync → Design` |
+| Überall | Zwei Farbwelten unter `Einstellungen & Sync → Design`: Diner und Dunkel |
 | Überall | Startet sofort mit dem Stand auf dem Gerät, der Abgleich läuft im Hintergrund |
 
 ## Zutaten eingeben
@@ -407,7 +407,7 @@ BASE_URL=http://localhost:3000 npm run check:ui
 ```
 
 Das Skript geht die ganze App durch – in drei Breiten (iPhone, Desktop,
-320 px) und in allen Farbwelten – und meldet, was kein einzelner Test abdeckt:
+320 px) und in beiden Farbwelten – und meldet, was kein einzelner Test abdeckt:
 Konsolenfehler, fehlgeschlagene Anfragen, seitlich überlaufende Seiten, zu
 kleine Bedienelemente und Knöpfe ohne Beschriftung.
 
@@ -578,29 +578,22 @@ src/
 
 ## Farbwelten
 
-Unter `Einstellungen & Sync → Design` stehen sieben Farbwelten zur Wahl, jede
+Unter `Einstellungen & Sync → Design` stehen zwei Farbwelten zur Wahl, jede
 mit einer kleinen Vorschau. Die Wahl gilt sofort und wird pro Gerät gemerkt.
 
 | Farbwelt | Charakter |
 | --- | --- |
 | Diner | wie das Logo: Tomatenrot, Senfgelb, Espresso – der Standard |
-| Creme | warm und ruhig, Kupfer als Akzent – der Standard bis zum neuen Logo |
-| Salbei | frisch und grün, viel Weiss |
-| Pfirsich | fröhlich und warm, Koralle als Akzent |
-| Himmel | hell und luftig, Blau als Akzent |
-| Klar | reinweiss und modern, Tomatenrot |
-| Dunkel | die bisherige Nachtfassung |
+| Dunkel | die Nachtfassung für abends |
 
 Die App ist immer hell, solange niemand `Dunkel` wählt – auch auf einem
 iPhone im dunklen Modus. Gesetzt wird die Farbwelt von einem kleinen Skript
 im Kopf der Seite, bevor etwas gezeichnet wird; so blitzt beim Öffnen keine
-falsche Farbe auf. Alle Farbwelten haben mindestens den Kontrast der
-Creme-Palette. Wer vor dem neuen Logo Creme gespeichert hatte – bis dahin der
-Standard –, kommt einmalig zu Diner; wer danach Creme wählt, behält es.
+falsche Farbe auf. Wer früher eine der gelöschten Farbwelten (Creme, Salbei,
+Pfirsich, Himmel, Klar) gewählt hatte, bekommt Diner.
 
 Diner setzt Überschriften in runder, kräftiger Schrift (auf iPhone und iPad SF
-Pro Rounded, nichts zu laden). Die anderen Farbwelten behalten die
-Serifenschrift.
+Pro Rounded, nichts zu laden). Dunkel behält die Serifenschrift.
 
 ## Farben
 
@@ -614,14 +607,14 @@ Diner kommt aus dem Logo:
 | Espresso | `#3b1a14` | Schatten im Logo, Schrift |
 | Creme | `#fff6e6` | Seitengrund |
 
-Creme und Dunkel bauen auf der ersten Palette auf: Master Key `#dccd8b`,
-Prickly Pear `#a7993c`, Mozart `#475480`, Sunburn `#b57056`, Roycroft Copper
-Red `#7f3b25`.
+Dunkel baut auf der ersten Palette auf: Master Key `#dccd8b`, Prickly Pear
+`#a7993c`, Mozart `#475480`, Sunburn `#b57056`, Roycroft Copper Red
+`#7f3b25` – dieselben Farben wie der Bräter in der Kochanimation.
 
 Alle Farben stehen als CSS-Variablen am Anfang von `src/app/globals.css`:
-oben Diner, darunter je ein Block `:root[data-theme=…]` für jede weitere
-Farbwelt. Jede setzt auch `--logo` und `--logo-schatten` für den Schriftzug. Name, Beschreibung und Vorschau stehen in `src/lib/theme.ts`. Wer
-eine Farbwelt dazubauen will, ergänzt beides. Für kleine Schrift auf hellem Grund sind
+oben Diner, darunter der Block `:root[data-theme='dunkel']`. Beide setzen
+auch `--logo` und `--logo-schatten` für den Schriftzug. Name, Beschreibung
+und Vorschau stehen in `src/lib/theme.ts`. Für kleine Schrift auf hellem Grund sind
 abgedunkelte Abstufungen hinterlegt, damit der Text lesbar bleibt.
 
 ## Logo und App-Symbol

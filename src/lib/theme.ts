@@ -1,5 +1,5 @@
 /**
- * Farbwelten der App.
+ * Farbwelten der App: Diner und Dunkel.
  *
  * Die Farben selbst stehen in globals.css unter `:root[data-theme=…]`; hier
  * steht nur, welche es gibt, wie sie heissen und welche Farben die kleine
@@ -26,41 +26,6 @@ export const THEMES: Theme[] = [
     themeColor: '#fff6e6',
   },
   {
-    id: 'creme',
-    name: 'Creme',
-    beschreibung: 'Warm und ruhig, Kupfer als Akzent',
-    vorschau: ['#faf6ea', '#fffdf7', '#7f3b25', '#a7993c'],
-    themeColor: '#faf6ea',
-  },
-  {
-    id: 'salbei',
-    name: 'Salbei',
-    beschreibung: 'Frisch und grün, viel Weiss',
-    vorschau: ['#f4f7f1', '#ffffff', '#3c7650', '#c86f1e'],
-    themeColor: '#f4f7f1',
-  },
-  {
-    id: 'pfirsich',
-    name: 'Pfirsich',
-    beschreibung: 'Fröhlich und warm, Koralle als Akzent',
-    vorschau: ['#fff6f0', '#ffffff', '#c24b20', '#4a6fa5'],
-    themeColor: '#fff6f0',
-  },
-  {
-    id: 'himmel',
-    name: 'Himmel',
-    beschreibung: 'Hell und luftig, Blau als Akzent',
-    vorschau: ['#f3f7fc', '#ffffff', '#2c68ad', '#c8603e'],
-    themeColor: '#f3f7fc',
-  },
-  {
-    id: 'klar',
-    name: 'Klar',
-    beschreibung: 'Reinweiss und modern, Tomatenrot',
-    vorschau: ['#ffffff', '#f5f5f3', '#c43a25', '#2f6db5'],
-    themeColor: '#ffffff',
-  },
-  {
     id: 'dunkel',
     name: 'Dunkel',
     beschreibung: 'Die Nachtfassung für abends',
@@ -72,21 +37,15 @@ export const THEMES: Theme[] = [
 export const STANDARD_THEME = 'diner';
 export const THEME_KEY = 'crave:theme';
 
-/*
- * Mit dem neuen Logo wurde Diner zum Standard. Creme war es bis dahin – wer
- * es gespeichert hat, hat es meist nie bewusst gewaehlt. Einmalig wechselt
- * Creme deshalb zu Diner; wer danach Creme waehlt, behaelt es.
- */
-const MARKE_KEY = 'crave:marke';
-const MARKE = 'diner-2026';
-
 /**
  * Laeuft im <head>, bevor irgendetwas gezeichnet wird – sonst blitzte beim
- * Oeffnen kurz die Standardfarbe auf. Muss ohne Imports auskommen.
+ * Oeffnen kurz die Standardfarbe auf. Muss ohne Imports auskommen. Eine
+ * gespeicherte Farbwelt, die es nicht mehr gibt (Creme, Salbei, Pfirsich,
+ * Himmel, Klar), faellt weg – dann gilt Diner.
  */
-export const THEME_SCRIPT = `try{var t=localStorage.getItem('${THEME_KEY}');if(localStorage.getItem('${MARKE_KEY}')!=='${MARKE}'){if(t==='creme'){t='diner';localStorage.setItem('${THEME_KEY}',t)}localStorage.setItem('${MARKE_KEY}','${MARKE}')}var ok=${JSON.stringify(
+export const THEME_SCRIPT = `try{var k='${THEME_KEY}',t=localStorage.getItem(k),ok=${JSON.stringify(
   THEMES.map((theme) => theme.id),
-)};var c=${JSON.stringify(Object.fromEntries(THEMES.map((theme) => [theme.id, theme.themeColor])))};if(t&&ok.indexOf(t)>=0){document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t])}}catch(e){}`;
+)},c=${JSON.stringify(Object.fromEntries(THEMES.map((theme) => [theme.id, theme.themeColor])))};if(t&&ok.indexOf(t)<0){localStorage.removeItem(k);t=null}if(t){document.documentElement.setAttribute('data-theme',t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',c[t])}}catch(e){}`;
 
 export function readTheme(): string {
   try {

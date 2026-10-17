@@ -105,10 +105,8 @@ async function durchlauf(browser, geraet, theme) {
   // Das System steht auf dunkel: die App muss trotzdem in der gewaehlten
   // Farbwelt erscheinen, nicht in der des Telefons.
   const ctx = await browser.newContext({ ...geraet, colorScheme: 'dark' });
-  // Die Marke mitsetzen: sonst stellte der Start Creme einmalig auf Diner um.
   await ctx.addInitScript((t) => {
     localStorage.setItem('crave:theme', t);
-    localStorage.setItem('crave:marke', 'diner-2026');
   }, theme);
   const p = await ctx.newPage();
   const wo0 = `${geraet.__name}/${theme}`;
@@ -214,10 +212,9 @@ delete iphone.browserName;
 const desktop = { viewport: { width: 1280, height: 900 }, __name: 'Desktop' };
 const klein = { viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true, __name: 'Schmal320' };
 
-// Auf dem iPhone jede Farbwelt, sonst die Standardfarbe und die dunkle.
-const ALLE = ['diner', 'creme', 'salbei', 'pfirsich', 'himmel', 'klar', 'dunkel'];
+// Beide Farbwelten auf jedem Geraet.
 for (const g of [iphone, desktop, klein]) {
-  for (const theme of g === iphone ? ALLE : ['diner', 'dunkel']) {
+  for (const theme of ['diner', 'dunkel']) {
     await durchlauf(b, g, theme);
   }
 }

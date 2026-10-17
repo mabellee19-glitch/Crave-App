@@ -518,7 +518,7 @@ test.describe('Animation zum Rezept', () => {
     steps: schritte.map(([text, durationSec], i) => ({ id: `s${i}`, text, durationSec })),
   });
 
-  test('Ofen, Dessert oder Bräter – je nach Rezept', () => {
+  test('Ofen, Pfanne, Dessert oder Bräter – je nach Rezept', () => {
     const seeds = Object.values(buildSeedData().recipes);
     const motiv = (name: string) => {
       const r = seeds.find((recipe) => recipe.name === name)!;
@@ -527,9 +527,24 @@ test.describe('Animation zum Rezept', () => {
     expect(motiv('Ofenlachs mit Süsskartoffeln')).toEqual(['ofen', 'ofen']);
     expect(motiv('Spinat-Feta-Blätterteig-Taschen')).toEqual(['ofen', 'ofen']);
     expect(motiv('Leichte Lasagne-Röllchen mit Spinat und Linsen-Tomatensauce')).toEqual(['ofen', 'ofen']);
-    // Vier Minuten Brötchen aufbacken machen keinen Ofen-Burger.
-    expect(motiv('Halloumiburger mit Honig-Senf-Sauce')).toEqual(['braeter', 'braeter']);
-    expect(motiv('Poulet mit Brokkoli und Reis')).toEqual(['braeter', 'braeter']);
+    // Vier Minuten Brötchen aufbacken machen keinen Ofen-Burger – der Halloumi wird gebraten.
+    expect(motiv('Halloumiburger mit Honig-Senf-Sauce')).toEqual(['pfanne', 'pfanne']);
+    expect(motiv('Gyoza mit Hackfleisch & Gemüse')).toEqual(['pfanne', 'pfanne']);
+    // Saucen, Suppen, Currys: Bräter – auch wenn vorher etwas angebraten wird.
+    expect(motiv('Tomatensuppe mit Basilikum')).toEqual(['braeter', 'braeter']);
+    expect(motiv('Rotes Linsen-Dal')).toEqual(['braeter', 'braeter']);
+    expect(motiv('Marry me Chicken Orzo')).toEqual(['braeter', 'braeter']);
+    expect(motiv('Shakshuka')).toEqual(['braeter', 'braeter']);
+
+    // Ein eigenes Rezept: Saltimbocca in der Pfanne.
+    const saltimbocca = {
+      name: 'Saltimbocca alla Romana',
+      ...rezept('High-Protein', ['Kalbsplätzli mit Salbei und Rohschinken belegen.', null], ['Mit Weisswein ablöschen und die Sauce kurz einkochen.', 120]),
+    };
+    expect(animationsMotiv(saltimbocca, 'start')).toBe('pfanne');
+    // Ohne Namen zählen die Wörter in den Schritten.
+    const plaetzli = rezept('', ['Öl in der Pfanne erhitzen und die Plätzli beidseitig goldbraun braten.', 240]);
+    expect(animationsMotiv(plaetzli, 'fertig')).toBe('pfanne');
 
     // Dessert: Schwingbesen zum Start, Sahnehaube am Schluss …
     const creme = rezept('Dessert', ['Milch und Zucker aufkochen und kalt stellen.', null]);

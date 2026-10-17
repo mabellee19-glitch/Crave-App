@@ -174,7 +174,8 @@ test.describe('Rezepte', () => {
       await page.getByRole('button', { name: 'Rezept Ofenlachs mit Süsskartoffeln öffnen' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
 
-      await expect(page.locator('.cookanim--start.cookanim--ofen .cookanim__ofentuer')).toBeVisible();
+      // Der Retro-Herd: der Knopf dreht, das Fenster glueht.
+      await expect(page.locator('.cookanim--start.cookanim--ofen .cookanim__drehknopf')).toBeVisible();
       await expect(page.locator('.cookanim__loeffel')).toHaveCount(0);
       await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 2500 });
 
@@ -183,14 +184,34 @@ test.describe('Rezepte', () => {
         await page.getByRole('button', { name: 'Weiter' }).click();
       }
       await page.getByRole('button', { name: 'Fertig gekocht' }).click();
-      await expect(page.locator('.cookanim--fertig.cookanim--ofen .cookanim__heraus')).toBeVisible();
+      // Die Tuer klappt auf, es dampft heraus.
+      await expect(page.locator('.cookanim--fertig.cookanim--ofen .cookanim__tueraufklappen')).toBeVisible();
+      await expect(page.locator('.cook')).toHaveCount(0, { timeout: 2500 });
+    });
+
+    test('Gebratenes brutzelt in der Pfanne, am Schluss wird gewendet', async ({ page }) => {
+      await openSpace(page, newSpace('pfanne'));
+      await page.getByRole('button', { name: 'Rezept Gyoza mit Hackfleisch & Gemüse öffnen' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
+
+      await expect(page.locator('.cookanim--start.cookanim--pfanne .cookanim__tropfen').first()).toBeAttached();
+      await expect(page.locator('.cookanim__loeffel')).toHaveCount(0);
+      await expect(page.locator('.cookanim')).toHaveCount(0, { timeout: 2500 });
+
+      await page.getByRole('button', { name: 'Los geht’s' }).click();
+      while (await page.getByRole('button', { name: 'Weiter' }).isVisible()) {
+        await page.getByRole('button', { name: 'Weiter' }).click();
+      }
+      await page.getByRole('button', { name: 'Fertig gekocht' }).click();
+      await expect(page.locator('.cookanim--fertig.cookanim--pfanne .cookanim__wendeplaetzli')).toBeVisible();
       await expect(page.locator('.cook')).toHaveCount(0, { timeout: 2500 });
     });
 
     test('zum Start wird geruehrt, am Schluss hebt sich der Deckel', async ({ page }) => {
       await openSpace(page, newSpace('abschluss'));
 
-      await page.getByRole('button', { name: 'Rezept Poulet mit Brokkoli und Reis öffnen' }).click();
+      // Eine Suppe kocht im Braeter.
+      await page.getByRole('button', { name: 'Rezept Tomatensuppe mit Basilikum öffnen' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Start Cooking' }).click();
 
       // Zum Start steht der Topf offen da und der Loeffel ruehrt.
@@ -200,10 +221,9 @@ test.describe('Rezepte', () => {
 
       // Durch die Vorbereitung bis zum letzten Schritt.
       await page.getByRole('button', { name: 'Los geht’s' }).click();
-      for (let i = 0; i < 4; i += 1) {
+      while (await page.getByRole('button', { name: 'Weiter' }).isVisible()) {
         await page.getByRole('button', { name: 'Weiter' }).click();
       }
-      await expect(page.getByText('Schritt 5 von 5')).toBeVisible();
 
       // Erst jetzt der fertige Topf mit Deckel und Dampf.
       await page.getByRole('button', { name: 'Fertig gekocht' }).click();

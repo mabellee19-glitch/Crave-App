@@ -4,24 +4,26 @@ import React, { useEffect, useId } from 'react';
 import type { AnimationsMotiv } from '@/lib/kochAnimation';
 
 /**
- * Kurze Animation rund um den Kochmodus. Zwei Auftritte, vier Bilder:
+ * Kurze Animation rund um den Kochmodus. Zwei Auftritte, fünf Bilder:
  *
  * - `start` – es geht los, das Essen ist noch nicht fertig:
- *   - Bräter: der Topf steht offen da, ein Kochlöffel rührt darin.
- *   - Ofen: der Bräter fährt in den Ofen, die Tür geht zu, es glüht.
- *   - Schwingbesen (Dessert): Vanillecreme im Bräter, es spritzt ein wenig.
+ *   - Bräter (Saucen, Suppen, Currys): der Topf steht offen, ein Kochlöffel rührt.
+ *   - Bratpfanne (Gebratenes): Plätzli brutzeln, Öl spritzt, die Pfanne ruckelt.
+ *   - Ofen: der Knopf dreht, das Lämpchen geht an, das Fenster glüht.
+ *   - Dessert: in der Diner-Rührschüssel schlägt ein Schwingbesen.
  * - `fertig` – das Bild vom fertigen Gericht, deshalb steht es am Schluss:
  *   - Bräter: der Deckel hebt sich vom geschlossenen Topf und es dampft.
- *   - Ofen: der Bräter kommt heraus, der Deckel hebt sich, es dampft.
- *   - Dessert: eine Sahnehaube plumpst auf die Coupe, die Kirsche hinterher.
+ *   - Bratpfanne: ein Plätzli wird gewendet und landet goldbraun.
+ *   - Ofen: die Tür klappt auf, Dampfwolken quellen heraus.
+ *   - Dessert: über der Wähe rieselt Puderzucker aus dem Sieb.
  *
  * Welches Bild, entscheidet lib/kochAnimation am Rezept. Die Animation legt
  * sich über den Kochmodus, der darunter schon steht. So gibt es keine zweite
  * Ansicht, die den Verlauf oder die Timer betrifft.
  */
 const DAUER_MS: Record<'start' | 'fertig', Record<AnimationsMotiv, number>> = {
-  start: { braeter: 1100, ofen: 1800, besen: 1100, dessert: 1100 },
-  fertig: { braeter: 1100, ofen: 1800, besen: 1100, dessert: 1700 },
+  start: { braeter: 1100, pfanne: 1100, ofen: 1800, besen: 1200, dessert: 1200 },
+  fertig: { braeter: 1100, pfanne: 1500, ofen: 1900, besen: 1700, dessert: 1700 },
 };
 
 export function CookAnimation({
@@ -55,11 +57,13 @@ export function CookAnimation({
 
   const bild =
     motiv === 'ofen' ? (
-      variante === 'start' ? <OfenAn /> : <OfenAuf />
-    ) : motiv === 'besen' ? (
-      <Schwingbesen />
+      variante === 'start' ? <RetroHerd /> : <OfenTuerAuf />
+    ) : motiv === 'pfanne' ? (
+      variante === 'start' ? <PfanneStart /> : <PfanneFertig />
+    ) : motiv === 'besen' || (motiv === 'dessert' && variante === 'start') ? (
+      <Ruehrschuessel />
     ) : motiv === 'dessert' ? (
-      <Coupe />
+      <Puderzucker />
     ) : variante === 'start' ? (
       <TopfOffen />
     ) : (
@@ -151,81 +155,79 @@ function TopfMitDeckel() {
 /* Ofen                                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** Der Diner-Herd: Gehaeuse, Bedienleiste mit drei Knoepfen und Lampe, Fuesse. */
-function Herd({ lampeAn }: { lampeAn: boolean }) {
+/** Der Diner-Herd: Gehaeuse, Bedienleiste, Fuesse. Die Knoepfe zeichnet jedes Bild selbst. */
+function Herd({ children }: { children: React.ReactNode }) {
   return (
     <>
       <rect className="cookanim__fuss" x="34" y="138" width="12" height="8" rx="2" />
       <rect className="cookanim__fuss" x="114" y="138" width="12" height="8" rx="2" />
       <rect className="cookanim__herd" x="22" y="20" width="116" height="122" rx="16" />
       <rect className="cookanim__leiste" x="30" y="27" width="100" height="20" rx="7" />
-      <circle className="cookanim__knopf" cx="45" cy="37" r="6" />
-      <circle className="cookanim__knopf" cx="61" cy="37" r="6" />
-      <circle className="cookanim__knopf" cx="77" cy="37" r="6" />
-      <circle className="cookanim__lampeaus" cx="120" cy="37" r="3.6" />
-      {lampeAn ? <circle className="cookanim__lampe" cx="120" cy="37" r="3.6" /> : null}
+      {children}
     </>
   );
 }
 
-/** Ein kleiner Bräter mit Deckel, wie er im Ofen steht. */
-function KleinerBraeter({ dampf = false }: { dampf?: boolean }) {
+/** Ein Drehknopf mit Strich – `dreht` dreht ihn beim Start auf. */
+function Knopf({ x, dreht = false }: { x: number; dreht?: boolean }) {
+  return (
+    <g className={dreht ? 'cookanim__drehknopf' : undefined}>
+      <circle className="cookanim__knopf" cx={x} cy="37" r="6" />
+      <rect className="cookanim__knopfstrich" x={x - 1} y="31.6" width="2" height="5" rx="1" />
+    </g>
+  );
+}
+
+/** Gratinform mit goldener Kruste. */
+function Gratin({ y }: { y: number }) {
   return (
     <>
-      {dampf ? (
-        <g className="cookanim__ofendampf" fill="none" strokeWidth="2.4" strokeLinecap="round">
-          <path d="M72 84c-4-5 4-8 0-13" />
-          <path d="M80 81c-4-5.5 4-8.5 0-14" />
-          <path d="M88 84c-4-5 4-8 0-13" />
-        </g>
-      ) : null}
-      <rect className="cookanim__griff" x="54" y="101" width="12" height="6" rx="3" />
-      <rect className="cookanim__griff" x="94" y="101" width="12" height="6" rx="3" />
-      <path className="cookanim__korpus" d="M62 105h36v6a8 8 0 0 1-8 8H70a8 8 0 0 1-8-8z" />
-      <rect className="cookanim__kragen" x="58" y="98" width="44" height="7" rx="3" />
-      <g className="cookanim__kleindeckel">
-        <path className="cookanim__deckelform" d="M62 98q18-13 36 0z" />
-        <rect className="cookanim__kragen" x="60" y="96.5" width="40" height="3" rx="1.5" />
-        <circle className="cookanim__knauf" cx="80" cy="89.5" r="2.6" />
-      </g>
+      <path className="cookanim__form" d={`M57 ${y}h46l-3.4 9.2a3 3 0 0 1-2.8 2H63.2a3 3 0 0 1-2.8-2z`} />
+      <path className="cookanim__kruste" d={`M58.5 ${y + 0.5}q6-6 12 0q6-6 12 0q6-6 12 0q4-4 7.5 0z`} />
     </>
   );
 }
 
-/** Start: der Bräter fährt in den Ofen, die Tür klappt zu, das Fenster glüht. */
-function OfenAn() {
+/** Start: der Knopf dreht, das Lämpchen geht an, das Fenster glüht, über der Form flimmert die Hitze. */
+function RetroHerd() {
   const id = useId().replace(/:/g, '');
   return (
     <svg className="cookanim__topf cookanim__quadrat" viewBox="0 0 160 160" width="206" height="206" aria-hidden="true">
       <defs>
-        <radialGradient id={`${id}-glut`} cx="50%" cy="50%" r="72%">
+        <radialGradient id={`${id}-glut`} cx="50%" cy="48%" r="72%">
           <stop offset="0" stopColor="#ffd885" />
           <stop offset="0.55" stopColor="#ff9a3c" />
           <stop offset="1" stopColor="#b9400f" />
         </radialGradient>
-        <mask id={`${id}-fenster`}>
-          <rect x="20" y="40" width="120" height="110" fill="#fff" />
-          <rect x="42" y="70" width="76" height="54" rx="9" fill="#000" />
-        </mask>
       </defs>
-      <Herd lampeAn />
-      <rect className="cookanim__ofenraum" x="32" y="54" width="96" height="78" rx="8" />
-      <rect className="cookanim__glut" x="32" y="54" width="96" height="78" rx="8" fill={`url(#${id}-glut)`} />
-      <path className="cookanim__rost" d="M38 118h84" />
-      <g className="cookanim__hinein">
-        <KleinerBraeter />
+      <Herd>
+        <Knopf x={45} dreht />
+        <Knopf x={61} />
+        <Knopf x={77} />
+        <circle className="cookanim__knopf" cx="102" cy="37" r="6.5" />
+        <path className="cookanim__uhr" d="M102 33.2v4l2.6 1.6" />
+        <circle className="cookanim__lampeaus" cx="120" cy="37" r="3.6" />
+        <circle className="cookanim__lampe" cx="120" cy="37" r="3.6" />
+      </Herd>
+      <rect className="cookanim__tuer" x="30" y="53" width="100" height="81" rx="10" />
+      <rect className="cookanim__tuergriff" x="42" y="58" width="76" height="6" rx="3" />
+      <rect className="cookanim__ofenraum" x="42" y="70" width="76" height="54" rx="9" />
+      <rect className="cookanim__glut" x="42" y="70" width="76" height="54" rx="9" fill={`url(#${id}-glut)`} />
+      <path className="cookanim__heizstab" d="M50 77h60" />
+      <path className="cookanim__heizstab cookanim__heizstab--an" d="M50 77h60" />
+      <Gratin y={108} />
+      <g className="cookanim__flimmern" fill="none" strokeWidth="1.6" strokeLinecap="round">
+        <path d="M68 102q-3-4 0-8t0-8" />
+        <path d="M80 100q-3-4 0-8t0-8" />
+        <path d="M92 102q-3-4 0-8t0-8" />
       </g>
-      <g className="cookanim__ofentuer">
-        <rect className="cookanim__tuer" x="30" y="53" width="100" height="81" rx="10" mask={`url(#${id}-fenster)`} />
-        <rect className="cookanim__scheibe" x="42" y="70" width="76" height="54" rx="9" />
-        <rect className="cookanim__tuergriff" x="42" y="58" width="76" height="6" rx="3" />
-      </g>
+      <path className="cookanim__spiegelung" d="M52 117l16-38" />
     </svg>
   );
 }
 
-/** Fertig: die Tür steht offen, der Bräter kommt heraus, der Deckel hebt sich, es dampft. */
-function OfenAuf() {
+/** Fertig: die Ofentür klappt nach vorn, der Gratin glüht im Licht, Dampfwolken quellen heraus. */
+function OfenTuerAuf() {
   const id = useId().replace(/:/g, '');
   return (
     <svg className="cookanim__topf cookanim__quadrat" viewBox="0 0 160 160" width="206" height="206" aria-hidden="true">
@@ -235,15 +237,47 @@ function OfenAuf() {
           <stop offset="0.55" stopColor="#ff9a3c" />
           <stop offset="1" stopColor="#b9400f" />
         </radialGradient>
+        <mask id={`${id}-fenster`}>
+          <rect x="20" y="40" width="120" height="110" fill="#fff" />
+          <rect x="42" y="70" width="76" height="54" rx="9" fill="#000" />
+        </mask>
       </defs>
-      <Herd lampeAn />
+      <Herd>
+        <Knopf x={45} />
+        <Knopf x={61} />
+        <Knopf x={77} />
+        <circle className="cookanim__lampe cookanim__lampe--an" cx="120" cy="37" r="3.6" />
+      </Herd>
       <rect x="32" y="54" width="96" height="78" rx="8" fill={`url(#${id}-glut)`} />
-      <path className="cookanim__rost cookanim__rost--heiss" d="M38 118h84" />
-      {/* Die offene Tür liegt flach vorne. */}
-      <path className="cookanim__tuer" d="M26 131h108l6 9a2 2 0 0 1-1.7 3H21.7a2 2 0 0 1-1.7-3z" />
-      <rect className="cookanim__tuergriff" x="40" y="134" width="80" height="4" rx="2" />
-      <g className="cookanim__heraus">
-        <KleinerBraeter dampf />
+      <path className="cookanim__rost cookanim__rost--heiss" d="M38 120h84" />
+      <path className="cookanim__form" d="M54 106h52l-3.8 10.4a3 3 0 0 1-2.8 2H60.6a3 3 0 0 1-2.8-2z" />
+      <path className="cookanim__kruste cookanim__kruste--fertig" d="M55.6 106.5q6.5-7 13 0q6.5-7 13 0q6.5-7 13 0q5.5-5.5 10.8 0z" />
+      <g className="cookanim__tueraufklappen">
+        <rect className="cookanim__tuer" x="30" y="53" width="100" height="81" rx="10" mask={`url(#${id}-fenster)`} />
+        <rect className="cookanim__scheibe" x="42" y="70" width="76" height="54" rx="9" />
+        <rect className="cookanim__tuergriff" x="42" y="58" width="76" height="6" rx="3" />
+      </g>
+      <g className="cookanim__wolken">
+        <g className="cookanim__dampfwolke">
+          <circle cx="66" cy="92" r="9" />
+          <circle cx="74" cy="87" r="10" />
+          <circle cx="82" cy="93" r="8" />
+        </g>
+        <g className="cookanim__dampfwolke cookanim__dampfwolke--2">
+          <circle cx="88" cy="90" r="9" />
+          <circle cx="96" cy="85" r="9" />
+          <circle cx="102" cy="92" r="7" />
+        </g>
+        <g className="cookanim__dampfwolke cookanim__dampfwolke--3">
+          <circle cx="70" cy="84" r="8" />
+          <circle cx="78" cy="79" r="9" />
+          <circle cx="86" cy="85" r="7" />
+        </g>
+        <g className="cookanim__dampfwolke cookanim__dampfwolke--4">
+          <circle cx="84" cy="88" r="8" />
+          <circle cx="91" cy="83" r="8" />
+          <circle cx="97" cy="89" r="6" />
+        </g>
       </g>
     </svg>
   );
@@ -253,73 +287,174 @@ function OfenAuf() {
 /* Dessert                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Start eines Desserts: im Bräter schlägt ein Schwingbesen Vanillecreme. */
-function Schwingbesen() {
-  return (
-    <svg className="cookanim__topf" viewBox="0 0 140 152" width="206" height="224" aria-hidden="true">
-      <rect className="cookanim__griff" x="6" y="95" width="26" height="12" rx="6" />
-      <rect className="cookanim__griff" x="108" y="95" width="26" height="12" rx="6" />
-      <path className="cookanim__korpus" d="M24 98h92v16a22 22 0 0 1-22 22H46a22 22 0 0 1-22-22z" />
-      <path className="cookanim__glanz" d="M34 104v6a14 14 0 0 0 6 11" />
-      <ellipse className="cookanim__rand" cx="70" cy="98" rx="46" ry="9" />
-      <ellipse className="cookanim__innen" cx="70" cy="98.5" rx="40" ry="7" />
-      <ellipse className="cookanim__creme" cx="70" cy="99.5" rx="36" ry="5.6" />
-      <path className="cookanim__welle" d="M52 100q9-3 18 0t18 0" />
-      <path className="cookanim__welle cookanim__welle--2" d="M58 97.6q6-2 12 0t12 0" />
-      <g className="cookanim__besen">
-        <rect className="cookanim__besengriff" x="67" y="34" width="6" height="26" rx="3" />
-        <rect className="cookanim__besenring" x="67.6" y="59" width="4.8" height="6" rx="1" />
-        <g className="cookanim__draht" fill="none" strokeWidth="1.5">
-          <path d="M70 65C57 76 58 97 70 101C82 97 83 76 70 65Z" />
-          <path d="M70 65C63 78 64 97 70 101C76 97 77 78 70 65Z" />
-          <path d="M70 65V101" />
-        </g>
-      </g>
-      <path className="cookanim__randhinten" d="M24 98A46 9 0 0 1 116 98L110 98.5A40 7 0 0 0 30 98.5Z" />
-      <circle className="cookanim__spritzer" cx="58" cy="94" r="2.2" />
-      <circle className="cookanim__spritzer cookanim__spritzer--2" cx="84" cy="93" r="2" />
-      <circle className="cookanim__spritzer cookanim__spritzer--3" cx="66" cy="93" r="1.6" />
-    </svg>
-  );
-}
-
-/** Dessert fertig: Coupe mit Erdbeeren und Creme, Sahnehaube, Kirsche. */
-function Coupe() {
+/** Start eines Desserts: die Diner-Rührschüssel, der Schwingbesen schlägt, Zucker funkelt. */
+function Ruehrschuessel() {
   const id = useId().replace(/:/g, '');
   return (
     <svg className="cookanim__topf cookanim__quadrat" viewBox="0 0 160 160" width="206" height="206" aria-hidden="true">
       <defs>
-        <clipPath id={`${id}-glas`}>
-          <path d="M40 64h80q-3 38-40 44q-37-6-40-44z" />
+        <clipPath id={`${id}-schuessel`}>
+          <path d="M26 84A54 10 0 0 0 134 84A54 48 0 0 1 26 84Z" />
         </clipPath>
       </defs>
-      <ellipse className="cookanim__glasfuss" cx="80" cy="140" rx="24" ry="5.5" />
-      <rect className="cookanim__glasfuss" x="77" y="106" width="6" height="34" rx="2" />
-      <g clipPath={`url(#${id}-glas)`}>
-        <rect x="30" y="60" width="100" height="60" fill="#fff7ea" />
-        <path d="M30 92q12-6 25 0t25 0t25 0t25 0V120H30z" fill="#e04a5a" />
-        <path d="M30 78q12-5 25 0t25 0t25 0t25 0V92q-12-6-25 0t-25 0t-25 0t-25 0z" fill="#f8dfa0" />
-        <circle cx="54" cy="100" r="3.2" fill="#b81d2f" />
-        <circle cx="96" cy="103" r="3.6" fill="#b81d2f" />
-        <circle cx="76" cy="106" r="2.8" fill="#b81d2f" />
+      <rect className="cookanim__schuesselfuss" x="58" y="126" width="44" height="9" rx="3.5" />
+      <ellipse className="cookanim__schuesselrand" cx="80" cy="84" rx="54" ry="10" />
+      <ellipse className="cookanim__teig" cx="80" cy="88" rx="47" ry="7.5" />
+      <path className="cookanim__teigwelle" d="M48 89q8-3 16 0t16 0t16 0" />
+      <g className="cookanim__schlagbesen">
+        <rect className="cookanim__besengriff" x="77" y="24" width="6" height="28" rx="3" />
+        <rect className="cookanim__besenring" x="77.6" y="51" width="4.8" height="6" rx="1" />
+        <g className="cookanim__draht" fill="none" strokeWidth="1.5">
+          <path d="M80 57C66 70 67 92 80 96C93 92 94 70 80 57Z" />
+          <path d="M80 57C72 71 73 92 80 96C87 92 88 71 80 57Z" />
+          <path d="M80 57V96" />
+        </g>
       </g>
-      <path className="cookanim__glasrand" d="M40 64h80q-3 38-40 44q-37-6-40-44z" />
-      <path className="cookanim__glasglanz" d="M46 70q2 18 14 28" />
-      <g className="cookanim__sahne">
-        <ellipse cx="80" cy="62" rx="36" ry="8" />
-        <ellipse cx="80" cy="54" rx="27" ry="8" />
-        <ellipse cx="80" cy="46" rx="18" ry="7" />
-        <path d="M70 43q8-12 11-17q0 9 8 15z" />
+      <path className="cookanim__schuessel" d="M26 84A54 10 0 0 0 134 84A54 48 0 0 1 26 84Z" />
+      <g className="cookanim__streifen" clipPath={`url(#${id}-schuessel)`}>
+        <rect x="20" y="102" width="120" height="7" />
+        <rect x="20" y="112" width="120" height="2.5" />
       </g>
-      <g className="cookanim__kirsche">
-        <path d="M82 22q3-11 12-15" fill="none" stroke="#5b3a1a" strokeWidth="1.8" strokeLinecap="round" />
-        <circle cx="81" cy="29" r="7" fill="#c8102e" />
-        <circle cx="78.6" cy="26.6" r="2" fill="#ffffff" fillOpacity="0.7" />
+      <path className="cookanim__schuesselglanz" d="M34 92q8 20 28 28" />
+      <path className="cookanim__stern" d="M38 58l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+      <path className="cookanim__stern cookanim__stern--2" d="M122 54l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" />
+      <path className="cookanim__stern cookanim__stern--3" d="M112 72l1.4 3.4 3.4 1.4-3.4 1.4-1.4 3.4-1.4-3.4-3.4-1.4 3.4-1.4z" />
+    </svg>
+  );
+}
+
+/** Dessert fertig: über der Wähe schüttelt ein Sieb, Puderzucker rieselt und bleibt liegen. */
+function Puderzucker() {
+  const aepfel: Array<[number, number, number]> = [
+    [80, 99.5, 0],
+    [96, 101.5, 14],
+    [110, 107, 34],
+    [112, 115, -30],
+    [98, 121, -12],
+    [80, 123, 0],
+    [62, 121, 12],
+    [48, 115, 30],
+    [50, 107, -34],
+    [64, 101.5, -14],
+  ];
+  const koerner: Array<[number, number, number]> = [
+    [70, 50, 1.3],
+    [76, 48, 1.1],
+    [82, 51, 1.3],
+    [88, 49, 1.1],
+    [94, 51, 1.2],
+    [73, 54, 1],
+    [85, 55, 1.2],
+    [91, 56, 1],
+    [79, 56, 1.1],
+    [97, 54, 1],
+  ];
+  return (
+    <svg className="cookanim__topf cookanim__quadrat" viewBox="0 0 160 160" width="206" height="206" aria-hidden="true">
+      <ellipse cx="80" cy="120" rx="58" ry="19" fill="#f3e6cf" />
+      <ellipse cx="80" cy="116" rx="52" ry="17" fill="#b9782f" />
+      <ellipse cx="80" cy="111" rx="52" ry="17" fill="#e3a654" />
+      <ellipse cx="80" cy="111" rx="45" ry="13.5" fill="#f3cf87" />
+      <g className="cookanim__aepfel">
+        {aepfel.map(([x, y, winkel]) => (
+          <ellipse key={`${x}-${y}`} cx={x} cy={y} rx="7" ry="2.6" transform={winkel ? `rotate(${winkel} ${x} ${y})` : undefined} />
+        ))}
+        <ellipse cx="80" cy="111" rx="8" ry="3" />
       </g>
-      <g className="cookanim__sterne">
-        <path className="cookanim__stern" d="M44 34l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
-        <path className="cookanim__stern cookanim__stern--2" d="M118 30l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" />
+      <ellipse className="cookanim__puder" cx="80" cy="111" rx="50" ry="15.5" />
+      <g className="cookanim__koerner">
+        {koerner.map(([x, y, r], i) => (
+          <circle key={i} className={`cookanim__korn cookanim__korn--${(i % 4) + 1}`} cx={x} cy={y} r={r} />
+        ))}
       </g>
+      <g className="cookanim__sieb">
+        <path className="cookanim__siebstiel" d="M110 34h34" />
+        <path className="cookanim__siebkorb" d="M66 36a24 17 0 0 0 48 0z" />
+        <path className="cookanim__siebnetz" d="M72 41h36M75 46h30M80 50h20" />
+        <ellipse className="cookanim__siebrand" cx="90" cy="36" rx="24" ry="5" />
+      </g>
+    </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bratpfanne                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Eine Gusseisenpfanne im selben Kupferrot wie der Bräter, von schräg oben:
+ * Rand, schwarze Bratfläche, langer Stiel nach rechts. Darin zwei Plätzli
+ * mit einem Salbeiblatt – Saltimbocca, Schnitzel, Tätschli.
+ */
+function Pfanne({ children, gewendet = false }: { children?: React.ReactNode; gewendet?: boolean }) {
+  return (
+    <>
+      <g className="cookanim__pfannenstiel">
+        <rect className="cookanim__griff" x="110" y="93" width="44" height="9" rx="4.5" transform="rotate(-9 110 97.5)" />
+        <circle className="cookanim__stielloch" cx="146" cy="91.3" r="2.2" />
+      </g>
+      <path className="cookanim__griff" d="M27 97q-9 1-9 5t9 3" />
+      <path className="cookanim__korpus" d="M26 100q2 18 20 20h52q18-2 20-20z" />
+      <path className="cookanim__glanz" d="M36 106q2 6 8 9" />
+      <ellipse className="cookanim__rand" cx="72" cy="100" rx="46" ry="13" />
+      <ellipse className="cookanim__bratflaeche" cx="72" cy="101" rx="41" ry="10.5" />
+      <ellipse className="cookanim__oel" cx="64" cy="102" rx="22" ry="4.5" />
+      <Plaetzli x={57} y={100.5} winkel={-8} gold={gewendet} />
+      <g className="cookanim__wendeplaetzli">
+        <Plaetzli x={87} y={101.5} winkel={6} gold={gewendet} />
+      </g>
+      {children}
+    </>
+  );
+}
+
+function Plaetzli({ x, y, winkel, gold }: { x: number; y: number; winkel: number; gold: boolean }) {
+  return (
+    <g transform={`rotate(${winkel} ${x} ${y})`}>
+      <ellipse className={`cookanim__fleisch${gold ? ' cookanim__fleisch--gold' : ''}`} cx={x} cy={y} rx="13.5" ry="6.2" />
+      <ellipse className="cookanim__schinken" cx={x - 1} cy={y - 0.6} rx="9" ry="3.8" />
+      <ellipse className="cookanim__salbei" cx={x + 1} cy={y - 1.2} rx="5" ry="2.1" transform={`rotate(-24 ${x + 1} ${y - 1.2})`} />
+      <path className="cookanim__salbeirippe" d={`M${x - 3} ${y + 0.2}L${x + 5} ${y - 2.6}`} />
+    </g>
+  );
+}
+
+/** Start: es brutzelt – Öl spritzt, die Pfanne ruckelt auf dem Herd. */
+function PfanneStart() {
+  return (
+    <svg className="cookanim__topf cookanim__breit" viewBox="10 36 150 100" width="246" height="164" aria-hidden="true">
+      <g className="cookanim__pfanne cookanim__pfanne--ruckeln">
+        <Pfanne>
+          <g className="cookanim__brutzeln" fill="none" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M52 90q-2-3 0-6" />
+            <path d="M62 88q-2-3 0-6" />
+            <path d="M84 90q-2-3 0-6" />
+            <path d="M94 89q-2-3 0-6" />
+          </g>
+          <circle className="cookanim__tropfen" cx="48" cy="96" r="1.6" />
+          <circle className="cookanim__tropfen cookanim__tropfen--2" cx="74" cy="95" r="1.4" />
+          <circle className="cookanim__tropfen cookanim__tropfen--3" cx="98" cy="97" r="1.5" />
+          <circle className="cookanim__tropfen cookanim__tropfen--4" cx="66" cy="97" r="1.2" />
+        </Pfanne>
+      </g>
+    </svg>
+  );
+}
+
+/** Fertig: ein Plätzli wird in die Luft gewendet und landet goldbraun, es dampft. */
+function PfanneFertig() {
+  return (
+    <svg className="cookanim__topf cookanim__breit" viewBox="10 36 150 100" width="246" height="164" aria-hidden="true">
+      <g className="cookanim__pfanne cookanim__pfanne--schwung">
+        <Pfanne gewendet>
+          <g className="cookanim__pfannendampf" fill="none" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M58 88c-4-5 4-8 0-13" />
+            <path d="M72 85c-4-5.5 4-8.5 0-14" />
+            <path d="M86 88c-4-5 4-8 0-13" />
+          </g>
+        </Pfanne>
+      </g>
+      <path className="cookanim__stern cookanim__stern--pfanne" d="M118 56l1.8 4.4 4.4 1.8-4.4 1.8-1.8 4.4-1.8-4.4-4.4-1.8 4.4-1.8z" />
     </svg>
   );
 }

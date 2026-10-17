@@ -2107,6 +2107,17 @@ ol {
   stroke-width: 1.4;
 }
 
+.cookanim__knopfstrich {
+  fill: #3b1a14;
+}
+
+.cookanim__uhr {
+  fill: none;
+  stroke: #3b1a14;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
 .cookanim__lampeaus {
   fill: #6b5b55;
 }
@@ -2119,6 +2130,16 @@ ol {
   fill: #2a120d;
 }
 
+.cookanim__heizstab {
+  stroke: #4a2a22;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.cookanim__heizstab--an {
+  stroke: #ff4f1a;
+}
+
 .cookanim__rost {
   stroke: #4a2a22;
   stroke-width: 1.6;
@@ -2128,9 +2149,32 @@ ol {
   stroke: #9a3a12;
 }
 
+.cookanim__form {
+  fill: #f7efe0;
+}
+
+.cookanim__kruste {
+  fill: #e3a447;
+}
+
+.cookanim__kruste--fertig {
+  fill: #d98f35;
+}
+
+.cookanim__flimmern path {
+  stroke: #fff3cf;
+}
+
+.cookanim__spiegelung {
+  stroke: #ffffff;
+  stroke-opacity: 0.12;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
 .cookanim__scheibe {
-  fill: #ffffff;
-  fill-opacity: 0.07;
+  fill: #ffb347;
+  fill-opacity: 0.25;
   stroke: color-mix(in srgb, var(--accent-strong) 70%, #000);
   stroke-width: 1.2;
 }
@@ -2141,66 +2185,78 @@ ol {
   stroke-width: 1;
 }
 
-/* Start: Braeter hinein, Tuer zu, Licht an, das Fenster glueht. */
-.cookanim__hinein {
-  transform-box: view-box;
-  transform-origin: 80px 124px;
-  animation: cookanim-hinein 0.42s cubic-bezier(0.25, 0.9, 0.3, 1) 0.1s both;
+/* Start: Knopf dreht, Lampe an, Heizstab gluehend, Fenster glueht, Hitze flimmert. */
+.cookanim--start .cookanim__lampe,
+.cookanim__glut,
+.cookanim__heizstab--an,
+.cookanim__flimmern path {
+  opacity: 0;
 }
 
-.cookanim__ofentuer {
+.cookanim__drehknopf {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cookanim-knopf 0.36s cubic-bezier(0.3, 1.5, 0.6, 1) 0.28s both;
+}
+
+.cookanim--start .cookanim__lampe {
+  animation: cookanim-einblenden 0.06s linear 0.52s both;
+}
+
+.cookanim__heizstab--an {
+  animation: cookanim-einblenden 0.45s ease-out 0.56s both;
+}
+
+.cookanim__glut {
+  animation: cookanim-einblenden 0.75s ease-out 0.62s both;
+}
+
+.cookanim__flimmern path {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cookanim-flimmern 1.1s ease-in-out 0.95s infinite;
+}
+
+.cookanim__flimmern path:nth-child(2) {
+  animation-delay: 1.15s;
+}
+
+.cookanim__flimmern path:nth-child(3) {
+  animation-delay: 1.3s;
+}
+
+/* Fertig: die Tuer klappt nach vorn, Dampfwolken quellen heraus. */
+.cookanim__tueraufklappen {
   transform-box: view-box;
   transform-origin: 80px 134px;
-  animation: cookanim-tuer-zu 0.34s cubic-bezier(0.5, 0, 0.5, 1.4) 0.52s both;
+  animation: cookanim-tuer-auf 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.3s both;
 }
 
-.cookanim--start .cookanim__glut,
-.cookanim--start .cookanim__lampe {
-  animation: cookanim-einblenden 0.5s ease-out 0.86s both;
-}
-
-.cookanim--start .cookanim__lampe {
-  animation-duration: 0.06s;
-}
-
-/* Fertig: der Braeter kommt nach vorn, der Deckel hebt sich, es dampft. */
-.cookanim__heraus {
-  transform-box: view-box;
-  transform-origin: 80px 124px;
-  animation: cookanim-heraus 0.42s cubic-bezier(0.3, 1.25, 0.5, 1) 0.15s both;
-}
-
-.cookanim--ofen.cookanim--fertig .cookanim__kleindeckel {
-  transform-box: fill-box;
-  transform-origin: 85% 100%;
-  animation: cookanim-kleindeckel 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.55s both;
-}
-
-.cookanim__ofendampf path {
-  stroke: #c9b8a4;
+.cookanim__dampfwolke {
+  fill: #fffdf8;
+  stroke: #e2d4c0;
+  stroke-width: 1;
   opacity: 0;
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: cookanim-dampf 0.8s ease-out 0.7s both;
+  animation: cookanim-quellen 1.1s ease-out 0.45s both;
 }
 
-.cookanim__ofendampf path:nth-child(2) {
-  animation-delay: 0.8s;
+.cookanim__dampfwolke--2 {
+  animation-delay: 0.55s;
 }
 
-.cookanim__ofendampf path:nth-child(3) {
-  animation-delay: 0.9s;
+.cookanim__dampfwolke--3 {
+  animation-delay: 0.65s;
 }
 
-@keyframes cookanim-hinein {
-  from {
-    transform: translateY(30px) scale(1.42);
-  }
+.cookanim__dampfwolke--4 {
+  animation-delay: 0.75s;
 }
 
-@keyframes cookanim-tuer-zu {
-  from {
-    transform: scaleY(0.13) scaleX(1.06);
+@keyframes cookanim-knopf {
+  to {
+    transform: rotate(130deg);
   }
 }
 
@@ -2213,46 +2269,79 @@ ol {
   }
 }
 
-@keyframes cookanim-heraus {
-  to {
-    transform: translateY(26px) scale(1.42);
-  }
-}
-
-@keyframes cookanim-kleindeckel {
+@keyframes cookanim-flimmern {
   0% {
-    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+    transform: translateY(5px);
   }
-  45%,
+  40% {
+    opacity: 0.85;
+  }
   100% {
-    transform: translateY(-9px) rotate(-14deg);
+    opacity: 0;
+    transform: translateY(-9px);
   }
 }
 
-/* --- Dessert: Schwingbesen im Braeter ------------------------------------- */
-
-.cookanim__creme {
-  fill: #f2cf86;
+@keyframes cookanim-tuer-auf {
+  to {
+    transform: scaleY(0.13) scaleX(1.06);
+  }
 }
 
-.cookanim__welle {
+@keyframes cookanim-quellen {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.45);
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-62px) scale(1.55);
+  }
+}
+
+/* --- Dessert: die Diner-Ruehrschuessel ------------------------------------ */
+
+.cookanim__schuesselfuss {
+  fill: #e7d1aa;
+}
+
+.cookanim__schuesselrand {
+  fill: #e9d3a9;
+}
+
+.cookanim__teig {
+  fill: #f6d58a;
+}
+
+.cookanim__teigwelle {
   fill: none;
-  stroke: #fff4d6;
-  stroke-width: 2;
+  stroke: #fff1c9;
+  stroke-width: 1.8;
   stroke-linecap: round;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cookanim-welle 0.3s ease-in-out 0.2s infinite alternate;
 }
 
-.cookanim__welle--2 {
-  stroke: #e2b765;
-  stroke-width: 1.6;
-  animation-direction: alternate-reverse;
+.cookanim__schuessel {
+  fill: #fff3dc;
+}
+
+.cookanim__streifen {
+  fill: var(--accent);
+}
+
+.cookanim__schuesselglanz {
+  fill: none;
+  stroke: #ffffff;
+  stroke-opacity: 0.7;
+  stroke-width: 3;
+  stroke-linecap: round;
 }
 
 .cookanim__besengriff {
-  fill: #3b1a14;
+  fill: var(--accent);
 }
 
 .cookanim__besenring {
@@ -2260,112 +2349,14 @@ ol {
 }
 
 .cookanim__draht {
-  stroke: #cfc8be;
+  stroke: #c8c1b6;
 }
 
-.cookanim__besen {
+.cookanim__schlagbesen {
   transform-box: view-box;
-  transform-origin: 70px 40px;
-  transform: rotate(-12deg);
-  animation: cookanim-schwingen 0.3s ease-in-out 0.2s infinite alternate;
-}
-
-.cookanim__spritzer {
-  fill: #f2cf86;
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cookanim-spritzen 0.6s ease-out 0.35s infinite;
-}
-
-.cookanim__spritzer--2 {
-  animation-name: cookanim-spritzen-r;
-  animation-delay: 0.6s;
-}
-
-.cookanim__spritzer--3 {
-  animation-delay: 0.8s;
-}
-
-@keyframes cookanim-schwingen {
-  from {
-    transform: rotate(-16deg);
-  }
-  to {
-    transform: rotate(16deg);
-  }
-}
-
-@keyframes cookanim-welle {
-  from {
-    transform: translateX(-7px);
-  }
-  to {
-    transform: translateX(7px);
-  }
-}
-
-@keyframes cookanim-spritzen {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.6);
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-12px, -22px) scale(1);
-  }
-}
-
-@keyframes cookanim-spritzen-r {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.6);
-  }
-  20% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(12px, -20px) scale(1);
-  }
-}
-
-/* --- Dessert fertig: Sahnehaube und Kirsche ------------------------------- */
-
-.cookanim__glasfuss {
-  fill: #e6d9c4;
-}
-
-.cookanim__glasrand {
-  fill: none;
-  stroke: #d6c4a8;
-  stroke-width: 1.6;
-}
-
-.cookanim__glasglanz {
-  fill: none;
-  stroke: #ffffff;
-  stroke-opacity: 0.8;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-}
-
-.cookanim__sahne {
-  fill: #fffdf8;
-  stroke: #e6d6bd;
-  stroke-width: 1.2;
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: cookanim-sahne 0.62s cubic-bezier(0.5, 0, 0.6, 1) 0.18s both;
-}
-
-.cookanim__kirsche {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: cookanim-kirsche 0.6s cubic-bezier(0.4, 0, 0.6, 1) 0.66s both;
+  transform-origin: 80px 26px;
+  transform: rotate(18deg);
+  animation: cookanim-schlagen 0.2s ease-in-out 0.3s infinite alternate;
 }
 
 .cookanim__stern {
@@ -2373,57 +2364,23 @@ ol {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  animation: cookanim-funkeln 0.6s ease-out 1.1s both;
+  animation: cookanim-funkeln 0.9s ease-out 0.45s infinite;
 }
 
 .cookanim__stern--2 {
-  animation-delay: 1.22s;
+  animation-delay: 0.7s;
 }
 
-@keyframes cookanim-sahne {
-  0% {
-    transform: translateY(-80px);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  55% {
-    transform: translateY(0) scale(1, 1);
-  }
-  70% {
-    transform: translateY(0) scale(1.12, 0.84);
-  }
-  85% {
-    transform: translateY(0) scale(0.97, 1.04);
-  }
-  100% {
-    transform: translateY(0) scale(1, 1);
-  }
+.cookanim__stern--3 {
+  animation-delay: 0.95s;
 }
 
-@keyframes cookanim-kirsche {
-  0% {
-    transform: translateY(-90px);
-    opacity: 0;
+@keyframes cookanim-schlagen {
+  from {
+    transform: rotate(6deg);
   }
-  10% {
-    opacity: 1;
-  }
-  50% {
-    transform: translateY(0);
-  }
-  68% {
-    transform: translateY(-12px);
-  }
-  84% {
-    transform: translateY(0);
-  }
-  92% {
-    transform: translateY(-3px);
-  }
-  100% {
-    transform: translateY(0);
+  to {
+    transform: rotate(28deg);
   }
 }
 
@@ -2439,6 +2396,307 @@ ol {
   100% {
     opacity: 0;
     transform: scale(0.4) rotate(70deg);
+  }
+}
+
+/* --- Dessert fertig: Puderzucker ueber der Waehe -------------------------- */
+
+.cookanim__aepfel {
+  fill: #f8e7bd;
+  stroke: #d9a352;
+  stroke-width: 0.9;
+}
+
+.cookanim__puder {
+  fill: #fffdf8;
+  opacity: 0;
+  animation: cookanim-puder 1s ease-out 0.55s both;
+}
+
+.cookanim__korn {
+  fill: #ffffff;
+  stroke: #e8dccb;
+  stroke-width: 0.5;
+  opacity: 0;
+  animation: cookanim-rieseln 0.62s linear 0.3s 2;
+}
+
+.cookanim__korn--2 {
+  animation-delay: 0.4s;
+}
+
+.cookanim__korn--3 {
+  animation-delay: 0.52s;
+}
+
+.cookanim__korn--4 {
+  animation-delay: 0.6s;
+}
+
+.cookanim__sieb {
+  transform-box: view-box;
+  transform-origin: 90px 36px;
+  animation: cookanim-sieben 0.12s linear 0.25s 8 alternate both;
+}
+
+.cookanim__siebstiel {
+  stroke: #9d958a;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+
+.cookanim__siebkorb {
+  fill: #ece6dc;
+  stroke: #9d958a;
+  stroke-width: 1.4;
+}
+
+.cookanim__siebnetz {
+  stroke: #c9c2b8;
+  stroke-width: 0.9;
+}
+
+.cookanim__siebrand {
+  fill: #f6f2ea;
+  stroke: #9d958a;
+  stroke-width: 2;
+}
+
+@keyframes cookanim-sieben {
+  from {
+    transform: translateX(-3px) rotate(-4deg);
+  }
+  to {
+    transform: translateX(3px) rotate(4deg);
+  }
+}
+
+@keyframes cookanim-rieseln {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+    transform: translateY(62px);
+  }
+}
+
+@keyframes cookanim-puder {
+  to {
+    opacity: 0.78;
+  }
+}
+
+/* --- Bratpfanne: Gusseisen im Kupferrot des Braeters ---------------------- */
+
+/* Breiter als hoch: die Pfanne mit ihrem Stiel fuellt die Flaeche aus. */
+.cookanim__breit {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.cookanim__stielloch {
+  fill: var(--cream);
+}
+
+.cookanim__bratflaeche {
+  fill: #2b1612;
+}
+
+.cookanim__oel {
+  fill: #6a4424;
+  opacity: 0.45;
+}
+
+.cookanim__fleisch {
+  fill: #d9a05b;
+  stroke: #a8642a;
+  stroke-width: 1;
+}
+
+.cookanim__fleisch--gold {
+  fill: #c9853d;
+}
+
+.cookanim__schinken {
+  fill: #d98c86;
+  opacity: 0.9;
+}
+
+.cookanim__salbei {
+  fill: #6f8f4e;
+}
+
+.cookanim__salbeirippe {
+  stroke: #a9c48a;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+.cookanim__brutzeln path {
+  stroke: #c9b8a4;
+  opacity: 0;
+  animation: cookanim-brutzeln 0.5s ease-out 0.2s infinite;
+}
+
+.cookanim__brutzeln path:nth-child(2) {
+  animation-delay: 0.32s;
+}
+
+.cookanim__brutzeln path:nth-child(3) {
+  animation-delay: 0.44s;
+}
+
+.cookanim__brutzeln path:nth-child(4) {
+  animation-delay: 0.26s;
+}
+
+.cookanim__tropfen {
+  fill: #f6d58a;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cookanim-spritzen 0.55s ease-out 0.25s infinite;
+}
+
+.cookanim__tropfen--2 {
+  animation-name: cookanim-spritzen-r;
+  animation-delay: 0.4s;
+}
+
+.cookanim__tropfen--3 {
+  animation-name: cookanim-spritzen-r;
+  animation-delay: 0.55s;
+}
+
+.cookanim__tropfen--4 {
+  animation-delay: 0.7s;
+}
+
+/* Die Pfanne ruckelt auf dem Herd – gedreht um den Griff, wie in der Hand. */
+.cookanim__pfanne {
+  transform-box: view-box;
+  transform-origin: 148px 92px;
+}
+
+.cookanim__pfanne--ruckeln {
+  animation: cookanim-ruckeln 0.16s ease-in-out 0.3s infinite alternate;
+}
+
+/* Fertig: ein Schwung, das Plaetzli fliegt, dreht sich und landet. */
+.cookanim__pfanne--schwung {
+  animation: cookanim-schwung 0.5s ease-in-out 0.15s both;
+}
+
+.cookanim--fertig .cookanim__wendeplaetzli {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cookanim-wenden 0.7s cubic-bezier(0.3, 0.6, 0.4, 1) 0.25s both;
+}
+
+.cookanim__pfannendampf path {
+  stroke: #c9b8a4;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cookanim-dampf 0.8s ease-out 0.75s both;
+}
+
+.cookanim__pfannendampf path:nth-child(2) {
+  animation-delay: 0.85s;
+}
+
+.cookanim__pfannendampf path:nth-child(3) {
+  animation-delay: 0.95s;
+}
+
+.cookanim__stern--pfanne {
+  animation: cookanim-funkeln 0.6s ease-out 0.9s both;
+}
+
+@keyframes cookanim-ruckeln {
+  from {
+    transform: rotate(-1.2deg);
+  }
+  to {
+    transform: rotate(1.2deg);
+  }
+}
+
+@keyframes cookanim-schwung {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  35% {
+    transform: rotate(-5deg);
+  }
+  60% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes cookanim-wenden {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  45% {
+    transform: translateY(-42px) rotate(200deg);
+  }
+  80% {
+    transform: translateY(0) rotate(360deg);
+  }
+  90% {
+    transform: translateY(-3px) rotate(360deg);
+  }
+  100% {
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+@keyframes cookanim-brutzeln {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes cookanim-spritzen {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-10px, -20px) scale(1);
+  }
+}
+
+@keyframes cookanim-spritzen-r {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -18px) scale(1);
   }
 }
 

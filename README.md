@@ -32,7 +32,7 @@ Zwei Bereiche, auf Deutsch und auf Englisch:
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
 | Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Kochmodus | Kurze Animation zum Start und am Schluss: Bräter mit Kochlöffel, bei Ofengerichten der Ofen, bei Desserts Schwingbesen und Sahnehaube (`src/lib/kochAnimation.ts`) |
+| Kochmodus | Kurze Animation zum Start und am Schluss, passend zum Rezept: Bräter mit Kochlöffel für Saucen und Suppen, Bratpfanne für Gebratenes, Retro-Herd für Ofengerichte, Rührschüssel und Puderzucker für Desserts (`src/lib/kochAnimation.ts`) |
 | Gelüste | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
 | Gelüste | Das Plus fragt: Rezept über Link, Rezept aus Text (z. B. aus Claude), Rezept selbst schreiben oder nur eine Idee |
 | Ideen | Auf Cook Next setzen – ihre Zutaten kommen in die Beute |

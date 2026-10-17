@@ -50,6 +50,17 @@ export function resolveConnection(env: EnvLike): Connection {
   return name ? { url: env[name], source: name } : {};
 }
 
+/**
+ * Den SSL-Modus so schreiben, wie ihn der Postgres-Treiber heute schon
+ * behandelt. Neon und andere liefern "sslmode=require"; pg liest das
+ * bereits als "verify-full" und schreibt bei jeder neuen Verbindung eine
+ * lange Warnung ins Log, die Vercel als Fehler anzeigt. Mit "verify-full"
+ * bleibt die Verbindung genau gleich – nur die Warnung faellt weg.
+ */
+export function mitEindeutigemSslModus(url: string): string {
+  return url.replace(/([?&]sslmode=)(prefer|require|verify-ca)(?=&|$)/i, '$1verify-full');
+}
+
 function isUnpooled(name: string): boolean {
   return /UNPOOLED|NON_?POOL|DIRECT/i.test(name);
 }

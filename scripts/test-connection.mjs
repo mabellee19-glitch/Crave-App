@@ -35,7 +35,9 @@ try {
     { cwd: root, stdio: 'inherit' },
   );
 
-  const { resolveConnection } = await import(pathToFileURL(join(out, 'connection.js')).href);
+  const { resolveConnection, mitEindeutigemSslModus } = await import(
+    pathToFileURL(join(out, 'connection.js')).href
+  );
 
   const POOLED = 'postgres://user:pw@pooler.example.com/db?sslmode=require';
   const DIRECT = 'postgresql://user:pw@direct.example.com/db';
@@ -71,7 +73,28 @@ try {
     if (!ok) console.log(`     erwartet: ${expected}`);
   }
 
-  console.log(`\n${cases.length - failed}/${cases.length} Prüfungen bestanden`);
+  // Der SSL-Modus: "require" ist fuer pg schon "verify-full" – geschrieben
+  // wird es so, damit die Warnung im Log verschwindet.
+  const ssl = [
+    ['sslmode=require wird verify-full', POOLED, 'postgres://user:pw@pooler.example.com/db?sslmode=verify-full'],
+    [
+      'auch mitten in den Parametern',
+      'postgres://u:p@h/db?sslmode=require&channel_binding=require',
+      'postgres://u:p@h/db?sslmode=verify-full&channel_binding=require',
+    ],
+    ['disable bleibt', 'postgres://u:p@localhost/db?sslmode=disable', 'postgres://u:p@localhost/db?sslmode=disable'],
+    ['ohne sslmode bleibt alles', DIRECT, DIRECT],
+  ];
+  for (const [label, url, expected] of ssl) {
+    const actual = mitEindeutigemSslModus(url);
+    const ok = actual === expected;
+    if (!ok) failed += 1;
+    console.log(`${ok ? 'ok  ' : 'FAIL'} ${label} -> ${actual}`);
+    if (!ok) console.log(`     erwartet: ${expected}`);
+  }
+
+  const total = cases.length + ssl.length;
+  console.log(`\n${total - failed}/${total} Prüfungen bestanden`);
   process.exit(failed === 0 ? 0 : 1);
 } finally {
   rmSync(out, { recursive: true, force: true });

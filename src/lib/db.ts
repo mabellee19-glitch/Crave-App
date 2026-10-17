@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Pool } from 'pg';
 import { AppData, emptyData } from './types';
-import { resolveConnection } from './connection';
+import { mitEindeutigemSslModus, resolveConnection } from './connection';
 import { mergeData, pruneTombstones } from './merge';
 
 export interface SpaceRecord {
@@ -37,8 +37,9 @@ async function getPool(): Promise<Pool> {
   if (!poolPromise) {
     poolPromise = (async () => {
       const { Pool: PgPool } = await import('pg');
+      const url = connectionString();
       const pool = new PgPool({
-        connectionString: connectionString(),
+        connectionString: url ? mitEindeutigemSslModus(url) : url,
         max: 3,
         idleTimeoutMillis: 10_000,
         connectionTimeoutMillis: 10_000,

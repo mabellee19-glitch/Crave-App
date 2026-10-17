@@ -2296,29 +2296,20 @@ ol {
   opacity: 0.45;
 }
 
-.cookanim__fleisch {
-  fill: #d9a05b;
-  stroke: #a8642a;
-  stroke-width: 1;
-}
-
-.cookanim__fleisch--gold {
-  fill: #c9853d;
-}
-
-.cookanim__schinken {
-  fill: #d98c86;
-  opacity: 0.9;
-}
-
-.cookanim__salbei {
-  fill: #6f8f4e;
-}
-
-.cookanim__salbeirippe {
-  stroke: #a9c48a;
-  stroke-width: 0.8;
+/* Der Oelfilm schimmert: ein Glanzstreifen wandert darueber. */
+.cookanim__oelglanz {
+  fill: none;
+  stroke: #f3e2c0;
+  stroke-width: 1.6;
   stroke-linecap: round;
+  stroke-dasharray: 8 40;
+  opacity: 0.55;
+  animation: cookanim-oelglanz 1.1s linear infinite;
+}
+
+.cookanim--fertig .cookanim__oelglanz {
+  animation-iteration-count: 1;
+  animation-fill-mode: both;
 }
 
 .cookanim__brutzeln path {
@@ -2371,15 +2362,9 @@ ol {
   animation: cookanim-ruckeln 0.16s ease-in-out 0.3s infinite alternate;
 }
 
-/* Fertig: ein Schwung, das Plaetzli fliegt, dreht sich und landet. */
+/* Fertig: ein Schwung aus dem Handgelenk. */
 .cookanim__pfanne--schwung {
   animation: cookanim-schwung 0.5s ease-in-out 0.15s both;
-}
-
-.cookanim--fertig .cookanim__wendeplaetzli {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cookanim-wenden 0.7s cubic-bezier(0.3, 0.6, 0.4, 1) 0.25s both;
 }
 
 .cookanim__pfannendampf path {
@@ -2387,19 +2372,23 @@ ol {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: cookanim-dampf 0.8s ease-out 0.75s both;
+  animation: cookanim-dampf 0.8s ease-out 0.45s both;
 }
 
 .cookanim__pfannendampf path:nth-child(2) {
-  animation-delay: 0.85s;
+  animation-delay: 0.55s;
 }
 
 .cookanim__pfannendampf path:nth-child(3) {
-  animation-delay: 0.95s;
+  animation-delay: 0.65s;
 }
 
 .cookanim__stern--pfanne {
-  animation: cookanim-funkeln 0.6s ease-out 0.9s both;
+  animation: cookanim-funkeln 0.6s ease-out 0.7s both;
+}
+
+.cookanim__stern--pfanne2 {
+  animation: cookanim-funkeln 0.6s ease-out 0.85s both;
 }
 
 @keyframes cookanim-ruckeln {
@@ -2424,21 +2413,12 @@ ol {
   }
 }
 
-@keyframes cookanim-wenden {
-  0% {
-    transform: translateY(0) rotate(0deg);
+@keyframes cookanim-oelglanz {
+  from {
+    stroke-dashoffset: 48;
   }
-  45% {
-    transform: translateY(-42px) rotate(200deg);
-  }
-  80% {
-    transform: translateY(0) rotate(360deg);
-  }
-  90% {
-    transform: translateY(-3px) rotate(360deg);
-  }
-  100% {
-    transform: translateY(0) rotate(360deg);
+  to {
+    stroke-dashoffset: 0;
   }
 }
 

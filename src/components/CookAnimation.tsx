@@ -8,12 +8,12 @@ import type { AnimationsMotiv } from '@/lib/kochAnimation';
  *
  * - `start` – es geht los, das Essen ist noch nicht fertig:
  *   - Bräter (Saucen, Suppen, Currys): der Topf steht offen, ein Kochlöffel rührt.
- *   - Bratpfanne (Gebratenes): Plätzli brutzeln, Öl spritzt, die Pfanne ruckelt.
+ *   - Bratpfanne (Gebratenes): das Öl glänzt und brutzelt, es spritzt, die Pfanne ruckelt.
  *   - Ofen: der Knopf dreht, das Lämpchen geht an, das Fenster glüht.
  *   - Dessert: in der Diner-Rührschüssel schlägt ein Schwingbesen.
  * - `fertig` – das Bild vom fertigen Gericht, deshalb steht es am Schluss:
  *   - Bräter: der Deckel hebt sich vom geschlossenen Topf und es dampft.
- *   - Bratpfanne: ein Plätzli wird gewendet und landet goldbraun.
+ *   - Bratpfanne: ein Schwung aus dem Handgelenk, es dampft und funkelt.
  *   - Ofen: die Tür klappt auf, Dampfwolken quellen heraus.
  *   - Dessert: über der Wähe rieselt Puderzucker aus dem Sieb.
  *
@@ -23,7 +23,7 @@ import type { AnimationsMotiv } from '@/lib/kochAnimation';
  */
 const DAUER_MS: Record<'start' | 'fertig', Record<AnimationsMotiv, number>> = {
   start: { braeter: 1100, pfanne: 1100, ofen: 1800, besen: 1200, dessert: 1200 },
-  fertig: { braeter: 1100, pfanne: 1500, ofen: 1900, besen: 1700, dessert: 1700 },
+  fertig: { braeter: 1100, pfanne: 1300, ofen: 1900, besen: 1700, dessert: 1700 },
 };
 
 export function CookAnimation({
@@ -383,10 +383,11 @@ function Puderzucker() {
 
 /**
  * Eine Gusseisenpfanne im selben Kupferrot wie der Bräter, von schräg oben:
- * Rand, schwarze Bratfläche, langer Stiel nach rechts. Darin zwei Plätzli
- * mit einem Salbeiblatt – Saltimbocca, Schnitzel, Tätschli.
+ * Rand, schwarze Bratfläche, langer Stiel nach rechts. Leer, nur ein Ölfilm
+ * mit einem Glanz darauf – so passt sie zu jedem Gebratenen, vom Plätzli bis
+ * zu den Gyoza.
  */
-function Pfanne({ children, gewendet = false }: { children?: React.ReactNode; gewendet?: boolean }) {
+function Pfanne({ children }: { children?: React.ReactNode }) {
   return (
     <>
       <g className="cookanim__pfannenstiel">
@@ -398,63 +399,50 @@ function Pfanne({ children, gewendet = false }: { children?: React.ReactNode; ge
       <path className="cookanim__glanz" d="M36 106q2 6 8 9" />
       <ellipse className="cookanim__rand" cx="72" cy="100" rx="46" ry="13" />
       <ellipse className="cookanim__bratflaeche" cx="72" cy="101" rx="41" ry="10.5" />
-      <ellipse className="cookanim__oel" cx="64" cy="102" rx="22" ry="4.5" />
-      <Plaetzli x={57} y={100.5} winkel={-8} gold={gewendet} />
-      <g className="cookanim__wendeplaetzli">
-        <Plaetzli x={87} y={101.5} winkel={6} gold={gewendet} />
-      </g>
+      <ellipse className="cookanim__oel" cx="70" cy="102" rx="30" ry="6.5" />
+      <path className="cookanim__oelglanz" d="M54 99.5q14-3.5 30-1.5" />
       {children}
     </>
   );
 }
 
-function Plaetzli({ x, y, winkel, gold }: { x: number; y: number; winkel: number; gold: boolean }) {
-  return (
-    <g transform={`rotate(${winkel} ${x} ${y})`}>
-      <ellipse className={`cookanim__fleisch${gold ? ' cookanim__fleisch--gold' : ''}`} cx={x} cy={y} rx="13.5" ry="6.2" />
-      <ellipse className="cookanim__schinken" cx={x - 1} cy={y - 0.6} rx="9" ry="3.8" />
-      <ellipse className="cookanim__salbei" cx={x + 1} cy={y - 1.2} rx="5" ry="2.1" transform={`rotate(-24 ${x + 1} ${y - 1.2})`} />
-      <path className="cookanim__salbeirippe" d={`M${x - 3} ${y + 0.2}L${x + 5} ${y - 2.6}`} />
-    </g>
-  );
-}
-
-/** Start: es brutzelt – Öl spritzt, die Pfanne ruckelt auf dem Herd. */
+/** Start: es brutzelt – das Öl glänzt, spritzt, die Pfanne ruckelt auf dem Herd. */
 function PfanneStart() {
   return (
     <svg className="cookanim__topf cookanim__breit" viewBox="10 36 150 100" width="246" height="164" aria-hidden="true">
       <g className="cookanim__pfanne cookanim__pfanne--ruckeln">
         <Pfanne>
           <g className="cookanim__brutzeln" fill="none" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M52 90q-2-3 0-6" />
-            <path d="M62 88q-2-3 0-6" />
-            <path d="M84 90q-2-3 0-6" />
-            <path d="M94 89q-2-3 0-6" />
+            <path d="M52 92q-2-3 0-6" />
+            <path d="M64 90q-2-3 0-6" />
+            <path d="M80 91q-2-3 0-6" />
+            <path d="M92 92q-2-3 0-6" />
           </g>
-          <circle className="cookanim__tropfen" cx="48" cy="96" r="1.6" />
-          <circle className="cookanim__tropfen cookanim__tropfen--2" cx="74" cy="95" r="1.4" />
-          <circle className="cookanim__tropfen cookanim__tropfen--3" cx="98" cy="97" r="1.5" />
-          <circle className="cookanim__tropfen cookanim__tropfen--4" cx="66" cy="97" r="1.2" />
+          <circle className="cookanim__tropfen" cx="48" cy="98" r="1.6" />
+          <circle className="cookanim__tropfen cookanim__tropfen--2" cx="74" cy="97" r="1.4" />
+          <circle className="cookanim__tropfen cookanim__tropfen--3" cx="96" cy="99" r="1.5" />
+          <circle className="cookanim__tropfen cookanim__tropfen--4" cx="64" cy="99" r="1.2" />
         </Pfanne>
       </g>
     </svg>
   );
 }
 
-/** Fertig: ein Plätzli wird in die Luft gewendet und landet goldbraun, es dampft. */
+/** Fertig: ein Schwung aus dem Handgelenk, Dampf steigt auf, es funkelt. */
 function PfanneFertig() {
   return (
     <svg className="cookanim__topf cookanim__breit" viewBox="10 36 150 100" width="246" height="164" aria-hidden="true">
       <g className="cookanim__pfanne cookanim__pfanne--schwung">
-        <Pfanne gewendet>
+        <Pfanne>
           <g className="cookanim__pfannendampf" fill="none" strokeWidth="2.4" strokeLinecap="round">
-            <path d="M58 88c-4-5 4-8 0-13" />
-            <path d="M72 85c-4-5.5 4-8.5 0-14" />
-            <path d="M86 88c-4-5 4-8 0-13" />
+            <path d="M58 90c-4-5 4-8 0-13" />
+            <path d="M72 87c-4-5.5 4-8.5 0-14" />
+            <path d="M86 90c-4-5 4-8 0-13" />
           </g>
         </Pfanne>
       </g>
       <path className="cookanim__stern cookanim__stern--pfanne" d="M118 56l1.8 4.4 4.4 1.8-4.4 1.8-1.8 4.4-1.8-4.4-4.4-1.8 4.4-1.8z" />
+      <path className="cookanim__stern cookanim__stern--pfanne2" d="M30 68l1.3 3.2 3.2 1.3-3.2 1.3-1.3 3.2-1.3-3.2-3.2-1.3 3.2-1.3z" />
     </svg>
   );
 }

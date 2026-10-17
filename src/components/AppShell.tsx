@@ -3,7 +3,8 @@
 import React, { Activity, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Dish, Recipe } from '@/lib/types';
 import { blankDish, blankRecipe, useStore } from '@/lib/store';
-import { audioFreigegeben, unlockAudio } from '@/lib/audio';
+import { audioFreigegeben, audioVorbereiten, tonFreigeben } from '@/lib/audio';
+import { scrollAnkerStarten } from '@/lib/scrollAnker';
 import { KiKuerzung } from '@/lib/useKiKuerzung';
 import { useT } from '@/lib/i18n';
 import { useInhalt } from '@/lib/inhalt';
@@ -65,7 +66,6 @@ export function AppShell() {
   const [tab, setTab] = useState<Tab>('essen');
   const [stack, setStack] = useState<Overlay[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
-  const [scrolled, setScrolled] = useState(false);
   const stackRef = useRef(stack);
   stackRef.current = stack;
   // Der Toast wird erzeugt, bevor React den neuen Undo-Handler gesetzt hat –
@@ -151,8 +151,9 @@ export function AppShell() {
    */
   useEffect(() => {
     const ereignisse = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+    audioVorbereiten();
     const unlock = () => {
-      unlockAudio();
+      tonFreigeben();
       if (audioFreigegeben()) {
         for (const ereignis of ereignisse) window.removeEventListener(ereignis, unlock, true);
       }
@@ -163,8 +164,21 @@ export function AppShell() {
     };
   }, []);
 
+  // Safari verschiebt sonst die Liste, wenn oberhalb etwas dazukommt.
+  const hauptRef = useRef<HTMLElement>(null);
+  const kopfRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
+    if (!hauptRef.current) return;
+    return scrollAnkerStarten(hauptRef.current, () => kopfRef.current);
+  }, []);
+
+  /*
+   * Die Linie unter der Kopfleiste direkt am Element umschalten: als Zustand
+   * zeichnete der erste Wisch die ganze App neu – genau dann, wenn das
+   * Scrollen anlaeuft.
+   */
+  useEffect(() => {
+    const onScroll = () => kopfRef.current?.classList.toggle('topbar--scrolled', window.scrollY > 4);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -280,7 +294,7 @@ export function AppShell() {
 
   return (
     <div className="app">
-      <header className={`topbar${scrolled ? ' topbar--scrolled' : ''}`}>
+      <header ref={kopfRef} className="topbar">
         <div className="topbar__inner">
           <span className="brand">
             <Wordmark hoehe={30} />
@@ -325,7 +339,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="app__main">
+      <main ref={hauptRef} className="app__main">
         <CloudNotice onOpenSettings={() => openOverlay({ kind: 'settings' })} />
 
         {!store.ready ? (

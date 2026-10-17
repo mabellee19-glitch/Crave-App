@@ -176,3 +176,70 @@ test.describe('Abgleich im Hintergrund', () => {
     expect(antworten[0].body.data).toBeUndefined();
   });
 });
+
+test.describe('Scrollen ohne Verrutschen', () => {
+  /**
+   * Safari gleicht nicht aus, wenn oberhalb der sichtbaren Stelle etwas
+   * dazukommt – Chromium schon. Mit abgeschaltetem Ausgleich verhaelt sich
+   * Chromium wie Safari, und die App muss es selbst richten (lib/scrollAnker).
+   */
+  async function wieSafari(page: import('@playwright/test').Page) {
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const stil = document.createElement('style');
+        stil.textContent = '* { overflow-anchor: none !important; }';
+        document.head.appendChild(stil);
+      });
+    });
+  }
+
+  test('trägt ein anderes Gerät weiter oben etwas ein, bleibt die Zeile stehen', async ({ page, browser }, info) => {
+    // Auf dem breiten Bildschirm stehen die Abteilungen nebeneinander – dort
+    // kommt nichts oberhalb dazu.
+    test.skip(info.project.name !== 'iphone', 'nur in der einspaltigen Liste');
+    await wieSafari(page);
+    const space = newSpace('anker');
+    await openSpace(page, space);
+    await goToTab(page, 'Beute');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(200);
+
+    // Die oberste Zeile unter der Kopfleiste – an der haelt sich das Auge.
+    const vorher = await page.evaluate(() => {
+      const kopf = document.querySelector('.topbar')!.getBoundingClientRect().bottom;
+      const links = document.querySelector('main')!.getBoundingClientRect().left + 40;
+      const zeile = document.elementFromPoint(links, kopf + 6)!.closest('li, article, .card, .kachel, h1, h2, h3')!;
+      (window as unknown as { __zeile: Element }).__zeile = zeile;
+      return { oben: zeile.getBoundingClientRect().top, scrollY: window.scrollY };
+    });
+    expect(vorher.scrollY).toBeGreaterThan(0);
+
+    // Das iPad traegt ein.
+    const ipad = await browser.newContext();
+    const andere = await ipad.newPage();
+    await openSpace(andere, space);
+    await goToTab(andere, 'Beute');
+    const eingabe = andere.locator('.einkauf__eingabe input');
+    for (const zutat of ['Milch', 'Brot', 'Joghurt', 'Butter', 'Rahm']) {
+      await eingabe.fill(zutat);
+      await eingabe.press('Enter');
+    }
+    await expect(andere.locator('.einkauf__eingabe input')).toHaveValue('');
+    await andere.waitForTimeout(1500);
+    await ipad.close();
+
+    // Das iPhone holt es ab.
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(page.getByText('Joghurt', { exact: true })).toBeAttached({ timeout: 10_000 });
+    await page.waitForTimeout(300);
+
+    const nachher = await page.evaluate(() => {
+      const zeile = (window as unknown as { __zeile: Element }).__zeile;
+      return { da: zeile.isConnected, oben: zeile.getBoundingClientRect().top, scrollY: window.scrollY };
+    });
+    expect(nachher.da).toBe(true);
+    // Oberhalb kam etwas dazu – sonst prueft der Test nichts.
+    expect(nachher.scrollY).toBeGreaterThan(vorher.scrollY);
+    expect(Math.abs(nachher.oben - vorher.oben)).toBeLessThan(2);
+  });
+});

@@ -7,7 +7,7 @@
  *    Loslassen (pointerup, touchend, click), nicht das Aufsetzen des Fingers.
  *    Freigegeben wird deshalb beim Loslassen, und zwar so lange bei jedem
  *    Tippen, bis es geklappt hat. Zusaetzlich direkt beim Druck auf
- *    "Timer starten" und "Start Cooking".
+ *    "Timer starten".
  * 2. Der Stummschalter am Geraet legt Web-Audio-Ton lahm. Der Wecker ist
  *    deshalb eine echte Tondatei in einem <audio>-Element: das gilt als
  *    Medienwiedergabe und klingelt auch bei stumm geschaltetem Klingeln.
@@ -158,16 +158,40 @@ function weckerFreigeben(): void {
     });
 }
 
-/** Bei einem Tippen aufrufen – danach kann der Timer jederzeit klingeln. */
+/**
+ * Die Tondatei schon einmal bauen, wenn gerade nichts los ist – dann kostet
+ * das Freigeben beim ersten Tippen fast nichts.
+ */
+export function audioVorbereiten(): void {
+  if (typeof window === 'undefined') return;
+  const bauen = () => void weckerElement();
+  const leerlauf = (window as unknown as { requestIdleCallback?: (fn: () => void) => number }).requestIdleCallback;
+  if (leerlauf) leerlauf(bauen);
+  else window.setTimeout(bauen, 1500);
+}
+
+/**
+ * Bei jedem Tippen, bis es geklappt hat: nur das <audio>-Element freigeben.
+ * Der AudioContext kommt hier bewusst nicht dazu – ihn zu erzeugen dauert in
+ * manchen Browsern ueber 30 ms, und das genau beim ersten Tipp in der App.
+ */
+export function tonFreigeben(): void {
+  weckerFreigeben();
+}
+
+/** Ob das Element freigegeben ist – dann braucht es keine weiteren Versuche. */
+export function audioFreigegeben(): boolean {
+  return weckerFrei;
+}
+
+/**
+ * Vollstaendig freigeben, mit AudioContext als Ersatz – beim Druck auf
+ * "Timer starten" und beim Probeklingeln, also dort, wo es klingeln soll.
+ */
 export function unlockAudio(): void {
   if (!ctx) ctx = createContext();
   if (ctx) aufwecken(ctx);
   weckerFreigeben();
-}
-
-/** Ob alles freigegeben ist – dann braucht es keine weiteren Versuche. */
-export function audioFreigegeben(): boolean {
-  return weckerFrei && (ctx === null || ctx.state === 'running');
 }
 
 /**

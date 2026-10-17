@@ -578,7 +578,8 @@ async function uebersetzen(modus) {
     check('[uebersetzen ok] die Zutaten gehen mit', JSON.stringify(anfrage?.body?.messages ?? '').includes('2 cups flour'));
     check('[uebersetzen ok] die Regeln rechnen Fahrenheit um', String(anfrage?.body?.system ?? '').includes('350 °F → 180 °C'));
 
-    // Import: die KI liest das Rezept, es ist englisch – also gleich uebersetzen.
+    // Import: das Rezept ist englisch – also gleich uebersetzen.
+    const anfragenVorImport = gateway.anfragen.length;
     const importiert = await fetch(`http://127.0.0.1:${appPort}/api/import`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -594,8 +595,10 @@ async function uebersetzen(modus) {
     );
     check('[uebersetzen import] Timer aus dem deutschen Schritt', rezept?.steps?.[1]?.durationSec === 3600);
     check('[uebersetzen import] kein Eszett', !JSON.stringify(rezept).includes('ß'));
-    const werkzeuge = gateway.anfragen.slice(-2).map((eintrag) => eintrag.body?.tools?.[0]?.name);
-    check('[uebersetzen import] erst lesen, dann uebersetzen', JSON.stringify(werkzeuge) === '["rezept_gelesen","rezept_uebersetzt"]', JSON.stringify(werkzeuge));
+    // Mit Ueberschriften liest die App den Text selbst – an die KI geht nur
+    // noch die Uebersetzung, genau einmal.
+    const werkzeuge = gateway.anfragen.slice(anfragenVorImport).map((eintrag) => eintrag.body?.tools?.[0]?.name);
+    check('[uebersetzen import] selbst gelesen, nur die Uebersetzung geht an die KI', JSON.stringify(werkzeuge) === '["rezept_uebersetzt"]', JSON.stringify(werkzeuge));
   } finally {
     app.kill();
     gateway.server.close();

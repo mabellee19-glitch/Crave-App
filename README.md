@@ -29,9 +29,9 @@ Die App ist auf Deutsch, in Schweizer Schreibweise. Zwei Bereiche:
 | Rezepte | `Start Cooking`: zuerst die Vorbereitung zum Abhaken, dann ein Schritt pro Bildschirm |
 | Rezepte | Unter jedem Schritt stehen nur die Zutaten, die er braucht – mit Mengen für die gewählten Portionen |
 | Kochmodus | Timer pro Schritt: Weckerton und Vibration, Display bleibt an |
-| Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht |
+| Kochmodus | Der Weckerton kommt auch durch, wenn das iPhone auf lautlos steht: er ist eine echte Tondatei und klingelt, bis man `Fertig` drückt |
 | Kochmodus | Timer laufen beim Weiterblättern weiter, auch mehrere gleichzeitig |
-| Kochmodus | Kurze Animation zum Start und am Schluss, passend zum Rezept: Bräter mit Kochlöffel für Saucen und Suppen, Bratpfanne für Gebratenes, Retro-Herd für Ofengerichte, Rührschüssel und Puderzucker für Desserts (`src/lib/kochAnimation.ts`) |
+| Kochmodus | Kurze Animation zum Start und am Schluss, passend zum Rezept: Bräter mit Kochlöffel für Saucen und Suppen, leere Bratpfanne für alles Gebratene, Retro-Herd für Ofengerichte, Rührschüssel und Puderzucker für Desserts (`src/lib/kochAnimation.ts`) |
 | Gelüste | Rezepte und Ideen in einer Liste, Filter nach Kategorie und Cook Next, Suche über Namen und Zutaten |
 | Gelüste | Das Plus fragt: Rezept über Link, Rezept aus Text (z. B. aus Claude), Rezept selbst schreiben oder nur eine Idee |
 | Ideen | Auf Cook Next setzen – ihre Zutaten kommen in die Beute |
@@ -49,6 +49,7 @@ Die App ist auf Deutsch, in Schweizer Schreibweise. Zwei Bereiche:
 | Überall | Suche, automatisches Speichern, Geräte-Abgleich |
 | Überall | Zwei Farbwelten unter `Einstellungen & Sync → Design`: Diner und Dunkel |
 | Überall | Startet sofort mit dem Stand auf dem Gerät, der Abgleich läuft im Hintergrund |
+| Überall | Nichts verrutscht beim Lesen: trägt ein anderes Gerät weiter oben etwas ein, bleibt die sichtbare Zeile stehen – auch in Safari |
 
 ## Zutaten eingeben
 
@@ -519,6 +520,12 @@ Rezept ändert, während das iPad eine Zutat abhakt, bleiben beide Änderungen
 erhalten. Gelöschtes bekommt einen Grabstein-Eintrag, damit ein länger nicht
 benutztes Gerät nichts wiederbelebt.
 
+Kommt beim Abholen oberhalb der sichtbaren Stelle etwas dazu, rutscht die
+Liste nicht weg. Chrome und Firefox gleichen das selbst aus, Safari nicht;
+dort merkt sich die App die oberste sichtbare Zeile und scrollt um genau so
+viel nach, wie sie sich verschoben hat, bevor das nächste Bild gezeichnet
+wird (`src/lib/scrollAnker.ts`).
+
 ## Tests
 
 ```bash
@@ -582,6 +589,8 @@ src/
     category.ts               Kategorie aus den Zutaten
     stepIngredients.ts        Welche Zutaten zu welchem Schritt gehören
     essen.ts                  Rezepte und Ideen in einer Liste
+    scrollAnker.ts            Nichts verrutscht, wenn oberhalb etwas dazukommt (Safari)
+    audio.ts                  Weckerton: Tondatei, Freigabe beim Tippen, Web Audio als Ersatz
     theme.ts                  Farbwelten
     store.tsx                 lokaler Zustand und Abgleich
     merge.ts                  Zusammenführen zweier Stände

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '@/lib/i18n';
 import { IconClose } from './Icons';
@@ -28,7 +28,9 @@ let restoreLock: (() => void) | null = null;
  * zurückschreiben.
  */
 export function useBodyScrollLock(active: boolean) {
-  useEffect(() => {
+  // Vor dem ersten Bild sperren und vor dem letzten loesen: so gibt es kein
+  // Bild, in dem das Blatt schon steht und die Seite dahinter noch scrollt.
+  useLayoutEffect(() => {
     if (!active) return;
 
     if (lockCount === 0) {
